@@ -35,12 +35,11 @@
 ### Необходимые компоненты (prerequisites)
 - nodejs (https://nodejs.org/)
 - git  (https://git-scm.com/download/win)
-- Oracle Instant Client, которые потребуются для 
-компиляции и установки модуля oracledb (см. документацию по модулю
-https://github.com/oracle/node-oracledb) 
-
-### Некоторые node_modules, такие как oracledb требуют компиляции из исходников
- Поэтому установите необходимые для этого инструменты (от имени администратора):
+- Oracle Instant Сlient (потребуется для компиляции и установки модуля oracledb
+см. документацию по модулю https://github.com/oracle/node-oracledb) 
+- windows-build-tools (пакет утилит Python, C++, node-gyp с помощью которых nodejs
+компилирует платформо-зависимые модули
+(от имени администратора!!!):
 ```
         \> npm install --global --production windows-build-tools
 ```
