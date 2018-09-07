@@ -49,13 +49,12 @@ https://github.com/oracle/node-oracledb)
 ```
         \> npm install --global --production windows-build-tools
 ```
-##   3.3. 
-- в командной строке перейдите в каталог, где впоследствии будет размещена
-папка Synapse и выполните:
+##   3.3. В командной строке 
+перейдите в каталог, где впоследствии будет размещена папка Synapse и выполните:
 ```
-\> git clone https://github.com/yenesey/Synapse
-\> cd Synapse
-\> npm install 
+        \> git clone https://github.com/yenesey/Synapse
+        \> cd Synapse
+        \> npm install 
 ```
 (!!!) корректная работа некоторых модулей не гарантируется, поэтому
 в подкаталоге /.other/node_modules сохранены рабочие копии
