@@ -37,19 +37,19 @@
 
  #  3. УСТАНОВКА 
    
-##   3.1. Скачайте и установите nodejs (https://nodejs.org/)
+##   3.1. Скачайте и установите необходимые компоненты (prerequisites)
+- nodejs (https://nodejs.org/)
+- git  (https://git-scm.com/download/win)
+- Oracle Instant Client, которые потребуются для 
+компиляции и установки модуля oracledb (см. документацию по модулю
+https://github.com/oracle/node-oracledb) 
 
 ##   3.2. Некоторые node_modules требуют компиляции из исходников, поэтому, 
  - установите необходимые для этого инструменты (от имени администратора):
 ```
         \> npm install --global --production windows-build-tools
 ```
-
-- установите git:  https://git-scm.com/download/win
-- установите драйверы Oracle Instant Client, которые потребуются для 
-компиляции и установки модуля oracledb (см. документацию по модулю
-https://github.com/oracle/node-oracledb) 
-
+##   3.3. 
 - в командной строке перейдите в каталог, где впоследствии будет размещена
 папка Synapse и выполните:
 ```
