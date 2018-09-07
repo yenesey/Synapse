@@ -1,0 +1,45 @@
+﻿<template>
+<div>
+
+<pre>Копирование файлов по маске с FIO.</pre>
+
+  <select v-model="item">
+    <option value=0 selected>Ошибки загрузки ЭД</option> 
+    <option value=1>Журналы РЦ</option> 
+    <option value=2>Протоколы закрытия ОД</option> 
+    <option value=3>Архив</option> 
+    <option value=4>Входящие 440-П</option> 
+  </select>
+  <br> <br>
+  <label for="src"><i>Источник:</i></label> <br>
+  <input name="src" :value="locate.src" style="width:250px; margin-bottom:.5rem;">
+  <br> 
+  <label for="mask"><i>Маска файлов:</i></label> <br>
+  <input name="mask" :value="locate.mask" style="width:250px">
+
+</div>
+</template>
+
+<script>
+
+module.exports = {
+	data : function(){
+		return {
+			item : 0
+		}
+	},
+	computed : {
+		locate : function(){
+			if (!this.item) this.item = 0;
+			return [ 
+					{src: 'trc2/errors', mask: '*.*'},
+          {src: 'trc2', mask: 'YY-MM-DD*.*'},
+          {src: 'LOGS/LOG_END_OD/002', mask: '*MMDD*.*'},
+          {src: 'trc2/archive', mask: 'YY-MM-DD.*'},
+          {src: '365P/002/IN', mask: '*.VRB'} 
+				]
+				[this.item]
+		}
+	}
+}	
+</script>

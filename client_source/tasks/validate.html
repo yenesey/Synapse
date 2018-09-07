@@ -1,0 +1,61 @@
+﻿<template>
+<div>
+<task-icon>keyboard_voice</task-icon> <!-- https://material.io/tools/icons -->
+<task-section>test</task-section> 
+
+<pre>Тестирование интерфейсных элементов и передачи параметров в рамках функционала "tasks"</pre>
+
+<tabs>
+	<tab name="Первый">
+		<dlookup
+				placeholder="Введите часть наименования для поиска"
+				:min-length=2
+			  name="dog" 
+			  table="IBS.VW_CRIT_BANK_CLIENT" 
+				fields="C_3, C_1, C_2"
+			  result="ID"
+			  look-in="%C_1%,%C_3%" 
+			  where="C_10='Работает'" 
+				@select="clientSelected"
+			  style="width:500px"
+				save
+			>
+				<span slot-scope="{item, index}">
+			   	 {{item.C_3}}
+	 		  	 <i><b>{{' (№' + item.C_1 + ' от ' + item.C_2 + ')'}}</b></i>
+				</span>
+			</dlookup>
+	
+			<br>
+			<datepicker name="date1"></datepicker> 	
+			<br> 
+  <datepicker label="Отчет за" type="month" name="dateRep"></datepicker> 
+		<br>
+	
+	</tab>
+
+	<tab name="Второй">
+			<v-date-picker v-model="picker" ></v-date-picker>
+	</tab>
+
+
+
+</tabs>
+
+</div>
+</template>
+
+<script>
+export default {
+	data:()=>({ 
+		picker : null
+	}),
+	methods : {
+		clientSelected(event) {
+			this.C_1 = event.C_1;
+			this.C_2 = event.C_2;
+		}
+	}
+}
+</script>
+

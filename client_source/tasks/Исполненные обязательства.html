@@ -1,0 +1,16 @@
+﻿<template>
+<div>
+
+<pre>Сведения о депозитах юридических и физических лиц закрытых в указанный день.</pre>
+
+  <datepicker label="Отчет за" name="dateRep" :value="moment().add(-1, 'day').format('YYYY-MM-DD')"></datepicker>
+  <br>
+  <label for="deps"><i>Подразделение:</i></label><br>
+  <select name="deps" style="width:200px" save>
+    <option disabled selected></option> 
+    <option value=002-00>Сибирский филиал</option> 
+    <option value=002-01>ОО в г.Иркутске</option> 
+  </select>
+</div>
+</template>
+
