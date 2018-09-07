@@ -64,7 +64,7 @@ https://github.com/oracle/node-oracledb)
 
 ##   3.5. С помощью "SQLite Studio" (http://sqlitestudio.pl):
 
-- cоздайте чистую базу /db/synapse.db, выполнив скрипт "create_db.sql"
+- cоздайте чистую базу /db/synapse.db, выполнив скрипт "./other/db.sql"
 - отредактируйте таблицу [users]: login, name, email для первой 
 учетной записи, подставив соответственно, свои реквизиты из домена
 - отредактируйте таблицу [settings]: установите логин и пароль 
