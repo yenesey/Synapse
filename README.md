@@ -2,8 +2,6 @@
    
    
 # -= Synapse =-
-
-![# -= Synapse =-](https://github.com/yenesey/Synapse/blob/master/.other/memories/synapse.png)
    
    Здесь вы найдете только описание для быстрого старта, а остальное, легко
  находится в Сети.
@@ -126,3 +124,5 @@ https://github.com/oracle/node-oracledb)
  внести запись cо значениями: class="tasks" и name="имя модуля" (рекомендуется 
  делать через SQLite editor). После внесения записи в базу данных, администратор
  может раздавать доступы в WEB-интерфейсе самой системы.
+
+![# -= Synapse =-](https://github.com/yenesey/Synapse/blob/master/.other/memories/v2.9.png)
