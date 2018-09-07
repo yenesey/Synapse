@@ -125,4 +125,9 @@ https://github.com/oracle/node-oracledb)
  делать через SQLite editor). После внесения записи в базу данных, администратор
  может раздавать доступы в WEB-интерфейсе самой системы.
 
+
+## Снимки экрана
+### Было
+![# -= Synapse =-](https://github.com/yenesey/Synapse/blob/master/.other/memories/synapse.png)
+### Стало
 ![# -= Synapse =-](https://github.com/yenesey/Synapse/blob/master/.other/memories/v2.9.png)
