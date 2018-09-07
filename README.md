@@ -32,7 +32,7 @@
 
 ## Установка 
    
-### Скачайте и установите необходимые компоненты (prerequisites)
+### Необходимые компоненты (prerequisites)
 - nodejs (https://nodejs.org/)
 - git  (https://git-scm.com/download/win)
 - Oracle Instant Client, которые потребуются для 
@@ -44,7 +44,6 @@ https://github.com/oracle/node-oracledb)
 ```
         \> npm install --global --production windows-build-tools
 ```
-### В командной строке 
 перейдите в каталог, где впоследствии будет размещена папка Synapse и выполните:
 ```
         \> git clone https://github.com/yenesey/Synapse
