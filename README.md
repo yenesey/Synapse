@@ -50,19 +50,20 @@
 компиляции и установки модуля oracledb (см. документацию по модулю
 https://github.com/oracle/node-oracledb) 
 
-##   3.3. Создайте каталог /synapse/ и распакуйте в него архив "synapse.7z"
-
-##   3.4. В каталоге /synapse/ выполните установку всех модулей:
+- в командной строке перейдите в каталог, где впоследствии будет размещена
+папка Synapse и выполните:
 ```
-        \> npm install 
+\> git clone https://github.com/yenesey/Synapse
+\> cd Synapse
+\> npm install 
 ```
 (!!!) корректная работа некоторых модулей не гарантируется, поэтому
 в подкаталоге /.other/node_modules сохранены рабочие копии
 таких модулей для возможности замены вручную. 
    
-##   3.5. Создайте символическую ссылку, выполнив /core/node_modules.cmd
+##   3.4. Создайте символическую ссылку, выполнив /core/node_modules.cmd
 
-##   3.6. С помощью "SQLite Studio" (http://sqlitestudio.pl):
+##   3.5. С помощью "SQLite Studio" (http://sqlitestudio.pl):
 
 - cоздайте чистую базу /db/synapse.db, выполнив скрипт "create_db.sql"
 - отредактируйте таблицу [users]: login, name, email для первой 
