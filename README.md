@@ -125,11 +125,13 @@ https://github.com/oracle/node-oracledb)
  делать через SQLite editor). После внесения записи в базу данных, администратор
  может раздавать доступы в WEB-интерфейсе самой системы.
 
-<hr>
 
+<hr>
 ## Снимки экрана
-### Было раньше
+
+### v2.9 (@latest)
+![# -= Synapse =-](https://github.com/yenesey/Synapse/blob/master/.other/memories/v2.9.png)
+
+### v2.8
 ![# -= Synapse =-](https://github.com/yenesey/Synapse/blob/master/.other/memories/synapse.png)
 
-### Стало при переходе на Vuetify
-![# -= Synapse =-](https://github.com/yenesey/Synapse/blob/master/.other/memories/v2.9.png)
