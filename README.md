@@ -1,7 +1,9 @@
   
    
    
-#                                  -= Synapse =-
+# -= Synapse =-
+
+![# -= Synapse =-](https://github.com/yenesey/Synapse/blob/master/.other/memories/synapse.png)
    
    Здесь вы найдете только описание для быстрого старта, а остальное, легко
  находится в Сети.
