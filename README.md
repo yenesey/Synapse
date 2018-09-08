@@ -30,8 +30,7 @@
                          запуска см. в app.js в комментариях
  ```
 
-## Установка 
-   
+## Установка
 ### Необходимые компоненты (prerequisites)
 - nodejs (https://nodejs.org/)
 - git  (https://git-scm.com/download/win)
@@ -40,20 +39,20 @@
 - windows-build-tools (пакет утилит Python, C++, node-gyp с помощью которых nodejs
 компилирует платформо-зависимые модули
 ```
-        (от имени администратора!!!):
+        (!!!) с правами администратора:
         \> npm install --global --production windows-build-tools
 ```
 перейдите в каталог, где впоследствии будет размещена папка Synapse и выполните:
 ```
         \> git clone https://github.com/yenesey/Synapse
         \> cd Synapse
-        \> npm install 
+        \> npm install
+        \> core\node_modules.cmd
+        
 ```
 (!!!) корректная работа некоторых модулей не гарантируется, поэтому
 в подкаталоге /.other/node_modules сохранены рабочие копии
-таких модулей для возможности замены вручную. 
-   
-### Создайте символическую ссылку, выполнив /core/node_modules.cmd
+таких модулей для возможности замены вручную.
 
 ### С помощью "SQLite Studio" (http://sqlitestudio.pl):
 
