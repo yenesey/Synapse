@@ -12,10 +12,10 @@
 */
 
 var express = require('express'),
-	path        = require('path'),
-	promisify	  = require('util').promisify,
-	fs      = require('fs'),
-	ntlm        = require('express-ntlm'),
+	path = require('path'),
+	promisify = require('util').promisify,
+	fs = require('fs'),
+	ntlm = require('express-ntlm'),
 	bodyParser = require('body-parser'),
 	_root = path.join(__dirname, '..'),
 	_ = require('./lib');
