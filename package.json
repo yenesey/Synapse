@@ -6,6 +6,7 @@
   "scripts": {
     "build": "cross-env NODE_ENV=production webpack --mode production --progress --hide-modules --display-error-details --config ./core/webpack.config.js",
     "test": "npm run build | cross-env NODE_ENV=production node app"
+    "postinstall" : "core\node_modules.cmd"
   },
   "dependencies": {
     "activedirectory": "*",
