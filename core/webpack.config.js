@@ -1,7 +1,7 @@
 "use strict";
 
 
-const	webpack = require('webpack')
+const webpack = require('webpack')
 const VueLoaderPlugin = require('vue-loader/lib/plugin')
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin
 const HtmlWebpackPlugin = require('html-webpack-plugin');
@@ -32,7 +32,7 @@ var config = {
 
 	stats: {
 		children: false
-  },
+	},
 
 	module: {
 		rules: [
@@ -94,16 +94,16 @@ var config = {
 		]
 	},
 
-	mode 		: 'development',
+	mode : 'development',
 	devtool	: 'cheap-eval-source-map',
 
 	plugins : [ 
 		new webpack.ContextReplacementPlugin(/moment[/\\]locale$/, /^\.\/(ru)$/), //--берем только русскую локаль
 		new HtmlWebpackPlugin({
-      inject : true,
+			inject : true,
 			favicon	:  resolve('client_source/assets', 'favicon.ico'),
-      template : resolve('client_source/assets', 'index.html')
-    }),
+			template : resolve('client_source/assets', 'index.html')
+   		}),
 		new VueLoaderPlugin(),
 		new HardSourceWebpackPlugin()
 	],
@@ -121,9 +121,7 @@ var config = {
 			}
 		}
 	}
-
 }
-
 
 if (process.env.NODE_ENV === 'production') {
 	config.mode = 'production'; //'none'
