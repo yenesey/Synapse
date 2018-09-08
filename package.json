@@ -66,6 +66,6 @@
     "webpack-hot-middleware": "*"
   },
   "author": "Denis Bogachev <denesey@gmail.com>",
-  "repository": "github:yenesey/Synapse"
+  "repository": "github:yenesey/Synapse",
   "license": "MIT"
 }
