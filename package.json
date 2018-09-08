@@ -1,12 +1,12 @@
 {
   "name": "synapse",
-  "version": "2.9",
+  "version": "2.9.1",
   "description": "Commercial Bank IT-engineer's integrative tool",
   "main": "app",
   "scripts": {
     "build": "cross-env NODE_ENV=production webpack --mode production --progress --hide-modules --display-error-details --config ./core/webpack.config.js",
     "test": "npm run build | cross-env NODE_ENV=production node app",
-    "postinstall" : "core\node_modules.cmd"
+    "postinstall": "mklink /J \"node_modules/synapse\" \"core\""
   },
   "dependencies": {
     "activedirectory": "*",
