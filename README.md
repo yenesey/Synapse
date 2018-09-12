@@ -88,7 +88,7 @@
 ## Снимки экрана
 
 ### v2.9 (@latest)
-![# -= Synapse =-](https://github.com/yenesey/Synapse/blob/master/.other/memories/v2.9.png)
+<img src="/.other/memories/v2.9.png" alt="Synapse v2.9"/>
 
 ### v2.8
 ![# -= Synapse =-](https://github.com/yenesey/Synapse/blob/master/.other/memories/synapse.png)
