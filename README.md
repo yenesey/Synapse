@@ -91,5 +91,5 @@
 <img src="/.other/memories/v2.9.png" alt="Synapse v2.9"/>
 
 ### v2.8
-![# -= Synapse =-](https://github.com/yenesey/Synapse/blob/master/.other/memories/synapse.png)
+<img src="/.other/memories/synapse.png" alt="Synapse v2.9"/>
 
