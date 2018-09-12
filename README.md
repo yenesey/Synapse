@@ -91,5 +91,5 @@
 <img src="/.other/memories/v2.9.png" alt="Synapse v2.9"/>
 
 ### v2.8
-<img src="/.other/memories/synapse.png" alt="Synapse v2.9"/>
+<img src="/.other/memories/synapse.png" alt="Synapse v2.8"/>
 
