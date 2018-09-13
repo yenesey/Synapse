@@ -145,7 +145,8 @@
 -->
 
 		<v-footer app>
-			<v-icon>account_balance</v-icon><span>Ταυρ - δεζαιη &copy; 2018</span>
+			<span>&copy; 2016-2018 Denis Bogachev&nbsp;</span><v-icon>scatter_plot</v-icon>
+<!--			<v-icon>account_balance</v-icon><span>Ταυρ - δεζαιη &copy; 2018</span> -->
 		</v-footer>
 	</v-app>
 </template>

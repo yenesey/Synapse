@@ -21,9 +21,8 @@ function toUnicode(theString) {
 
 var _ = {};
 
-if (typeof exports !== 'undefined') { 
-	exports = module.exports = _; 
-}
+if (typeof module !== 'undefined') module.exports = _; 
+
 
 //"underscore" debounce mod (invoked at leading and trailing edges both)
 

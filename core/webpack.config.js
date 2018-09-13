@@ -103,7 +103,7 @@ var config = {
 			inject : true,
 			favicon	:  resolve('client_source/assets', 'favicon.ico'),
 			template : resolve('client_source/assets', 'index.html')
-   		}),
+		}),
 		new VueLoaderPlugin(),
 		new HardSourceWebpackPlugin()
 	],
