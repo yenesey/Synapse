@@ -5,7 +5,8 @@
   "main": "app",
   "scripts": {
     "build": "cross-env NODE_ENV=production webpack --mode production --progress --hide-modules --display-error-details --config ./core/webpack.config.js",
-    "test": "npm run build | cross-env NODE_ENV=production node app",
+    "build_dev":  "cross-env NODE_ENV=development webpack --mode development --progress --hide-modules --display-error-details --config ./core/webpack.config.js",
+    "build_run" : "npm run build | cross-env NODE_ENV=production node app",
     "postinstall": "mklink /J \"node_modules/synapse\" \"core\""
   },
   "dependencies": {

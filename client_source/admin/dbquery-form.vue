@@ -168,10 +168,11 @@ export default {
 			var start = moment();			
 
 			pxhr({ method:'post', url:'/dbquery', timeout : 60000*30, 
-				data:{
+				data: {
 					sql : this.sql,
 					maxRows: this.maxRows
-			}})
+				}
+			})
 			.then(function(res){
 				self.running = false;
 				if (res.error){

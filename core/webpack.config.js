@@ -48,7 +48,7 @@ var config = {
 				use: 'vue-loader'
 			},
 			{
-				exclude: /node_modules/,
+				exclude: /node_modules|core/,
 				test: /\.js$/,
 				use: {
 						loader: 'babel-loader',
