@@ -1,7 +1,7 @@
 "use strict";
 
 /*
-	Функции, использующиеся как на клиенте так и на сервере
+	Велосипеды, использующиеся как на клиенте так и на сервере
 */
 
 /*
@@ -383,7 +383,7 @@ Number.prototype.toPhrase = function(units, round, frAsNum){
 }//toPhrase
 
 
-//Promise for XMLHttpRequest (в целях обучения)
+// XMLHttpRequest (Promise)
 _.pxhr = function(request){
 	return new Promise(function(resolve, reject) {	
 		var xhr = new XMLHttpRequest();
