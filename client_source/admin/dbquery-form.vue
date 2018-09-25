@@ -13,7 +13,7 @@
 						<label data-v-f3f3eg9> Итого: {{statusString()}} </label>
 							<input v-on:click="saveResult" type="button" value="Сохранить в .csv" >
 						<label data-v-f3f3eg9> Фильтр: </label>
-							<input v-model="filterKey" style="width:150px" /> 
+							<input v-model="search" style="width:150px" /> 
 					</template>
 					<label data-v-f3f3eg9 style="float:right">Максимум: <input v-model="maxRows" style="width:50px"/> </label>
 
@@ -25,7 +25,77 @@
 
 		<wait v-if="running"></wait>
 		<pre v-if="error" style="font-weight:bold">{{error}}</pre>
-		<grid	v-if="tableData.length" :tableData="tableData" :filterKey="filterKey" > </grid> 
+
+<!--		<div class="v-table__overflow">
+			<grid	v-if="tableData.length" :tableData="tableData" :filterKey="filterKey" > </grid> 
+
+      :pagination.sync="pagination"
+
+
+		</div>	-->
+
+
+
+	<v-data-table
+			v-if="tableData.length"
+      v-model="selected"
+      :headers="headers"
+      :items="tableData"
+      :search="search"
+      class="elevation-1"
+    >
+<!--
+      select-all
+      item-key="name"
+
+      <template slot="headers" slot-scope="props">
+        <tr>
+
+          <th>
+			     <v-checkbox
+              :input-value="props.all"
+              :indeterminate="props.indeterminate"
+              primary
+              hide-details
+              @click.native="toggleAll"
+            ></v-checkbox>
+          </th> 
+          <th
+            v-for="header in props.headers"
+            :key="header.text"
+            :class="['column sortable', pagination.descending ? 'desc' : 'asc', header.value === pagination.sortBy ? 'active' : '']"
+            @click="changeSort(header.value)"
+          >
+            
+
+
+            <v-icon small>arrow_upward</v-icon>
+            {{ header.text }}
+          </th>
+        </tr>
+      </template>
+-->
+      <template slot="items" slot-scope="props">
+        <tr :active="props.selected" @click="props.selected = !props.selected">
+    <!--
+		      <td>
+            <v-checkbox
+              :input-value="props.selected"
+              primary
+              hide-details
+            ></v-checkbox>
+          </td> 
+		-->
+          <td  class="text-xs-right" v-for="(v, k) in props.item">{{ v }}</td>
+
+        </tr>
+      </template>
+      <v-alert slot="no-results" :value="true" color="error" icon="warning">
+        Your search for "{{ search }}" found no results.
+      </v-alert>
+
+    </v-data-table>
+
 	</div>
 </template>
 
@@ -58,7 +128,7 @@ export default {
 			editor : null,
 			maxRows: 100,
 			tableData : [],
-			filterKey : "",
+			search : "",
 			error : "",
 			running : false,
 			time : "",
@@ -66,8 +136,26 @@ export default {
 			drag : {	
 				startHeight : 0, 
 				startY : 0
-			}
+			},
+      selected: [],
 		}
+	},
+
+	computed : {
+		headers : function(){
+			if (this.tableData.length === 0) return [];
+
+			return Object.keys(this.tableData[0]).map((el)=>{
+				return {
+          text: el,
+          align: 'left',
+          sortable: true,
+          value: el
+				}	
+			})
+
+		}
+
 	},
 
   components: {
