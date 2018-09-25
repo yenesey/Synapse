@@ -26,84 +26,35 @@
 		<wait v-if="running"></wait>
 		<pre v-if="error" style="font-weight:bold">{{error}}</pre>
 
-<!--		<div class="v-table__overflow">
-			<grid	v-if="tableData.length" :tableData="tableData" :filterKey="filterKey" > </grid> 
-
-      :pagination.sync="pagination"
-
-
-		</div>	-->
-
-
-
-	<v-data-table
+		<v-data-table
 			v-if="tableData.length"
       v-model="selected"
       :headers="headers"
       :items="tableData"
       :search="search"
-      class="elevation-1"
+      hide-actions
+      class="elevation-1 fixed"
+      width = "100%"
     >
-<!--
-      select-all
-      item-key="name"
-
-      <template slot="headers" slot-scope="props">
-        <tr>
-
-          <th>
-			     <v-checkbox
-              :input-value="props.all"
-              :indeterminate="props.indeterminate"
-              primary
-              hide-details
-              @click.native="toggleAll"
-            ></v-checkbox>
-          </th> 
-          <th
-            v-for="header in props.headers"
-            :key="header.text"
-            :class="['column sortable', pagination.descending ? 'desc' : 'asc', header.value === pagination.sortBy ? 'active' : '']"
-            @click="changeSort(header.value)"
-          >
-            
-
-
-            <v-icon small>arrow_upward</v-icon>
-            {{ header.text }}
-          </th>
-        </tr>
-      </template>
--->
       <template slot="items" slot-scope="props">
         <tr :active="props.selected" @click="props.selected = !props.selected">
-    <!--
-		      <td>
-            <v-checkbox
-              :input-value="props.selected"
-              primary
-              hide-details
-            ></v-checkbox>
-          </td> 
-		-->
-          <td  class="text-xs-right" v-for="(v, k) in props.item">{{ v }}</td>
-
+          <td class="text-xs-left" v-for="(v, k) in props.item">{{ v }}</td>
         </tr>
       </template>
+
       <v-alert slot="no-results" :value="true" color="error" icon="warning">
         Your search for "{{ search }}" found no results.
       </v-alert>
-
     </v-data-table>
 
 	</div>
 </template>
 
 <script>
+
 import {declByNum, pxhr} from 'lib';
 import moment from 'moment';
 import editor from './editor/ace-editor.js';
-import grid from './grid.vue';
 
 //сохранение любого контента в файл
 var saveFile = function(content, type, filename){ 
@@ -143,24 +94,38 @@ export default {
 
 	computed : {
 		headers : function(){
-			if (this.tableData.length === 0) return [];
+			var rows = this.tableData;
+		
+			if (rows.length === 0) return [];
+			var heads = Object.keys(rows[0]).map(el=>({
+        text: el,
+       //   align: (typeof this.tableData[0][el] === 'string')?'right':'left',
+        sortable: true,
+        width : 50,
+        class : 'flex',
+        value: el
+      }))
 
-			return Object.keys(this.tableData[0]).map((el)=>{
-				return {
-          text: el,
-          align: 'left',
-          sortable: true,
-          value: el
-				}	
-			})
+			//вычисляем ширины колонок по размеру текста
+			rows.forEach(row=>{
+				heads.forEach(head=>{
+					let s = String(row[head.value])
+					if (s)	
+						head.width = Math.max(head.width, s.length * 7 + 50)
+				})	
+			})	
 
+			heads.forEach(head=>{
+				head.width = head.width + 'px'
+			})	
+
+			return heads
 		}
 
 	},
 
   components: {
-    editor: editor,
-		grid: grid
+    editor: editor
   },
 
 	mounted : function(){
@@ -282,6 +247,11 @@ export default {
 </script>
 
 <style>
+
+table.v-datatable{
+  table-layout: fixed;
+}
+
 .resizeable {
 	position: relative;
 	border: 2px solid #a8cfe6;

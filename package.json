@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "activedirectory": "0.7.2",
+    "babel-plugin-transform-es2015-typeof-symbol": "^6.23.0",
     "body-parser": "1.18.3",
     "chalk": "2.4.1",
     "compression": "1.7.3",

@@ -9,6 +9,7 @@
 			enable-resize-watcher
 			fixed
 			app
+			style="z-index:10"
 		>
 
 		 <v-list class="blue lighten-4">
@@ -77,6 +78,7 @@
 			:clipped-left="clipped"
 			height = "48px"
 			class="blue lighten-4"
+			style="z-index:9"
 		>
 			<v-toolbar-side-icon @click.stop="drawer = !drawer"></v-toolbar-side-icon>
 
