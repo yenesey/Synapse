@@ -24,8 +24,9 @@ var _ = {};
 if (typeof module !== 'undefined') module.exports = _; 
 
 
-//"underscore" debounce mod (invoked at leading and trailing edges both)
-
+/*
+"underscore" debounce mod (invoked at leading and trailing edges both)
+*/
 _.debounce = function(func, wait, immediate) {
 
 	var timeout = null, args, context, timestamp, result;

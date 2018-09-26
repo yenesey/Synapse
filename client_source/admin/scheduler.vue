@@ -314,7 +314,7 @@ export default {
 		},
 
 		formatEmail  : function(item) {	
-			return (typeof item == 'object')
+			return (typeof item === 'object')
 				? item.name + '<' + item.email + '>'
 				: item
 		}

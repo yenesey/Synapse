@@ -14,12 +14,11 @@ var express = require('express'),
 	path = require('path'),
 	os  = require('os'),
 	moment = require('moment'),
-	_ = require('./lib'),
   parser = require('cron-parser'),
 	fsp = require('./fsp');
 
 /////////////////////////////////////////////////////////////////////////
-var crons = {}; //ассоциативный массив. id : handle
+var crons = {}; //ассоциативный массив (ключ-значение). id : handle
 //где id соответствует job.id , а handle - объект cron.schedule
 /////////////////////////////////////////////////////////////////////////
 module.exports = function(system){   
@@ -61,27 +60,31 @@ function task(job){
 			)
 
 		//рассылка получателям
-		if (job.params.pp.email.length)
-			fsp.ls(taskPath)
-			.then(items=>items.filter(item=>!item.folder).map(file=>file.name))
-			.then(files=>{
-				if (files)
-					mail.send({
-						from:    `Synapse <synapse@${os.hostname().toLowerCase()}`,
-						to:      job.params.pp.email.join(','),
-						subject: job.description || job.name,
-//					  text:    stdout || ' ',
-						attachment : files.map(name=>{
-							return {
-								path : path.join(taskPath, name),
-								type: 'text/html',
-								name : name
-							}
-						}).concat([{data:"<html><pre>" + stdout + "</pre></html>", alternative:true}])
-					}, (err, msg)=>{ if (err) console.log(err) })
-			})
-			.catch(err=>console.log(err))
-	} //success
+
+		if (job.params.pp.email.length){
+			var to = job.params.pp.email.join(',')
+			if (to.length)
+				fsp.ls(taskPath)
+				.then(items=>items.filter(item=>!item.folder).map(file=>file.name))
+				.then(files=>{
+					if (files)
+						mail.send({
+							from:    `Synapse <synapse@${os.hostname().toLowerCase()}`,
+							to:      to,
+							subject: job.description || job.name,
+	//					  text:    stdout || ' ',
+							attachment : files.map(name=>{
+								return {
+									path : path.join(taskPath, name),
+									type: 'text/html',
+									name : name
+								}
+							}).concat([{data:"<html><pre>" + stdout + "</pre></html>", alternative:true}])
+						}, (err, msg)=>{ if (err) console.log(err) })
+				})
+				.catch(err=>console.log(err))
+		}	//job.params.pp.email.length
+	} //function success
 
 	function error(stdout){
 		system.users('Администраторы')

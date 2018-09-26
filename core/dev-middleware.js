@@ -7,7 +7,7 @@
 */
 
 const	chalk = require('chalk');
-const config = require('./webpack.config');
+const config = require('../client_source/webpack.config');
 const compiler = require('webpack')(config);
 const spinner = require('ora')('compiling...');
 const dev = require('webpack-dev-middleware');

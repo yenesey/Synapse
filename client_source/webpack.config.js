@@ -43,8 +43,8 @@ var config = {
 			{
 				test: /\.html$/,
 				include: [
-          resolve('/client_source/tasks')
-        ],
+					resolve('/client_source/tasks')
+				],
 				use: 'vue-loader'
 			},
 			{
@@ -54,7 +54,16 @@ var config = {
 						loader: 'babel-loader',
 						options: {
 							cacheDirectory: true,
-							presets: ['env'],
+							//presets: ['env'],
+							presets: [
+								[
+									'@vue/app',
+									{
+										'useBuiltIns': 'entry'
+									}
+								]
+							],
+
 							plugins: [
 								[
 									'transform-imports',
