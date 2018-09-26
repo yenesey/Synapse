@@ -1,6 +1,6 @@
 <template>
 <div>
-	<h3>Добро пожаловать {{uname}}! </h3>
+	<h3>{{uname}}</h3>
 <!--	<img src="./images/start.gif" width="100%"> -->
 
 </div>
@@ -10,17 +10,10 @@
 
 <script>
 
-export default {
-	data(){
-		return {
-//			dialog : true	
-		}
-	},
+module.exports = {
 	computed : {
 		uname : function(){
-			return {
-				'bogachev' : 'Дениc'
-			}[this.$parent.user]
+			return this.$root.$children[0].status;
 		}
 	}
 }

@@ -114,7 +114,7 @@ var config = {
 			template : resolve('client_source/assets', 'index.html')
 		}),
 		new VueLoaderPlugin(),
-		new HardSourceWebpackPlugin()
+//		new HardSourceWebpackPlugin()
 	],
 
 	optimization: {

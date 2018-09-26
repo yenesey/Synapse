@@ -11,6 +11,7 @@ var express = require('express'),
 	bodyParser = require('body-parser'),
 	cronJob = require('cron').CronJob,
 	email = require('emailjs/email'),
+	util = require('util'),
 	path = require('path'),
 	os  = require('os'),
 	moment = require('moment'),
@@ -26,6 +27,7 @@ module.exports = function(system){
 var launcher = require('./launcher.js')(system.config),
 	folder = require('./user-folders.js')(system.config.path.users, system.config.tasks.history),
 	mail = email.server.connect(system.config.mail);
+	mail.sendp = util.promisify(mail.send);//.bind(mail);
 
 function destroy(job){
   if (job.id in crons){
@@ -68,7 +70,7 @@ function task(job){
 				.then(items=>items.filter(item=>!item.folder).map(file=>file.name))
 				.then(files=>{
 					if (files)
-						mail.send({
+						return mail.sendp({
 							from:    `Synapse <synapse@${os.hostname().toLowerCase()}`,
 							to:      to,
 							subject: job.description || job.name,
@@ -80,9 +82,11 @@ function task(job){
 									name : name
 								}
 							}).concat([{data:"<html><pre>" + stdout + "</pre></html>", alternative:true}])
-						}, (err, msg)=>{ if (err) console.log(err) })
+						})
 				})
-				.catch(err=>console.log(err))
+				.catch(err=>
+					console.log('[jobs] error trying email job results: ' + err.message + ' ' + util.inspect({id : job.id, 	task: job.task, name: job.name }))
+				)
 		}	//job.params.pp.email.length
 	} //function success
 
@@ -90,12 +94,12 @@ function task(job){
 		system.users('Администраторы')
 		.then(data=>data.map((el)=>el.email))
 		.then(emails=>
-			mail.send({
+			mail.sendp({
 				from:    `Synapse <synapse@${os.hostname().toLowerCase()}`,
 				to:      emails.join(','),
 				subject: job.description || job.name,
 				attachment : [{data:"<html><pre>" + stdout + "</pre></html>", alternative : true}]
-			}, (err, msg)=> {if (err) console.log(err)} )
+			})
 		)
 		.catch(err=>console.log(err.stack))
 	}

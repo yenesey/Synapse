@@ -405,6 +405,7 @@ _.pxhr = function(request){
 		function error(message){
 			var err = new Error();
 			err.name = 'XMLHttpRequest';
+			err.status = xhr.status;
 			err.message = message;
 			reject(err);
 		}
@@ -439,9 +440,14 @@ _.pxhr = function(request){
 			if (request.progress)	
 				request.progress(event.target)
 		}
-		
+
+		xhr.onreadystatechange= function(){
+			if (xhr.readyState === 4 && xhr.status !== 200)
+				error('ERR_SERVER_SIDE: ' + xhr.responseText)
+		}
+
 		xhr.send(data);
-	});
+	})
 }
 
 

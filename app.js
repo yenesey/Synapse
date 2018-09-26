@@ -99,8 +99,8 @@ function backend(system){
 	//	accessHandler,
 		compression( {threshold : 0} ),
 		require('synapse/cards')(system), //запрос инфы по картам для сайта
-		system.uac, //User Access Control
 		clientDir, 
+		system.uac, //User Access Control
 		userDir,
 		require('synapse/dlookup')(system), 
 		require('synapse/dbquery')(system),

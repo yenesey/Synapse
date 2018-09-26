@@ -158,9 +158,11 @@ import {keys} from 'lib'
 import sections from './tasks/sections' //описания секций см. в этом файле!
 
 export default {
+	name : 'app_view',
 	props : {
 		user : String,
-		routes : Array
+		routes : Array,
+		status : String
 	},
 	
 	computed : {

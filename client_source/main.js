@@ -37,9 +37,7 @@ import main from './main.vue'
 
 
 pxhr({method:'get', url:'/access/map'})
-.catch(()=>{
-	return {login: 'Нет доступа!', access:[]}
-}) 
+.catch(err=>({login: 'Нет доступа!', access:[], err : err})) 
 .then(user=>{
 	var access = keys(user.access, 'class', el=>el.granted && !user.disabled) /*берем только те, к которым доступ предоставлен */
 
@@ -96,7 +94,7 @@ pxhr({method:'get', url:'/access/map'})
 	//запускаем приложение:
 	new Vue({ 
 		el : '#app', 
-		render:(h) => h(main, {props:{user : user.login,	routes : routes } }),
+		render:(h) => h(main, {props:{user : user.login,	routes : routes, status: (user.err?user.err.message:'Добро пожаловать!') } }),
 		router : new VueRouter({routes : routes})
 	})
 
