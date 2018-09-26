@@ -21,46 +21,45 @@
 					<v-list-tile-title class="user">{{user}}</v-list-tile-title>
 				</v-list-tile>
 
-				<template v-for="(val, section) in sections"> <!-- перебор секций из файла /tasks/sections.js-->
-					<!-- default оформляем без группы-->
-					<v-list-tile 
-						v-if="section==='default'" 
-						v-for="task in tasks[section]" 
-						:key="task.path" 
-						@click="navigate('/tasks/'+task.path)"
-						ripple
-					>
-						<v-list-tile-action>
-							<v-icon v-text="task.icon || sections[section].icon || 'chevron_right'"></v-icon>
-						</v-list-tile-action>
-						<v-list-tile-content>
-							<v-list-tile-title>{{task.name || 'noname'}}</v-list-tile-title>
-						</v-list-tile-content>
-					</v-list-tile>
+			<!-- default оформляем без группы-->
+				<v-list-tile 
+					v-for="task in tasks.default" 
+					:key="task.path" 
+					@click="navigate('/tasks/'+task.path)"
+					ripple
+				>
+					<v-list-tile-action>
+						<v-icon v-text="task.icon || section.icon || 'chevron_right'"></v-icon>
+					</v-list-tile-action>
+					<v-list-tile-content>
+						<v-list-tile-title>{{task.name || 'noname'}}</v-list-tile-title>
+					</v-list-tile-content>
+				</v-list-tile>
 
+				<template v-for="(section, index) in sections"> <!-- перебор секций меню-->
 					<!-- все прочие кроме default пихаем в группу (при наличии доступных элементов)-->
-					<v-list-group v-if="section!=='default' && tasks[section]">
+					<v-list-group v-if="section!=='default' && tasks[section.name]">
 						<v-list-tile 
 							slot="activator" 
 							@click="navigate('/tasks')"
 							ripple
 						>
 							<v-list-tile-action>
-								<v-icon v-text="sections[section].icon"></v-icon>
+								<v-icon v-text="section.icon"></v-icon>
 							</v-list-tile-action>
 							<v-list-tile-content>
-								<v-list-tile-title v-text="sections[section].name" />
+								<v-list-tile-title v-text="section.description || section.name" />
 							</v-list-tile-content>
 						</v-list-tile>
 	
 						<v-list-tile 
-							v-for="task in tasks[section]" 
+							v-for="task in tasks[section.name]" 
 							:key="task.path" 
 							@click="navigate('/tasks/'+task.path)"
 							ripple
 						>
 							<v-list-tile-action class="ml-3">
-								<v-icon v-text="task.icon || sections[section].icon || 'chevron_right'"></v-icon>
+								<v-icon v-text="task.icon || section.icon || 'chevron_right'"></v-icon>
 							</v-list-tile-action>
 							<v-list-tile-content>
 								<v-list-tile-title>{{task.name || 'noname'}}</v-list-tile-title>
@@ -155,16 +154,16 @@
 
 <script>
 import {keys} from 'lib'
-import sections from './tasks/sections' //описания секций см. в этом файле!
 
 export default {
 	name : 'app_view',
 	props : {
 		user : String,
 		routes : Array,
-		status : String
+		status : String,
+		sections : Array
 	},
-	
+
 	computed : {
 		dev:() => window.location.port !== '',
 		admin(){
@@ -180,7 +179,6 @@ export default {
 
 	data() {
 		return {
-			sections : sections,
 			clipped: false,
 			drawer: true,
 			miniVariant: false,

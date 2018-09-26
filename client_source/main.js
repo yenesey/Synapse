@@ -39,6 +39,7 @@ import main from './main.vue'
 pxhr({method:'get', url:'/access/map'})
 .catch(err=>({login: 'Нет доступа!', access:[], err : err})) 
 .then(user=>{
+	var menu = user.access.filter(el=>el.class === 'menu')
 	var access = keys(user.access, 'class', el=>el.granted && !user.disabled) /*берем только те, к которым доступ предоставлен */
 
 	var routes = [ //маршруты для Vue-router
@@ -81,8 +82,10 @@ pxhr({method:'get', url:'/access/map'})
 				return {	
 						name : el.name,
 						path : String(el.id),
-						icon : /\("task-icon"[\s\S\w\W]+?\(\s*?"([\w]+?)"\s*?\)[\s\S\w\W]*?\)/.test(obj.render.toString())?RegExp.$1 : '',
-						section:/\("task-section"[\s\S\w\W]+?\(\s*?"([\w]+?)"\s*?\)[\s\S\w\W]*?\)/.test(obj.render.toString())?RegExp.$1 : 'default',
+						icon : el.icon || 'chevron_right',
+						section : el.section || 'default',
+/*						icon : /\("task-icon"[\s\S\w\W]+?\(\s*?"([\w]+?)"\s*?\)[\s\S\w\W]*?\)/.test(obj.render.toString())?RegExp.$1 : '',
+						section:/\("task-section"[\s\S\w\W]+?\(\s*?"([\w]+?)"\s*?\)[\s\S\w\W]*?\)/.test(obj.render.toString())?RegExp.$1 : 'default',*/
 						component : {
 							render : (h) => h(Task, {	props : {	id : el.id,	name : el.name } },	[	h(obj, {slot:'default'}) ] 	) 
 						}
@@ -94,7 +97,16 @@ pxhr({method:'get', url:'/access/map'})
 	//запускаем приложение:
 	new Vue({ 
 		el : '#app', 
-		render:(h) => h(main, {props:{user : user.login,	routes : routes, status: (user.err?user.err.message:'Добро пожаловать!') } }),
+		render:(h) => h(main, 
+			{ props:	
+				{
+					user : user.login,	
+					routes : routes, 
+					status: (user.err?user.err.message:'Добро пожаловать!'),
+					sections : menu
+				} 
+			}
+		),
 		router : new VueRouter({routes : routes})
 	})
 

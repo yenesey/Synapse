@@ -65,14 +65,13 @@ function _ldap(query){
 
 module.exports=function(system){
 
-//meta = [{JSON}... {JSON}] в ibso используется для ограничения по реквизиту
-//TODO : может этой функции место в dlookup? она используется только там!
-function ibso(user, meta){
-	if (meta)
-	return meta.reduce((p, item) => 
+function ibso(user, constraint){ //constraint = [{JSON}... {JSON}] в ibso используется для ограничения по реквизиту
+	if (!constraint) return Promise.resolve('')
+	if (!(constraint instanceof Array))	constraint = [constraint];
+
+	return constraint.reduce((p, obj) => 
 		p.then(clause => {
-			if (!clause) clause = '';			
-			var obj = JSON.parse(item); 
+			if (!clause) clause = '';	
 			return system.access(user, {class : obj.class})
 				.then(access => access.filter(el => el.granted).map(el => el.name))
 				.then(lst => clause +	(clause?' AND ':' ') +
@@ -83,8 +82,6 @@ function ibso(user, meta){
 		})
 		,Promise.resolve("")
 	)
-
-	return Promise.resolve("")
 }
 
 var ldap = require('./ds-ldap')(system.config.ntlm);
@@ -140,7 +137,7 @@ router.post('/dlookup', bodyParser.json(), function(req, res){
 					return 
 				}
 				
-				return ibso(user.id, access.meta)
+				return ibso(user.id, access.constraint)
 				.then(clause =>{
 					if (clause){
 						if ('where' in query)

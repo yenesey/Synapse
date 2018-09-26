@@ -123,7 +123,7 @@ system.access = function(user, options){
 			objects.name, 
 			objects.class, 
 			objects.description,	 
-			objects_meta.meta,
+			(select meta from objects_meta where object = objects.id) as 'meta',
 			case when 
 				(select 
 					users.id 
@@ -139,22 +139,22 @@ system.access = function(user, options){
 			is null then 0 else 1 end as granted 
 		FROM
 			objects
-			LEFT OUTER JOIN objects_meta ON objects_meta.object = objects.id
 		WHERE
 			1=1	
 			${whereCondition}
 		ORDER BY objects.class, objects.name`
 	)
 	.then(access => {
-		access = access.reduce((all, el, index) => {
-			if (index > 0 && (el.id === all[all.length-1].id)) //если id текущего и прежнего элементов совпадают
-				all[all.length-1].meta.push(el.meta);	
-			else {
-				if (el.meta) el.meta = [el.meta];
-				all.push(el);
+		access = access.map((obj, index)=>{ 
+			let meta = null;
+			try {
+				meta = JSON.parse(obj.meta);
+				delete obj.meta;
+			} catch (err) {
+				console.log('[error]: invalid metadata format for object.id=' + access[index].id )
 			}
-			return all;
-		}, [])
+			return {	...obj,  ...meta}
+		})
 		return cast(access)
 	})		
 }
@@ -223,10 +223,8 @@ _access.get('/access/map', function(req, res){
 		)
 		.then(()=>system.access(queryUser, opt))
 		.then(access=>{
-			if (access){
-				access.forEach(el => delete el.meta);
+			if (access)
 				user.access = access;	
-			}	
 			res.json(user)
 		})
 	)
