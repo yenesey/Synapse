@@ -23,7 +23,6 @@
   ------------------------------------------------------------------------------------------------
 */
 
-//////////////////////////////////////////////////////////
 var 
 	path    = require('path'),
 	util    = require('util'),
@@ -31,7 +30,6 @@ var
 	CronJob = require('cron').CronJob,
 	chalk   = require('chalk'),
 	express = require('express'),
-	app     = express(),
 	https   = require('https'),
 	compression = require('compression');
 require('moment-precise-range-plugin');
@@ -127,11 +125,48 @@ if (!process.env.SERVICE){ // если не служба,
 	}	
 } 
 
+function status(){
+		var format = (obj, color) => Object.keys(obj).reduce((all, key)=> 
+			all + key + ':' + ((typeof color==='function')?color(obj[key]):obj[key]) + ' | ', '| '
+		)
+		
+		var args = { 
+			args : process.argv.length > 2 ? process.argv.slice(2) : [] 
+		};
+	
+		var info = [
+			[process.versions, ['node', 'v8']],
+			[process,          ['arch']],
+			[this.address(),   ['port']],
+			[process.env,      ['node_env']],
+			[args,             ['args']],
+			[process,          ['execArgv']]
+		].reduce((obj,el)=>{
+				el[1].forEach(key=>{
+					if (el[0][key] && String(el[0][key]))
+						obj[key] = String(el[0][key])
+				})
+				return obj
+		},{})
+
+		var l = format(info).length-1;
+		//выводим системную инфу в отформатированном виде
+		process.stdout.write('-'.repeat(l) + '\n' + format(info, chalk.green.bold) + '\n' + '-'.repeat(l)+ '\n');
+
+		new CronJob('00 00 * * *',  function(){
+				process.stdout.write('['+chalk.green.bold('#'+moment().format('YYYY-MM-DD'))+
+				']------------------------------------------------------------------------------\n');
+				console.log(upTime());
+				console.log(memUsage());
+			}, null, true, null, null, true
+		)
+}
+
 /*
 -------------------------------------------------------------------------------------
 */
-require('synapse/system')
-.then(system=>{
+require('synapse/system').then(system=>{
+	var app  = express()
 
 	app.use([
 		errorHandler,
@@ -164,49 +199,10 @@ require('synapse/system')
 	)
 
 	server.on('error', err=>{
-		console.log(chalk.red.bold("Error=") + JSON.stringify(err, null, ""));	
+		console.log(chalk.red.bold("[error]:") + JSON.stringify(err, null, ""));	
 		process.exit();
 	})
 
-	server.listen(process.env.PORT || 443, function(){
-	
-		var format = (obj, color) => Object.keys(obj).reduce((all, key)=> 
-			all + key + ':' + ((typeof color==='function')?color(obj[key]):obj[key]) + ' | ', '| '
-		)
-		
-		var args = { 
-			args : process.argv.length > 2 ? process.argv.slice(2) : [] 
-		};
-	
-		var sysInfo = [
-			[process.versions, ['node', 'v8']],
-			[process,          ['arch']],
-			[this.address(),   ['port']],
-			[process.env,      ['node_env']],
-			[args,        		 ['args']],
-			[process,          ['execArgv']]
-		].reduce((obj,el)=>{
-				el[1].forEach(key=>{
-					if (el[0][key] && String(el[0][key]))
-						obj[key] = String(el[0][key])
-				})
-				return obj
-		},{})
-
-		var l = format(sysInfo).length-1;
-		//выводим системную инфу в отформатированном виде
-		process.stdout.write('-'.repeat(l) + '\n' + format(sysInfo, chalk.green.bold) + '\n' + '-'.repeat(l)+ '\n');
-
-		new CronJob('00 00 * * *',  function(){
-				process.stdout.write('['+chalk.green.bold('#'+moment().format('YYYY-MM-DD'))+
-				']------------------------------------------------------------------------------\n');
-				console.log(upTime());
-				console.log(memUsage());
-			}, null, true, null, null, true
-		)
-	})
+	server.listen(process.env.PORT || 443, status)
 })
-.catch(err=>console.log(err.stack));
-
-///////////////
-
+.catch(err=>console.log(err.stack))
