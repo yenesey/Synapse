@@ -83,32 +83,6 @@ function easterEgg(){
 	return '\n (.)(.)\n  ).(  \n ( v )\n  \\|/'
 }
 
-function backend(system){
-		
-	if (process.env.NODE_ENV !== 'production') //--режим разработки
-		app.use(require('synapse/dev-middleware')) 
-
-	app.use([
-		errorHandler, 
-	//	accessHandler,
-		compression( {threshold : 0} ),
-		require('synapse/api/cards')(system), //запрос инфы по картам для сайта
-		express.static( path.join(__dirname, 'client')), 
-
-		require('synapse/api/access')(system), //с этого момента и далее вниз начинается контроль доступа
-
-		express.static(system.config.path.users, {
-			setHeaders: function(res, path){
-				res.attachment(path) //добавляем в каджый заголовок инфу о том, что у нас вложение
-			} 
-		}),
-		require('synapse/api/dlookup')(system), 
-		require('synapse/api/dbquery')(system),
-		require('synapse/api/tasks')(system),
-		require('synapse/api/jobs')(system)
-	])
-}
-
 ////////////////Обрабатываем командную строку////////////////
 process.argv.forEach(arg=>{
 	let pv=arg.split('=');
@@ -119,14 +93,73 @@ process.argv.forEach(arg=>{
 	}	
 })
 
-/////////////////////////////////////////////////////////////////////////
+function close(){
+	console.log('server goes down now...');
+	server.close(function () {
+		console.log('all requests finished');
+		process.exit();
+	});
+	setTimeout(function(){
+		server.emit('close')
+	}, 5000);
+} 
 	
-require('synapse/system').then(system=>{
+// ----------------в случае получения сигнала корректно закрываем--------------------
+process.on('SIGHUP', close).on('SIGTERM', close).on('SIGINT', close); 
+
+if (!process.env.SERVICE){ // если не служба, 
+// то будет полезно обработать некоторые нажатия клавиш в консоли
+	let stdin = process.stdin;
+	if (typeof stdin.setRawMode === 'function'){
+		stdin.setRawMode(true);
+		stdin.resume();
+		stdin.setEncoding('utf8');
+		stdin.on('data', function(input){
+			switch (input) { 
+				case 'm': console.log(memUsage()); break;
+				case 'u': console.log(upTime()); break;
+	//			case 'i': console.log(module); break;
+				case '\u0003': close(); break;  //Ctrl+C
+			
+				default: 	console.log(easterEgg())
+			}
+		})
+	}	
+} 
+
+/*
+-------------------------------------------------------------------------------------
+*/
+require('synapse/system')
+.then(system=>{
+
+	app.use([
+		errorHandler,
+	//	accessHandler,
+		compression( {threshold : 0} ),
+
+		(process.env.NODE_ENV === 'production' 		//клиентское приложение:  
+			?	express.static( path.join(__dirname, 'client')) //статика 
+			:	require('synapse/dev-middleware')),  // или динамика, в зависимости от режима
+
+		require('synapse/api/cards')(system), //запрос инфы по картам для сайта
+		require('synapse/api/access')(system), //с этого момента и далее вниз начинается контроль доступа
+
+		express.static(system.config.path.users, { //каталог с пользовательскими папками
+			setHeaders: function(res, path){
+				res.attachment(path) //добавляем в каджый заголовок инфу о том, что у нас вложение
+			} 
+		}),
+		require('synapse/api/dlookup')(system), 
+		require('synapse/api/dbquery')(system),
+		require('synapse/api/tasks')(system),
+		require('synapse/api/jobs')(system)
+	])
 
 	server = https.Server({
-		passphrase: String(system.config.ssl.password),
-		pfx: system.config.ssl.certData
-	},
+			passphrase: String(system.config.ssl.password),
+			pfx: system.config.ssl.certData
+		},
 		app
 	)
 
@@ -171,45 +204,9 @@ require('synapse/system').then(system=>{
 				console.log(memUsage());
 			}, null, true, null, null, true
 		)
-		
-		backend(system)
 	})
 })
 .catch(err=>console.log(err.stack));
 
 ///////////////
-
-function close(){
-	console.log('server goes down now...');
-	server.close(function () {
-		console.log('all requests finished');
-		process.exit();
-	});
-	setTimeout(function(){
-		server.emit('close')
-	}, 5000);
-} 
-	
-// ----------------в случае получения сигнала корректно закрываем--------------------
-process.on('SIGHUP', close).on('SIGTERM', close).on('SIGINT', close); 
-
-if (!process.env.SERVICE){ // если не служба, 
-// то будет полезно обработать некоторые нажатия клавиш в консоли
-	let stdin = process.stdin;
-	if (typeof stdin.setRawMode === 'function'){
-		stdin.setRawMode(true);
-		stdin.resume();
-		stdin.setEncoding('utf8');
-		stdin.on('data', function(input){
-			switch (input) { 
-				case 'm': console.log(memUsage()); break;
-				case 'u': console.log(upTime()); break;
-	//			case 'i': console.log(module); break;
-				case '\u0003': close(); break;  //Ctrl+C
-			
-				default: 	console.log(easterEgg())
-			}
-		})
-	}	
-} 
 

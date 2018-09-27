@@ -6,13 +6,13 @@
 	отдачу клиента на лету с Hot Module Reload (HMR)
 */
 
-const	chalk = require('chalk');
-const config = require('../client_source/webpack.config');
-const compiler = require('webpack')(config);
-const spinner = require('ora')('compiling...');
-const dev = require('webpack-dev-middleware');
-const hot = require('webpack-hot-middleware');
-const _ = require('./lib');
+const	chalk = require('chalk')
+const config = require('../client_source/webpack.config')
+const compiler = require('webpack')(config)
+const spinner = require('ora')('compiling...')
+const dev = require('webpack-dev-middleware')
+const hot = require('webpack-hot-middleware')
+const combineMiddleware = require('./lib').combineMiddleware
 
 var initial = true;
 
@@ -54,7 +54,7 @@ function log(_, options){
 compiler.hooks.compile.tap('spinner', ()=>spinner.start())
 compiler.hooks.done.tap('spinner', ()=>spinner.stop())
 
-module.exports = _.combineMiddleware([
+module.exports = combineMiddleware([
 	dev(compiler, {
 		logLevel:'error',
 		publicPath: config.output.publicPath,
