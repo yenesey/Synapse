@@ -84,13 +84,7 @@ function easterEgg(){
 }
 
 function backend(system){
-	const clientDir = express.static( path.join(__dirname, 'client'));
-	const userDir = express.static( system.config.path.users, {
-		setHeaders: function(res, path){
-			res.attachment(path) //добавляем в каджый заголовок инфу о том, что у нас вложение
-		} 
-	});
-
+		
 	if (process.env.NODE_ENV !== 'production') //--режим разработки
 		app.use(require('synapse/dev-middleware')) 
 
@@ -98,14 +92,20 @@ function backend(system){
 		errorHandler, 
 	//	accessHandler,
 		compression( {threshold : 0} ),
-		require('synapse/cards')(system), //запрос инфы по картам для сайта
-		clientDir, 
-		system.uac, //User Access Control
-		userDir,
-		require('synapse/dlookup')(system), 
-		require('synapse/dbquery')(system),
-		require('synapse/tasks')(system),
-		require('synapse/jobs')(system)
+		require('synapse/api/cards')(system), //запрос инфы по картам для сайта
+		express.static( path.join(__dirname, 'client')), 
+
+		require('synapse/api/access')(system), //с этого момента и далее вниз начинается контроль доступа
+
+		express.static(system.config.path.users, {
+			setHeaders: function(res, path){
+				res.attachment(path) //добавляем в каджый заголовок инфу о том, что у нас вложение
+			} 
+		}),
+		require('synapse/api/dlookup')(system), 
+		require('synapse/api/dbquery')(system),
+		require('synapse/api/tasks')(system),
+		require('synapse/api/jobs')(system)
 	])
 }
 

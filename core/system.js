@@ -1,27 +1,16 @@
 "use strict";
 
 /*
-	system, бывший uac (UAC - User Access Control)
-	- работа с пользователями, контроль доступа,
-	- идентификация
-	- аутентификация (через Active Directory / express-ntlm basic auth)
-	- авторизация
-
-	- системная база данных system.db = function(<SQL>, [<params>])
-	- конфигурация системы  system.config = {} 
+	 - системная база данных system.db = function(<SQL>, [<params>])
+	 - системные функции и константы
+	 - конфигурация системы  system.config = {} 
 */
 
-var express = require('express'),
-	path = require('path'),
-	util = require('util'),
-	fs = require('fs'),
-	ntlm = require('express-ntlm'),
-	bodyParser = require('body-parser'),
-	_root = path.join(__dirname, '..'),
-	_ = require('./lib');
-
-
-var system = Object.create(null);
+const	path = require('path')
+const promisify = require('util').promisify
+const fs = require('fs')
+const _root = path.join(__dirname, '..')
+const system = Object.create(null)
 
 Object.defineProperties(
 		system,
@@ -199,73 +188,6 @@ system.accessCheck = function(_user, object){
 	})	
 }
 
-////////////////////////////////////////////////////////////////////////
-var _access = express.Router({strict:true})
-////////////////////////////////////////////////////////////////////
-
-_access.get('/access/map', function(req, res){
-//выдача полной карты доступа заданного пользователя (req.query.user)
-//если пользователь не задан - выдается собственная карта доступа
-	var opt = {};
-	var queryUser = req.ntlm.UserName;
-
-	if ('class' in req.query) opt.class = req.query.class;
-	if ('user' in req.query) queryUser = Number(req.query.user) || req.query.user;
-
-	return system.userCheck(queryUser)
-	.then(user => 
-		(('user' in req.query) //запрос по другому пользователю?
-			?system.accessCheck(req.ntlm.UserName, system.ADMIN_USERS) //тогда нужны привилегии!
-			:Promise.resolve() //если запрос по "себе", привилегии не нужны
-		)
-		.then(()=>system.access(queryUser, opt))
-		.then(access=>{
-			if (access)
-				user.access = access;	
-			res.json(user)
-		})
-	)
-	.catch(err => system.errorHandler(err, req, res))
-});
-
-_access.put('/access/map', bodyParser.json(), function(req, res){
-// операция выдачи/прекращения доступа к заданному объекту 
-// req.body = {userId:Number, objectId: Number, granted: Number(1|0)}
-	return system.accessCheck(req.ntlm.UserName, system.ADMIN_USERS)
-	.then(()=>
-		system.db(
-			(req.body.granted)
-			? `REPLACE INTO user_access VALUES (${req.body.userId}, ${req.body.objectId}, null)`
-			: `DELETE FROM user_access WHERE user=${req.body.userId} AND object=${req.body.objectId}`
-		)
-	)
-	.then(result => res.json({result}))
-	.catch(err => system.errorHandler(err, req, res))
-})
-
-_access.put('/access/user', bodyParser.json(), function(req, res){
-// операция добавления(создания) пользователя 
-	return system.accessCheck(req.ntlm.UserName, system.ADMIN_USERS)
-	.then(()=>{
-		if ('id' in req.body)
-			return system.db('UPDATE users SET disabled = :1, name = :2, login = :3, email = :4 WHERE id = :5', 
-				[Number(req.body.disabled), req.body.name, req.body.login, req.body.email, req.body.id] 
-			)
-		if ('login' in req.body)
-			return system.db(`INSERT INTO users VALUES (null, '${req.body.login.toLowerCase()}', null, '${req.body.name}', '${req.body.email}')`)
-	})
-	.then(result => res.json({result}))
-	.catch(err => system.errorHandler(err, req, res))
-})
-
-_access.get('/access/members',function(req, res){
-	system.users(parseInt(req.query.object, 10) || 0).then(result => res.json(result))
-})
-
-_access.get('/access/tasks',function(req, res){
-	system.tasks(parseInt(req.query.object, 10) || 0).then(result => res.json(result))
-})
-
 module.exports = system.db('SELECT * FROM settings')
 .then(select=>{
 	var config = select.reduce((all, item)=>{
@@ -282,39 +204,8 @@ module.exports = system.db('SELECT * FROM settings')
 	config.path.root = _root;	
 	system.config = config;
 
-	system.uac = _.combineMiddleware([
-		ntlm({//basic-auth через Active Directory (ntlm)
-			badrequest : function(req, res, next) {
-				res.sendStatus(400);
-			},
-			forbidden : function(req, res, next) {
-				res.statusCode = 401;	//!!!!
-				res.setHeader('WWW-Authenticate', 'NTLM');
-				next();
-			},
-			internalservererror	: function(req, res, next) {
-				res.status(500).send('NTLM auth error')
-//				res.sendStatus(500); 
-			},
-			//debug: function() {	//	var args = Array.prototype.slice.apply(arguments); console.log.apply(null, args)},
-			domain : config.ntlm.domain,
-			domaincontroller : config.ntlm.dc
-		}),
-
-//		function(req, res, next){ req.ntlm = {UserName :'bogachev_di'};next()}	//заглушка имени, если нет ntlm
-/*		,function(req, res, next){
-			system.user( req.ntlm.UserName ).then(user=>{
-				req.user = {};
-				Object.assign(req.user, user);
-				console.log(req.user);
-				next();
-			})
-		}*/
-		_access //access management
-	]);
-
 	if (system.config.ssl.cert)
-		return util.promisify(fs.readFile)(path.join(_root,'sslcert',system.config.ssl.cert))
+		return promisify(fs.readFile)(path.join(_root,'sslcert',system.config.ssl.cert))
 			.then(cert=>{ 
 				system.config.ssl.certData = cert; 
 				return system
