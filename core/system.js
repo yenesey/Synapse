@@ -119,10 +119,7 @@ system.access = function(user, options){
 	
 	return system.db(`
 		SELECT
-			objects.id, 
-			objects.name, 
-			objects.class, 
-			objects.description,	 
+			objects.*, 
 			(select meta from objects_meta where object = objects.id) as 'meta',
 			case when 
 				(select 
