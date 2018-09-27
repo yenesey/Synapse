@@ -29,9 +29,6 @@ import './vuetify'
 
 
 import Task from './task.vue'
-Vue.component('task-icon', { render : (h)=>h(null) } )	//dummy for store icon names
-Vue.component('task-section', { render : (h)=>h(null) } )	//dummy for store task section id's
-
 import admin from './admin/admin.js'
 import main from './main.vue'
 
@@ -39,7 +36,13 @@ import main from './main.vue'
 pxhr({method:'get', url:'/access/map'})
 .catch(err=>({login: 'Нет доступа!', access:[], err : err})) 
 .then(user=>{
-	var menu = user.access.filter(el=>el.class === 'menu')
+
+	var menuGroups = user.access
+		.filter(el=>el.class === 'menu')
+		.sort((a,b)=> a.id > b.id)
+	if (menuGroups.findIndex(el=>el.name === 'default') === -1) 
+		menuGroups.unshift( {name: 'default', icon:'chevron_right'} )
+
 	var access = keys(user.access, 'class', el=>el.granted && !user.disabled) /*берем только те, к которым доступ предоставлен */
 
 	var routes = [ //маршруты для Vue-router
@@ -83,7 +86,7 @@ pxhr({method:'get', url:'/access/map'})
 						name : el.name,
 						path : String(el.id),
 						icon : el.icon || 'chevron_right',
-						section : el.section || 'default',
+						menu : el.menu || 'default',
 /*						icon : /\("task-icon"[\s\S\w\W]+?\(\s*?"([\w]+?)"\s*?\)[\s\S\w\W]*?\)/.test(obj.render.toString())?RegExp.$1 : '',
 						section:/\("task-section"[\s\S\w\W]+?\(\s*?"([\w]+?)"\s*?\)[\s\S\w\W]*?\)/.test(obj.render.toString())?RegExp.$1 : 'default',*/
 						component : {
@@ -103,7 +106,7 @@ pxhr({method:'get', url:'/access/map'})
 					user : user.login,	
 					routes : routes, 
 					status: (user.err?user.err.message:'Добро пожаловать!'),
-					sections : menu
+					menuGroups : menuGroups
 				} 
 			}
 		),

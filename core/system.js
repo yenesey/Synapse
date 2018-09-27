@@ -13,7 +13,7 @@
 
 var express = require('express'),
 	path = require('path'),
-	promisify = require('util').promisify,
+	util = require('util'),
 	fs = require('fs'),
 	ntlm = require('express-ntlm'),
 	bodyParser = require('body-parser'),
@@ -151,7 +151,7 @@ system.access = function(user, options){
 				meta = JSON.parse(obj.meta);
 				delete obj.meta;
 			} catch (err) {
-				console.log('[error]: invalid metadata format for object.id=' + access[index].id )
+				console.log('[error]:'  + err.message.replace('\n', '') + '   object.id=' + access[index].id)
 			}
 			return {	...obj,  ...meta}
 		})
@@ -317,7 +317,7 @@ module.exports = system.db('SELECT * FROM settings')
 	]);
 
 	if (system.config.ssl.cert)
-		return promisify(fs.readFile)(path.join(_root,'sslcert',system.config.ssl.cert))
+		return util.promisify(fs.readFile)(path.join(_root,'sslcert',system.config.ssl.cert))
 			.then(cert=>{ 
 				system.config.ssl.certData = cert; 
 				return system
