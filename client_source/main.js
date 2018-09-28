@@ -85,7 +85,7 @@ pxhr({method:'get', url:'/access/map'})
 				return {	
 						name : el.name,
 						path : String(el.id),
-						icon : el.icon || 'chevron_right',
+						icon : el.icon,
 						menu : el.menu || 'default',
 /*						icon : /\("task-icon"[\s\S\w\W]+?\(\s*?"([\w]+?)"\s*?\)[\s\S\w\W]*?\)/.test(obj.render.toString())?RegExp.$1 : '',
 						section:/\("task-section"[\s\S\w\W]+?\(\s*?"([\w]+?)"\s*?\)[\s\S\w\W]*?\)/.test(obj.render.toString())?RegExp.$1 : 'default',*/
