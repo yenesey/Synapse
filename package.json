@@ -1,6 +1,6 @@
 {
   "name": "Synapse",
-  "version": "2.9.1",
+  "version": "3.0",
   "description": "Commercial Bank IT-engineer's integrative tool",
   "main": "app",
   "scripts": {
