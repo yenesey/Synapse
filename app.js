@@ -3,24 +3,24 @@
 /* 
 	Сервер Synapse
 
-  запуск из командной строки:
-    node app [options]
+	запуск из командной строки:
+		node app [options]
 
-    где options:
-        --production - запуск в режиме production, аналог NODE_ENV=production,
-                     иначе сервер работает в режиме разработки - сборка 
-                     клиента на лету с Hot Module Reload (HMR)
-        --port=N   - задать прослушиваемый порт
-                     также можно задать переменной окружения PORT
-        --service  - запустить как службу (влияет на обработку сигналов прерывания
-                     и закрытия процесса)
+		где options:
+				--production - запуск в режиме production, аналог NODE_ENV=production,
+										 иначе сервер работает в режиме разработки - сборка 
+										 клиента на лету с Hot Module Reload (HMR)
+				--port=N   - задать прослушиваемый порт
+										 также можно задать переменной окружения PORT
+				--service  - запустить как службу (влияет на обработку сигналов прерывания
+										 и закрытия процесса)
 
-    npm run build  - сборка клиентского приложения (bundle)
-    npm run test   - сборка bundle и запуск тестового сервера в режиме production
+		npm run build  - сборка клиентского приложения (bundle)
+		npm run test   - сборка bundle и запуск тестового сервера в режиме production
 
-  ------------------------------------------------------------------------------------------------
-  Сервер, клиент, ./core модули (за исключением отмеченных отдельно) © Денис Богачев <d.enisei@yandex.ru>
-  ------------------------------------------------------------------------------------------------
+	------------------------------------------------------------------------------------------------
+	Сервер, клиент, ./core модули (за исключением отмеченных отдельно) © Денис Богачев <d.enisei@yandex.ru>
+	------------------------------------------------------------------------------------------------
 */
 
 var 
@@ -42,6 +42,14 @@ console.log = function(){
 	console._log(chalk.reset.cyan(moment().format('HH:mm:ss ')) +
 		args.reduce((all, arg)=>all+((typeof arg === 'object')?util.inspect(arg):arg), '')
 	) 
+}
+
+function stringToBoolean(string){
+	switch(string.toLowerCase().trim()){
+		case "true": case "yes": case "1": return true;
+		case "false": case "no": case "0": case null: return false;
+		default: return Boolean(string);
+	}
 }
 
 /*
@@ -88,7 +96,7 @@ process.argv.forEach(arg=>{
 		case '--port': process.env.PORT = pv[1]; break;
 		case '--production': process.env.NODE_ENV = 'production'; break;
 		case '--service': process.env.SERVICE = true; break;
-	}	
+	} 
 })
 
 function close(){
@@ -116,13 +124,13 @@ if (!process.env.SERVICE){ // если не служба,
 			switch (input) { 
 				case 'm': console.log(memUsage()); break;
 				case 'u': console.log(upTime()); break;
-	//			case 'i': console.log(module); break;
+	//      case 'i': console.log(module); break;
 				case '\u0003': close(); break;  //Ctrl+C
 			
-				default: 	console.log(easterEgg())
+				default:  console.log(easterEgg())
 			}
 		})
-	}	
+	} 
 } 
 
 function status(){
@@ -170,14 +178,19 @@ require('synapse/system').then(system=>{
 
 	app.use([
 		errorHandler,
-	//	accessHandler,
+	//  accessHandler,
 		compression( {threshold : 0} ),
 
-		(process.env.NODE_ENV === 'production' 		//клиентское приложение:  
-			?	express.static( path.join(__dirname, 'client')) //статика 
-			:	require('synapse/dev-middleware')),  // или динамика, в зависимости от режима
+		(process.env.NODE_ENV === 'production'    //клиентское приложение:  
+			? express.static( path.join(__dirname, 'client')) //статика 
+			: require('synapse/dev-middleware') // или динамика, в зависимости от режима
+		),  
 
-		require('synapse/api/cards')(system), //запрос инфы по картам для сайта
+		(system.config.cards && stringToBoolean(system.config.cards.on)
+			?require('synapse/api/cards')(system)  //запрос инфы по картам для сайта
+			:(req, res, next)=>next()
+		),
+
 		require('synapse/api/access')(system), //с этого момента и далее вниз начинается контроль доступа
 
 		express.static(system.config.path.users, { //каталог с пользовательскими папками
@@ -199,7 +212,7 @@ require('synapse/system').then(system=>{
 	)
 
 	server.on('error', err=>{
-		console.log(chalk.red.bold("[error]:") + JSON.stringify(err, null, ""));	
+		console.log(chalk.red.bold("[error]:") + JSON.stringify(err, null, ""));  
 		process.exit();
 	})
 
