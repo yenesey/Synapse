@@ -1,6 +1,6 @@
 {
   "name": "Synapse",
-  "version": "3.0",
+  "version": "3.0.0",
   "description": "Commercial Bank IT-engineer's integrative tool",
   "main": "app",
   "scripts": {
@@ -58,8 +58,8 @@
     "vue-router": "3.0.1",
     "vue-template-compiler": "2.5.17",
     "vuetify": "1.2.5",
-    "webpack": "4.18.0",
-    "webpack-bundle-analyzer": "2.13.1",
+    "webpack": "4.20.2",
+    "webpack-bundle-analyzer": "3.0.2",
     "webpack-cli": "3.1.0",
     "webpack-dev-middleware": "3.2.0",
     "webpack-hot-middleware": "2.23.1",
