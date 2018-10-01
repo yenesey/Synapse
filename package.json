@@ -4,7 +4,7 @@
   "description": "Commercial Bank IT-engineer's integrative tool",
   "main": "app",
   "scripts": {
-    "build": "cross-env NODE_ENV=production webpack --mode production --progress --hide-modules --display-error-details --config ./client_source/webpack.config.js",
+    "build": "cross-env NODE_ENV=production webpack --mode production --hide-modules --display-error-details --config ./client_source/webpack.config.js",
     "build_dev": "cross-env NODE_ENV=development webpack --mode development --progress --hide-modules --display-error-details --config ./client_source/webpack.config.js",
     "build_run": "npm run build | cross-env NODE_ENV=production node app",
     "postinstall": "mklink /J \"node_modules/synapse\" \"core\""
@@ -12,7 +12,6 @@
   "dependencies": {
     "activedirectory": "0.7.2",
     "body-parser": "1.18.3",
-    "chalk": "2.4.1",
     "compression": "1.7.3",
     "cron": "1.4.1",
     "cron-parser": "2.6.0",
@@ -25,7 +24,6 @@
     "ini": "1.3.5",
     "moment": "2.22.2",
     "moment-precise-range-plugin": "1.3.0",
-    "ora": "3.0.0",
     "oracledb": "github:oracle/node-oracledb#v2.3.0",
     "request": "2.88.0",
     "sleep": "5.2.3",
@@ -64,7 +62,8 @@
     "webpack-bundle-analyzer": "2.13.1",
     "webpack-cli": "3.1.0",
     "webpack-dev-middleware": "3.2.0",
-    "webpack-hot-middleware": "2.23.1"
+    "webpack-hot-middleware": "2.23.1",
+    "webpackbar": "^2.6.3"
   },
   "author": "Denis Bogachev <denesey@gmail.com>",
   "repository": {

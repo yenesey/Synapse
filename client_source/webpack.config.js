@@ -6,6 +6,7 @@ const VueLoaderPlugin = require('vue-loader/lib/plugin')
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const HardSourceWebpackPlugin = require('hard-source-webpack-plugin')
+const WebpackBar = require('webpackbar')
 
 const resolve = (...dirs) => require('path').join(...[__dirname, '..', ...dirs]  )
 
@@ -114,6 +115,7 @@ var config = {
 			template : resolve('client_source/assets', 'index.html')
 		}),
 		new VueLoaderPlugin(),
+		new WebpackBar({minimal:false}),
 		new HardSourceWebpackPlugin()
 	],
 
@@ -134,7 +136,7 @@ var config = {
 
 if (process.env.NODE_ENV === 'production') {
 	config.mode = 'production'; //'none'
-	config.devtool = 'module-source-map'
+	config.devtool = 'source-map'
 	if (process.env.npm_config_report)
 		config.plugins.push(new BundleAnalyzerPlugin({analyzerMode: 'static'}))
 	
