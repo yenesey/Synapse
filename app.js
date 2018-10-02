@@ -37,7 +37,7 @@ var server = null;
 console._log = console.log; 
 console.log = function(){ 
 	var args = Array.prototype.slice.apply(arguments);
-	console._log(chalk.reset.cyan(moment().format('HH:mm:ss ')) +
+	console._log(chalk.reset.cyan.bold(moment().format('HH:mm:ss ')) +
 		args.reduce((all, arg)=>all+((typeof arg === 'object')?util.inspect(arg):arg), '')
 	) 
 }
@@ -185,8 +185,8 @@ require('synapse/system').then(system=>{
 		),  
 
 		(system.config.cards && stringToBoolean(system.config.cards.on)
-			?require('synapse/api/cards')(system)  //запрос инфы по картам для сайта
-			:(req, res, next)=>next()
+			? require('synapse/api/cards')(system)  //запрос инфы по картам для сайта
+			: (req, res, next)=>next()
 		),
 
 		require('synapse/api/access')(system), //с этого момента и далее вниз начинается контроль доступа
