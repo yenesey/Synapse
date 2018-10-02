@@ -87,7 +87,7 @@
 
 ## Снимки экрана
 
-### v2.9 (@latest)
+### v3.0 (@latest)
 <img src="/.other/memories/v2.9.png" alt="Synapse v2.9"/>
 
 ### v2.8
