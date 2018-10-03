@@ -113,6 +113,7 @@ export default {
 	
 			var model = self.getTaskModel();
 			for (var key in model)
+				if (key[0] !== '$')
 					formData.append(key, JSON.stringify(model[key]))
 			
 			self.text = '';

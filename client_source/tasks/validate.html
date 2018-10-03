@@ -8,7 +8,7 @@
 			<v-select 
 				style="width:350px; display:inline-block;"	
 				:menu-props="{maxHeight: 600}"
-    	  :items="items"
+    	  :items="$data.$items"
 	  	  v-model="option[index]"
 	  	  hide-details
 	  	  dense
@@ -24,7 +24,7 @@
 export default {
 	data:()=>({
 		option : [],		 
-		items: [
+		$items: [
 				{ text:'Регистрация ключа ЭП', value : 1 },
 				{ text:'Блокировка ключа ЭП', value : 2 },
         { text:'Подключить MAC-токен', value : 3 },
@@ -43,7 +43,7 @@ export default {
         { text:'Изменить Адрес (англ)',value : 16 },
         { text:'Другое', value : 17 }
        ] 	
-	}),
+	})
 }
 </script>
 
