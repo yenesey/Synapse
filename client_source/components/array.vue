@@ -14,64 +14,83 @@ import deepClone from './vue-deep-clone.js';
 
 export default {
 	props : {	
-		value : Array
+		value : Array,
+		'b-size' : String
 	},
 
 	data: function(){
 		return {
-			renderData : this.value? this.value : [this._empty()]
+			renderData : this.value? this.value : [this._empty()],
+			btnSize : 18,
+			rowHeight : 18
 		}		
 	},
-
+	mounted: function(){
+		this.rowHeight = this.$el.children[1].clientHeight;
+		if (this.bSize)
+			this.btnSize = this.bSize
+		else
+			this.btnSize = this.rowHeight;
+	},
 	render: function (h) {
 		var self = this;
 	
-		function btn(value, index, size){
-			if (
-				((value === '-') && (size === 1)) ||
-				((value === '+') && (index < size - 1))
-			) return null;
+		function controls(index, total){
 
-			return h('input',	{
-				style:{
-					'padding': '0',
-          'margin-left': '0.2rem',
-          'margin-top': '0.4rem',
-					'width': '1.5em',
-					'float': 'left',
-					'border-style': 'outset',
-					'border-width': '1px'
-//					'border-color': 'buttonface'
-				}, 
-				attrs:{type:'button', value: value}, 
-				on:{
-					click:function(){ 
-						if (value === '-')
-							self.del(index).then(function(){
-								return self.$emit('change', self)
-							}) 
-						if (value === '+')
-							self.add().then( function(){
-								return self.$emit('change', self)
-							}) 
-					}
-				} 
-			})
+			function button(v){
+				return h('input',	{
+						style:{
+							'cursor':'default',
+							'font-style':'normal',
+							'position': 'absolute',
+							'margin-top' : (self.rowHeight - self.btnSize) / 2 + 'px',
+							'width': self.btnSize + 'px',
+							'height': self.btnSize + 'px',
+							'right': (v === '-'? self.btnSize + 'px': '0'),
+							'top': 0,
+							'text-align': 'center',
+							'padding': '0',
+							'border-style': 'outset',
+							'border-width': '1px',
+							'border-color': 'buttonface'
+						}, 
+						attrs:{type:'button', value: v}, 
+						on:{
+							click:function(){ 
+								if (v === '-')
+									self.del(index).then(function(){
+										return self.$emit('change', self)
+									}) 
+								if (v === '+')
+									self.add().then( function(){
+										return self.$emit('change', self)
+									}) 
+							}
+						} 
+					})
+			}
+			
+			return h('div',	{class:'array-controls'}, 
+				(index === 0 && (total - 1) === 0)
+					? [button('+')]
+					: (total - 1 > index)
+						? [button('-')]
+						: [button('-'), button('+')]
+				)
 		}
 			
 		return h('div', {class:'array'},
 			[	h('input', {attrs:{type:'hidden', name:'array-begin'}})	] //маркер начала массива для парсинга формы
 			.concat(	
 				this.renderData.map(function(el, index, obj){
-					return h('div', {key : el._id ? el._id : JSON.stringify(el) + index, class:'array-item', style : {clear:'both'}}, 
+					return h('div', {key : el._id ? el._id : JSON.stringify(el) + index, class:'array-elem'}, 
 						[ 
-							h('div', { class:'array-item-wrapper', style : {display:'inline-block', float:'left'}},
+							h('div', { class:'array-slot-wrap'},
 								self.$scopedSlots.default
 									? [self.$scopedSlots.default({el : el, index : index})] 
 									: deepClone(self.$slots.default, h)
 							),
-							btn('-', index, obj.length),
-							btn('+', index, obj.length)
+							controls(index, obj.length)
 						]
 					)
 				})
@@ -112,6 +131,24 @@ export default {
 	}
 
 
-
 }
 </script>
+
+<style>
+
+.array-elem {
+	clear : both;
+	position : relative
+}
+
+.array-slot-wrap {
+	display: inline-block;
+}
+
+.array-controls {
+
+
+}
+
+
+</style>

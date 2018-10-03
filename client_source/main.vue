@@ -347,7 +347,7 @@ table.synapse tr.error, table.synapse tr.error input{
 table.synapse tr.selected, table.synapse tr.selected input, table.synapse tr.selected select{
 	background-image: linear-gradient(to bottom, #d0edf5, #e1e5f0 100%);
 }
-
+/*
 table.synapse input, table.synapse select{
 	line-height:1.1em;
 	font-family: inherit;
@@ -355,7 +355,7 @@ table.synapse input, table.synapse select{
 	border:none;
 	width:100%;
 }
-
+*/
 table.synapse input[type="checkbox"]{
 	width:auto !important;
 }

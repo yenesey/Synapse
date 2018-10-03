@@ -112,8 +112,9 @@ export default {
 			event.preventDefault();
 	
 			var model = self.getTaskModel();
-			for (var key in model) formData.append(key, model[key])
-	
+			for (var key in model)
+					formData.append(key, JSON.stringify(model[key]))
+			
 			self.text = '';
 			self.status = 'running';
 			self.progress = 0;
@@ -325,22 +326,6 @@ export default {
   100% {
     transform: translateX(1000px) scale(0);  
   }
-}
-
-input, select, textarea{
-  border-bottom-style: inset;
-  border-color: rgb(116, 175, 210);
-  border-width: 1px;
-  padding-left: 5px;
-}
-
-select{
-  padding-right: 1.5rem;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' version='1.1' width='32' height='24' viewBox='0 0 32 24'><polygon points='0,0 32,0 16,24' style='fill:rgb%28138,138,138%29'></polygon></svg>");
-  background-size:9px 6px;
-  background-position:right -1rem center;
-  background-origin:content-box;
-  background-repeat:no-repeat;
 }
 
 </style>

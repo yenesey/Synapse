@@ -62,7 +62,7 @@
 
 				<array v-model="job.params.pp.email">
 					<dlookup slot-scope="{el, index}"
-					 	style="width:270px"
+					 	style="width:250px"
 						db="db/synapse.db" 
 						table="users" 
 						result="email" 
