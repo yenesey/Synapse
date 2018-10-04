@@ -48,8 +48,8 @@ access.put('/access/map', bodyParser.json(), function(req, res){
 	.then(()=>
 		system.db(
 			(req.body.granted)
-			? `REPLACE INTO userrouter VALUES (${req.body.userId}, ${req.body.objectId}, null)`
-			: `DELETE FROM userrouter WHERE user=${req.body.userId} AND object=${req.body.objectId}`
+			? `REPLACE INTO user_access VALUES (${req.body.userId}, ${req.body.objectId}, null)`
+			: `DELETE FROM user_access WHERE user=${req.body.userId} AND object=${req.body.objectId}`
 		)
 	)
 	.then(result => res.json({result}))
