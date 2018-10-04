@@ -442,7 +442,7 @@ _.pxhr = function(request){
 		}
 
 		xhr.onreadystatechange= function(){
-			if (xhr.readyState === 4 && xhr.status !== 200)
+			if (xhr.readyState === 4 && xhr.status === 500)
 				error('ERR_SERVER_SIDE: ' + xhr.responseText)
 		}
 
