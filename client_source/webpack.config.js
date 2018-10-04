@@ -116,7 +116,7 @@ var config = {
 		}),
 		new VueLoaderPlugin(),
 		new WebpackBar({minimal:false}),
-	//	new HardSourceWebpackPlugin()
+		new HardSourceWebpackPlugin()
 	],
 
 	optimization: {

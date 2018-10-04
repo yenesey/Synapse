@@ -60,7 +60,7 @@
     	<td colspan="2" style="vertical-align: text-top">
 			  <v-icon>mail_outline</v-icon> e-mail <br>
 
-				<array v-model="job.params.pp.email">
+				<array v-model="job.params.pp.email" b-size=22>
 					<dlookup slot-scope="{el, index}"
 					 	style="width:250px"
 						db="db/synapse.db" 
