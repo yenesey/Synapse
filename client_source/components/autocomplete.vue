@@ -2,7 +2,7 @@
 	<div class="autocomplete">
 		<div class="autocomplete-input-group" :class="{'autocomplete-selected': value}">
 			<icon-circle @click="clear" title="clear" />
-			<input 
+			<v-text-field 
 				autocomplete="off"
 				v-model="searchText" 
 				:placeholder="placeholder"
@@ -14,7 +14,8 @@
 				@keydown.enter.prevent="keyEnter"
 				@keydown.up="keyUp"
 				@keydown.down="keyDown"
-			>
+				hide-details
+			/>
 		</div>
 		<div class="autocomplete-list" v-if="showList && internalItems.length">
 			<div 
@@ -184,7 +185,7 @@ export default {
 */
   transition: border-color .2s cubic-bezier(.645,.045,.355,1);
  	width: 100%;
-	padding-right: 2em;
+	padding: 0 2em 0 0;
 }
 
 .autocomplete-input::-ms-clear {display: none; width : 0; height: 0;}
