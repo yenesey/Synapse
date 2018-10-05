@@ -1,7 +1,7 @@
 "use strict";
 
 /* 
-  Сервер Synapse
+  Сервер Synapse <dev>
 
   запуск из командной строки:
     node app [options]
