@@ -51,7 +51,7 @@ var moment = require('moment'),
   }
   else {
     console.log('Нет Журнала РЦ за '+dateRep.format('YYYY-MM-DD'));
-//    if (!param.task.user) 
-//      process.exit(2);
+    if (!param.task.user) 
+      process.exit(2);
   }
 }

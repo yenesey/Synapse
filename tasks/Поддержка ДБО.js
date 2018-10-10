@@ -27,7 +27,7 @@ var moment = require('moment'),
     param.optionText = [param.optionText];
   }  
 
-  if (param.closeDog) {
+  if (param.closeDog == 'true') {
     text = text + '\r\n- закрыть договор';
   }
 
@@ -95,7 +95,7 @@ var moment = require('moment'),
                D.ID=${param.dog}`;
   var rs = await ibso.query(SQL);
   if (rs && rs.length) {
-    if (rs[0].KOLACC == 0) {
+    if (rs[0].KOLACC == 0 && param.closeDog == 'false') {
       console.log('Не указан счет для дебетования');
     	process.exit(1);
     }

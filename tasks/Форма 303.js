@@ -28,7 +28,7 @@ var moment = require('moment'),
     }
   }
   else {
-    console.log('Нет доступа к выбранному подразделению.\r\nОбратитесь к Администратору');
+    console.log('Подразделение не указано \r\nлибо нет доступа к выбранному подразделению.\r\nОбратитесь к Администратору');
 		process.exit(1);
   }
 
@@ -67,7 +67,9 @@ var moment = require('moment'),
                  )
             END ) as C2_2,
           ( SELECT C_3 FROM IBS.VW_CRIT_FT_MONEY WHERE ID=KR.REF5 ) as C3,
-          ( SELECT C_3 FROM IBS.VW_CRIT_FT_MONEY WHERE ID=KR.REF5 ) as C4,
+          ( SELECT C_3 FROM IBS.VW_CRIT_FT_MONEY WHERE ID=KR.REF5 ) as C3_1,
+          ( SELECT C_3 FROM IBS.VW_CRIT_FT_MONEY WHERE ID=KR.REF5 ) as C16,
+          ( SELECT C_3 FROM IBS.VW_CRIT_FT_MONEY WHERE ID=KR.REF5 ) as C19,
           ( SELECT 
                 LISTAGG(NVL(SUBSTR(I.C_5,5,INSTR(I.C_5,'/')-5), 0),', ') WITHIN GROUP(order by I.C_3)
               FROM 
@@ -94,17 +96,18 @@ var moment = require('moment'),
         PLAN.*,
         FACT.*,
         PRC.*,
-        '' as C12,
-        11 as C19 
+        11 as C21 
       FROM 
         KREDIT
       LEFT JOIN ( -- выборка признаков для отчётности
                   SELECT 
                     KR.ID,
-                    LISTAGG(CASE WHEN C_1 like 'Ф_303_ВИД_СТАВКИ_%' THEN C_1 END, ', ') WITHIN GROUP(order by C_1) as C5,  
-                    LISTAGG(CASE WHEN C_1 like 'Ф_303_ПЕРИОД_СТАВКИ%' THEN C_1 END, ', ') WITHIN GROUP(order by C_1) as C9,
-                    LISTAGG(CASE WHEN C_1 like 'Ф_303_ВИД_КОМП_СТ_%' THEN C_1 END, ', ') WITHIN GROUP(order by C_1) as C10,
-                    LISTAGG(CASE WHEN C_1 like 'Ф_303_СПЕЦ_%' THEN C_1 END, ', ') WITHIN GROUP(order by C_1) as C11
+                    LISTAGG(CASE WHEN C_1 like 'Ф_303_ВИД_СТАВКИ_%' THEN C_1 END, ', ') WITHIN GROUP(order by C_1) as C4,  
+                    LISTAGG(CASE WHEN C_1 like 'Ф_303_ВИД_СТАВКИ_%' THEN C_1 END, ', ') WITHIN GROUP(order by C_1) as C4_1, 
+                    LISTAGG(CASE WHEN C_1 like 'Ф_303_ВИД_КОМП_СТ_%' THEN C_1 END, ', ') WITHIN GROUP(order by C_1) as C5,
+                    LISTAGG(CASE WHEN C_1 like 'Ф_303_ВИД_КОМП_СТ_%' THEN C_1 END, ', ') WITHIN GROUP(order by C_1) as C5_1,
+                    LISTAGG(CASE WHEN C_1 like 'Ф_303_ПЕРИОД_СТАВКИ%' THEN C_1 END, ', ') WITHIN GROUP(order by C_1) as C8,
+                    LISTAGG(CASE WHEN C_1 like 'Ф_303_СПЕЦ_%' THEN C_1 END, ', ') WITHIN GROUP(order by C_1) as C9
                   FROM 
                     KREDIT KR,
                     IBS.VW_CRIT_REPS_PRZ_HIST 
@@ -118,7 +121,7 @@ var moment = require('moment'),
                   SELECT 
                     KR.ID,
                     SUM(CASE WHEN C_4 like 'Гашение кредита%' THEN C_5 END) as C14,
-                    SUM(CASE WHEN C_4 like 'Гашение процентов%' THEN C_5 END) as C16
+                    SUM(CASE WHEN C_4 like 'Гашение процентов%' THEN C_5 END) as C17
                   FROM 
                     KREDIT KR,
                     IBS.VW_CRIT_PLAN_OPER 
@@ -131,8 +134,8 @@ var moment = require('moment'),
                   SELECT 
                     KR.ID,
                     SUM(CASE WHEN F.C_5 in ('Гашение кредита','Гашение задолженности по кредиту') THEN F.C_4 END) as C15,
-                    SUM(CASE WHEN F.C_5 in ('Гашение учтенных процентов','Гашение учтенных процентов за пр кредит (112)','Гашение учт на внеб процентов за пр кредит (112)','Гашение доучтенных на внебалансе процентов за пр кредит (112)','Авансовое гашение Неучтенные проценты за кредит','Гашение задолженности по процентам','Гашение задолженности по процентам 112','Гашение задолженности по процентам 112 внебаланс', 'МФК. Гашение учтенных доп. процентов','Гашение учтенных на внебалансе процентов','Гашение просроченных процентов на внебалансе','Комиссия за выдачу ссуды','МФК. Гашение комиссии за открытие кредитной линии (от ссудной задолженности)','МФК. Гашение просроченной комиссии за открытие кредитной линии (от ссудной задолженности)','МФК. Гашение учтенной (внесистемно) комиссии за открытие кредитной линии (от ссудной задолженности)','МФК. Гашение комиссии за предоставление/открытие кредитной линии','МФК. Гашение учтенной комиссии за выдачу кредита','Комиссия за открытие лимита / счета','МФК. Гашение комиссии за изменение условий кредитования','МФК. Гашение учтенной комиссии за открытие кредитной линии (от ссудной задолженности)','МФК. Гашение учтенной комиссии за предоставление/открытие кредитной линии') THEN F.C_4 END) as C17,
-                    SUM(CASE WHEN F.C_5 in ('Гашение пени по кредиту','Гашение пени по процентам','Гашение учтенной госпошлины','Гашение внешних задолженностей') THEN DOCS.C_5 END) as C18
+                    SUM(CASE WHEN F.C_5 in ('Гашение учтенных процентов','Гашение учтенных процентов за пр кредит (112)','Гашение учт на внеб процентов за пр кредит (112)','Гашение доучтенных на внебалансе процентов за пр кредит (112)','Авансовое гашение Неучтенные проценты за кредит','Гашение задолженности по процентам','Гашение задолженности по процентам 112','Гашение задолженности по процентам 112 внебаланс', 'МФК. Гашение учтенных доп. процентов','Гашение учтенных на внебалансе процентов','Гашение просроченных процентов на внебалансе','Комиссия за выдачу ссуды','МФК. Гашение комиссии за открытие кредитной линии (от ссудной задолженности)','МФК. Гашение просроченной комиссии за открытие кредитной линии (от ссудной задолженности)','МФК. Гашение учтенной (внесистемно) комиссии за открытие кредитной линии (от ссудной задолженности)','МФК. Гашение комиссии за предоставление/открытие кредитной линии','МФК. Гашение учтенной комиссии за выдачу кредита','Комиссия за открытие лимита / счета','МФК. Гашение комиссии за изменение условий кредитования','МФК. Гашение учтенной комиссии за открытие кредитной линии (от ссудной задолженности)','МФК. Гашение учтенной комиссии за предоставление/открытие кредитной линии') THEN F.C_4 END) as C18,
+                    SUM(CASE WHEN F.C_5 in ('Гашение пени по кредиту','Гашение пени по процентам','Гашение учтенной госпошлины','Гашение внешних задолженностей') THEN DOCS.C_5 END) as C20
                   FROM 
                     KREDIT KR,
                     IBS.VW_CRIT_FACT_OPER F,
@@ -175,7 +178,7 @@ var moment = require('moment'),
                                         and HB.COLLECTION_ID=SB.REF7 
                                         and HB.C_1<=${sDateRep} 
                                         and (HB.C_2 is NULL or HB.C_2>=${sDateRep}) ),0)
-                             END , ' | ') WITHIN GROUP(order by H.C_1) as C7,
+                             END , ' | ') WITHIN GROUP(order by H.C_1) as C6_1,
                     LISTAGG( CASE WHEN 
                                 PS.C_3='Проценты на просроченный кредит (112)'
                                 and H.C_1=(SELECT MAX(C_1) FROM IBS.VW_CRIT_ARC_SCH_PRC WHERE COLLECTION_ID=H.COLLECTION_ID and C_1<=${sDateRep})
@@ -190,7 +193,7 @@ var moment = require('moment'),
                                         and HB.COLLECTION_ID=SB.REF7 
                                         and HB.C_1<=${sDateRep} 
                                         and (HB.C_2 is NULL or HB.C_2>=${sDateRep}) ),0)
-                             END , ' | ') WITHIN GROUP(order by H.C_1) as C8                 
+                             END , ' | ') WITHIN GROUP(order by H.C_1) as C7                 
                   FROM 
                     KREDIT KR,
                     IBS.VW_CRIT_DEBT_COMIS_ALL PS, 
@@ -211,10 +214,12 @@ var moment = require('moment'),
     var excel = new office.Excel(path.join(__dirname,'templates','Форма 303.xlsx'));
 
     rsDog.map((item) => {
+      if(item.C4) item.C4 = przReplace(item.C4);
+      if(item.C4_1) item.C4_1 = przReplace(item.C4_1);
       if(item.C5) item.C5 = przReplace(item.C5);
+      if(item.C5_1) item.C5_1 = przReplace(item.C5_1);
+      if(item.C8) item.C8 = przReplace(item.C8);
       if(item.C9) item.C9 = przReplace(item.C9);
-      if(item.C10) item.C10 = przReplace(item.C10);
-      if(item.C11) item.C11 = przReplace(item.C11);
     });
 
     excel.replace(1, {

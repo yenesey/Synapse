@@ -58,7 +58,7 @@ var moment = require('moment'),
 				.replace(/\$\{dateEnd\}/g,   "TO_DATE('" + param.dateEnd[report.dates]   + "')")
 				.replace(/\$\{CLIENT\}/ig,    clientSql);
 
-			var data = await ora({sql : sql, maxRows : 20000})
+			var data = await ora(sql, {}, {maxRows : 20000})
 		//	console.log(data)
 
 			if (report.preProcess) report.preProcess(data);
