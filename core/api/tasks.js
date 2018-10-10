@@ -200,6 +200,31 @@ function(req, res){
 	})
 })
 
+router.get('/tasks/meta', function(req, res){
+//выдача метаданных заданного объекта
+  return system.db(`SELECT objects_meta.meta
+                    FROM objects
+                    LEFT JOIN objects_meta 
+                    ON objects.id = objects_meta.object
+                    WHERE objects.name = '${req.query.object}'`)
+  .then(result => res.json(result))
+  .catch(err => system.errorHandler(err, req, res))
+})
+
+router.put('/tasks/meta', bodyParser.json(), function(req, res){
+// операция редактирования/удаления метаданных заданного объекта
+// req.body = {objectId: Number, meta: string}
+  return system.accessCheck(req.ntlm.UserName, system.ADMIN_USERS)
+  .then(()=>
+  	system.db(
+  		(req.body.meta == '{}')
+  		? `DELETE FROM objects_meta WHERE object=${req.body.objectId}`
+  		: `REPLACE INTO objects_meta VALUES (${req.body.objectId}, '${req.body.meta}')`
+  	)
+  )
+  .then(result => res.json({result}))
+  .catch(err => system.errorHandler(err, req, res))
+})
 return router
 }
 
