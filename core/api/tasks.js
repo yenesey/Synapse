@@ -13,12 +13,13 @@
    - клиент обрабатывает получаемую информацию в рамках одного "долгого" ответа
 
 */
-var path = require('path'),
+const path = require('path'),
 	express = require('express'),
 	router = express.Router({strict:true}),
 	formidable = require('formidable'),
 	promisify = require('util').promisify,
-	fsp = require('../fsp');
+	fsp = require('../fsp'),
+	bodyParser = require('body-parser');
 
 /////////////////////////////////////////////////////////////////////////
 
