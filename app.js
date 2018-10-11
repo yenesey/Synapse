@@ -131,7 +131,7 @@ if (!process.env.SERVICE){ // если не служба,
 	} 
 } 
 
-function status(){
+(function (){
 		var format = (obj, color) => Object.keys(obj).reduce((all, key)=> 
 			all + key + ':' + ((typeof color==='function')?color(obj[key]):obj[key]) + ' | ', '| '
 		)
@@ -143,7 +143,8 @@ function status(){
 		var info = [
 			[process.versions, ['node', 'v8']],
 			[process,          ['arch']],
-			[this.address(),   ['port']],
+//			[this.address(),   ['port']],
+			[process.env,      ['port']],  
 			[process.env,      ['node_env']],
 			[args,             ['args']],
 			[process,          ['execArgv']]
@@ -166,14 +167,14 @@ function status(){
 				console.log(memUsage());
 			}, null, true, null, null, true
 		)
-}
+}())
 
 /*
 -------------------------------------------------------------------------------------
 */
 require('synapse/system').then(system=>{
 	var app  = express()
-
+  
 	app.use([
 		errorHandler,
 	//  accessHandler,
@@ -201,7 +202,7 @@ require('synapse/system').then(system=>{
 		require('synapse/api/tasks')(system),
 		require('synapse/api/jobs')(system)
 	])
-
+	
 	server = https.Server({
 			passphrase: String(system.config.ssl.password),
 			pfx: system.config.ssl.certData
@@ -214,6 +215,6 @@ require('synapse/system').then(system=>{
 		process.exit();
 	})
 
-	server.listen(process.env.PORT || 443, status)
+	server.listen(process.env.PORT || 443)
 })
 .catch(err=>console.log(err.stack))
