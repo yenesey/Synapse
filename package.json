@@ -46,7 +46,6 @@
     "css-loader": "1.0.0",
     "eventsource-polyfill": "0.9.6",
     "file-loader": "2.0.0",
-    "hard-source-webpack-plugin": "",
     "html-webpack-plugin": "4.0.0-alpha.2",
     "json-loader": "0.5.7",
     "material-design-icons-iconfont": "3.0.3",
