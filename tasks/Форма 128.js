@@ -25,7 +25,7 @@ var moment = require('moment'),
   if (param.deps[0]) 
     var deps = param.deps[0];
   else {
-    console.log('Нет доступа к выбранному подразделению.\r\nОбратитесь к Администратору');
+    console.log('Подразделение не указано \r\nлибо нет доступа к выбранному подразделению.\r\nОбратитесь к Администратору');
 		process.exit(1);
   }
 
@@ -86,7 +86,17 @@ var moment = require('moment'),
                                TO_CHAR(K.C_6, 'DD.MM.YYYY') as DATEBEGIN, 
                                TO_CHAR(K.C_7, 'DD.MM.YYYY') as DATEEND,
                                K.C_7-K.C_6 as SROK,
-                               (CASE WHEN K.CLASS_ID = 'KRED_CORP' THEN (SELECT C_13 FROM IBS.VW_CRIT_CL_ORG WHERE ID = K.REF1) END) as CATEGORY,
+                               (CASE WHEN K.CLASS_ID = 'KRED_CORP' THEN ( SELECT 
+                                                                          	COUNT(*) 
+                                                                          FROM 
+                                                                            IBS.VW_CRIT_VND_CL_CORP CL,
+                                                                          	IBS.VW_CRIT_CL_CATEGORIES C
+                                                                          WHERE 
+                                                                            CL.ID = K.REF1
+                                                                          	and C.COLLECTION_ID = CL.REF52
+                                                                          	and C.C_1 <= ${sDateEnd}
+                                                                          	and (C.C_2 > ${sDateEnd} or C.C_2 is NULL)
+                                                                          	and C.C_4 in ('MICRO','SMALL','MIDDLE') ) END) as MSP,
                                T.C_2 as TYPE_CRED,
                                K.CLASS_ID,
                                Null as LONGING
@@ -134,7 +144,17 @@ var moment = require('moment'),
                                TO_CHAR(D.C_7, 'DD.MM.YYYY') as DATEBEGIN, 
                                TO_CHAR(D.C_8, 'DD.MM.YYYY') as DATEEND,
                                D.C_8-D.C_7 as SROK,
-                               (CASE WHEN K.CLASS_ID = 'KRED_CORP' THEN (SELECT C_13 FROM IBS.VW_CRIT_CL_ORG WHERE ID = K.REF1) END) as CATEGORY,
+                               (CASE WHEN K.CLASS_ID = 'KRED_CORP' THEN ( SELECT 
+                                                                          	COUNT(*) 
+                                                                          FROM 
+                                                                            IBS.VW_CRIT_VND_CL_CORP CL,
+                                                                            IBS.VW_CRIT_CL_CATEGORIES C
+                                                                          WHERE 
+                                                                            CL.ID = K.REF1
+                                                                          	and C.COLLECTION_ID = CL.REF52
+                                                                          	and C.C_1 <= ${sDateEnd}
+                                                                          	and (C.C_2 > ${sDateEnd} or C.C_2 is NULL)
+                                                                          	and C.C_4 in ('MICRO','SMALL','MIDDLE') ) END) as MSP,
                                T.C_2 as TYPE_CRED,
                                K.CLASS_ID,
                                1 as LONGING
@@ -176,7 +196,7 @@ var moment = require('moment'),
         dateEnd: item.DATEEND,
         srok: item.SROK,
         srok_sv: item.SUM/1000*item.SROK,
-        category: (item.CATEGORY == 'Микропредприятия' || item.CATEGORY == 'Субъект малого предпринимательства' || item.CATEGORY == 'Субъект среднего предпринимательства') ? item.CATEGORY : ''
+        category: (item.MSP > 0) ? 'МСП' : ''
       };
 
       if (item.CLASS_ID == 'KRED_PERS')

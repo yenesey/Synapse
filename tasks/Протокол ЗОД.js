@@ -19,7 +19,7 @@ var moment = require('moment'),
   if (param.deps[0]) 
     var deps = param.deps[0];
   else {
-    console.log('Нет доступа к выбранному подразделению.\r\nОбратитесь к Администратору');
+    console.log('Подразделение не указано \r\nлибо нет доступа к выбранному подразделению.\r\nОбратитесь к Администратору');
 		process.exit(1);
   }
 

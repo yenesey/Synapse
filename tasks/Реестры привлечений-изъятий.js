@@ -41,7 +41,7 @@ module.exports = async function(param, system){
 		if (typeof sql === 'string') sql = [sql];
 		for (var i = 0; i < sql.length; i++ ){
 			var tab = 't' + (i+1);
-			sheetData[tab] = await ora({ sql:sql[i], maxRows:10000 }) 
+			sheetData[tab] = await ora(sql[i], {}, { maxRows:10000 }) 
 			itog.forEach(col=>{
 				sheetData[tab + '_' + col] = sheetData[tab].itog(col)
 			})
@@ -49,7 +49,6 @@ module.exports = async function(param, system){
 //		console.log(sheetData)	
 		return data2Template(sheetData, template);
 	}
-
 
 //--------------------------------------------------------------------
 	if (param.in_ul_ras === 'on')

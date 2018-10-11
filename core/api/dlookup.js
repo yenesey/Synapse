@@ -43,7 +43,7 @@ function _sql(query){
 		query.table + " " +
 	"WHERE (" +	
 		query.lookIn.split(",").reduce((all, field)=>{
-			(/(%)?([\w|\d]+)(%)?/).test(field); 
+			(/(%)?([\w|\d|\.]+)(%)?/).test(field); 
 			return iif(all, "", " OR ") + "(lower(" + RegExp.$2 + ") LIKE lower('" + RegExp.$1 + query.request + RegExp.$3 + "'))"
 		}, "") + ") " + iif(query.where, " AND (", ") ") +
 	iif(query.order, " ORDER BY ")
