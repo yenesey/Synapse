@@ -5,7 +5,7 @@ const webpack = require('webpack')
 const VueLoaderPlugin = require('vue-loader/lib/plugin')
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const HardSourceWebpackPlugin = require('hard-source-webpack-plugin')
+//const HardSourceWebpackPlugin = require('hard-source-webpack-plugin')
 const WebpackBar = require('webpackbar')
 
 const resolve = (...dirs) => require('path').join(...[__dirname, '..', ...dirs]  )
@@ -115,8 +115,8 @@ var config = {
 			template : resolve('client_source/assets', 'index.html')
 		}),
 		new VueLoaderPlugin(),
-		new WebpackBar({minimal:false}),
-		new HardSourceWebpackPlugin()
+		new WebpackBar({minimal:false})
+//		new HardSourceWebpackPlugin()
 	],
 
 	optimization: {

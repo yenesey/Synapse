@@ -1,13 +1,13 @@
-/*
-	"Стартер" для модулей <task>
+п»ї/*
+	"РЎС‚Р°СЂС‚РµСЂ" РґР»СЏ РјРѕРґСѓР»РµР№ <task>
 
-                   (c) Денис Богачев <d.enisei@yandex.ru>
+                   (c) Р”РµРЅРёСЃ Р‘РѕРіР°С‡РµРІ <d.enisei@yandex.ru>
 */
 
-process.on('unhandledRejection', r => { //по-умолчанию node НЕ считает unhandledRejection критичной ошибкой
+process.on('unhandledRejection', r => { //РїРѕ-СѓРјРѕР»С‡Р°РЅРёСЋ node РќР• СЃС‡РёС‚Р°РµС‚ unhandledRejection РєСЂРёС‚РёС‡РЅРѕР№ РѕС€РёР±РєРѕР№
 	console.log('unhandled promise rejection:');	
 	console.log(r);
-	process.exit(1);    //делаем так, чтобы считал
+	process.exit(1);    //РґРµР»Р°РµРј С‚Р°Рє, С‡С‚РѕР±С‹ СЃС‡РёС‚Р°Р»
 });
 
 (function() {
