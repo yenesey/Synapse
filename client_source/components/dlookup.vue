@@ -16,6 +16,7 @@ export default {
 		'minLength' : {type: Number, default: 2 }, //минимум после которого начинается поиск
 		'name' : String,	 //?
 		'value' : String,
+		'label' : String,
 		'placeholder' : String,
 		'save' : String,
 		'get-label' : Function //function(item) return String (label)
@@ -37,6 +38,7 @@ export default {
 					'get-label' : this.getLabel,
 					'query-search' : this.querySearch,
 					'value' : this.value, 
+					'label' : this.label,
 					'min-length': this.minLength
 				}  
 		})
