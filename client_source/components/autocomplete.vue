@@ -8,6 +8,7 @@
 				:placeholder="placeholder"
 				:class="inputClass"
 				:disabled="disabled"
+				:label="label"
 				@blur="blur"
 				@focus="focus"
 				@input="input"
@@ -43,6 +44,7 @@ export default {
 //		wait: { type: Number, default: 500 },
 		minLength : {type: Number, default: 2 },
 		value: '',
+		label: '',
 		getLabel: {	type: Function,	default: function(item){return Object.values(item).join(",")}},
 		querySearch: { type: Function, default : null },
 		items: Array,
