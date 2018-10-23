@@ -76,7 +76,7 @@ export default {
 		},
 
 		updateItems : debounce(function(){
-			if (this.searchText && this.searchText.length >= this.minLength)
+			if ((this.searchText && this.searchText.length >= this.minLength) || (this.minLength == 0))
 				if (this.querySearch) 
 					this.querySearch(this.searchText,  this.setItems)
 		}, 500, false), 
