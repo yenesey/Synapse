@@ -1,0 +1,11 @@
+{
+  "verbose": true,
+  "ignore": ["client_source/*", "client/*", "tasks/*"],
+  "events": {
+    "restart": ""
+  },
+  "watch": ["./*"],
+  "env": {
+    "NODE_ENV" : "development"
+  }
+}
