@@ -181,7 +181,6 @@ export default {
 
 	mounted : function(){ //при появлении в DOM
 		this.$watch('job', this.changes, {deep:true});
-
 		var self = this;
 		pxhr({method:'get', url:'/jobs'})
 		.then(function(jobs){ 
@@ -241,9 +240,9 @@ export default {
 			var rg = new RegExp('"?name"?: ?"([^\n]*?)",?\n?(?:\\s*"?value"?: ?"?(?:_vm\.|[a-z]\.)?([^\n]*?)"?,?(?:,?\\w*:|}|\n))?', 'g');
 
 			var res;
-			var routes = this.$router.options.routes;
-			//склеиваем tasks и xtech и находим нужную задачу по имени (!!)
-			var task = routes[1].children.concat(routes[2].children)
+
+			//находим нужную задачу по id
+			var task = this.$router.options.routes[2].children
 				.find(function(item){
 					return item.path == taskId
 				})
@@ -252,8 +251,7 @@ export default {
 			if (task && task.component) 
 				task.component.render(function(src){
 					if (src){
-//						console.log(src);
-						if (!src.data){ //шаблоны задач не имеют состояния (stateless=no data)
+						if (src.__file !== 'client_source/task.vue'){ 
 							while (res = rg.exec(src.render)) //--выскребаем параметры с помощью регулярки
 								argv[res[1]] = res[2] || '';
 						

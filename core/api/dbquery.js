@@ -19,7 +19,10 @@ module.exports = function(system){
 		.then(()=>ora( String(req.body.sql), {} , {maxRows : Number(req.body.maxRows) || 100})
 			.then(data=>res.json(data))
 		) 
-		.catch(err => system.errorHandler(err, req, res))
+		.catch(err => {
+			console.log(err)
+			res.json({error: err.message})
+		})
 	})
 	
 	return router

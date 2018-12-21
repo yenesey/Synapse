@@ -98,14 +98,18 @@ process.argv.forEach(arg=>{
 })
 
 function close(){
-	console.log('server goes down now...');
-	server.close(function () {
-		console.log('all requests finished');
-		process.exit();
-	});
-	setTimeout(function(){
-		server.emit('close')
-	}, 5500);
+	console.log('server goes down now...')
+	if (server) {
+		server.close(function () {
+			console.log('all requests finished')
+			process.exit()
+		})
+		setTimeout(function(){
+			server.emit('close')
+		}, 5500)
+	}	else {
+		process.exit()
+	}
 } 
 	
 // ----------------в случае получения сигнала корректно закрываем--------------------

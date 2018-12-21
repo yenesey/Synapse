@@ -69,26 +69,24 @@ pxhr({method:'get', url:'/access/map'})
 		})
 
 
-	if (access.admin && access.tasks.length){
-		let allTasks = require.context("./tasks", false, /\.html$/)
+	if (access.tasks && access.tasks.length){
+		let allTasks = require.context("./tasks", false, /\.vue$|\.html$/) //todo: rename files .html to .vue
 		routes.push({
 			path:'/tasks',
 			//name: 'Tasks',
 			icon: 'timeline',
 			component: {render : (h) => h('router-view')},
-			children :	access.tasks.map(el=>{
-				let fileName = './'+el.name + '.html';
-				let obj = (allTasks.keys().indexOf(fileName) !== -1)
-					?allTasks(fileName).default	
-					:{ render : (h) => h('pre', {}, [el.description] ) }
+			children :	access.tasks.sort((a, b) => (a.id === b.id ? 0 : a.id > b.id ? 1 : -1) ).map(el => {
+				let task = allTasks.keys().find(key=> key.indexOf(el.name) !== -1)
+				let obj = (task)
+					? allTasks(task).default
+					: { render : (h) => h('pre', {}, [el.description] ) }
 
 				return {	
 						name : el.name,
 						path : String(el.id),
 						icon : el.icon,
 						menu : el.menu || 'default',
-/*						icon : /\("task-icon"[\s\S\w\W]+?\(\s*?"([\w]+?)"\s*?\)[\s\S\w\W]*?\)/.test(obj.render.toString())?RegExp.$1 : '',
-						section:/\("task-section"[\s\S\w\W]+?\(\s*?"([\w]+?)"\s*?\)[\s\S\w\W]*?\)/.test(obj.render.toString())?RegExp.$1 : 'default',*/
 						component : {
 							render : (h) => h(Task, {	props : {	id : el.id,	name : el.name } },	[	h(obj, {slot:'default'}) ] 	) 
 						}

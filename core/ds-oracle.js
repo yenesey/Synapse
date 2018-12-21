@@ -9,7 +9,7 @@ var oracledb = require('oracledb');
 oracledb.outFormat = oracledb.OBJECT;
 oracledb.fetchAsString = [oracledb.DATE];
 
-const ERR_RECONNECT_LIST = [28, 1012, 3114, 3113]; //получив эти ошибки - пытаемся пересоединиться 1 раз
+const ERR_RECONNECT_LIST = [28, 1012, 3114, 3113, 942]; //получив эти ошибки - пытаемся пересоединиться 1 раз
 const ERR_PASSWORD_EXPIRED = 28001;
 
 function genPassword(length = 12){
@@ -55,6 +55,7 @@ module.exports = function(config){
 				config.newPassword = genPassword();
 				return getConnection().then(conn => {
 					config.password = config.newPassword;
+					delete config.newPassword;
 					console.log(`[ds-oracle][warn]: the new password for "${config.user}" is "${config.newPassword}"`)
 					return conn.execute(sql, binds, options)
 				}); 

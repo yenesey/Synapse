@@ -1,6 +1,5 @@
 "use strict";
 
-
 const webpack = require('webpack')
 const VueLoaderPlugin = require('vue-loader/lib/plugin')
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin
@@ -38,15 +37,17 @@ var config = {
 	module: {
 		rules: [
 			{
+        test: /\.pug$/,
+        loader: 'pug-plain-loader'
+      },
+			{
 				test: /\.vue$/,
 				use: 'vue-loader'
 			},
-			{
+			{ // temporary! todo: rename all tasks\ into .vue
 				test: /\.html$/,
-				include: [
-					resolve('/client_source/tasks')
-				],
-				use: 'vue-loader'
+				include: [resolve('/client_source/tasks')],
+				loader: 'vue-loader'
 			},
 			{
 				exclude: /node_modules|core/,

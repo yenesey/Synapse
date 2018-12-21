@@ -11,7 +11,7 @@
 				full-width
 				min-width="290px"
 			>
-				<v-text-field
+				<v-text-field class="body-1"
 					slot="activator"
 					v-model="date"
 					:label="label || 'Дата:'"
@@ -20,7 +20,7 @@
 					readonly
 				></v-text-field>
 
-				<v-date-picker v-model="date" scrollable @input="menu=false" :type="type" first-day-of-week=1 locale="ru-ru" >
+				<v-date-picker v-model="date" class="body-1" scrollable @input="menu=false" :type="type" first-day-of-week=1 locale="ru-ru" >
 					<v-spacer></v-spacer>
 					<v-btn flat color="blue" @click="clear()">Очистить</v-btn>
 					<v-btn flat color="blue darken-2" @click="today()" v-if="!type">Сегодня</v-btn>

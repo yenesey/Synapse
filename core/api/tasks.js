@@ -1,16 +1,16 @@
 "use strict";
 
 /*
-  Запуск внешних по отношению к серверу задач
-  Схема работы:
-   - сервер принимает от клиента post формы, содержащей все необходимые параметры задачи
-   - сервер обрабатывает параметры, подготавливает рабочие каталоги и создает (spawn) 
-     отдельный процесс для обработки запроса клиента
-   - сервер сообщает клиенту, что ответ будет текстовым и, возможно "долгим"
-   - сервер контролирует stdout и stderr, а также завершение созданного процесса 
-   	 и порционно направляет информацию клиенту по данным событиям. если в результате работы 
-     задачи были созданы файлы, клиенту направляется информация об этом
-   - клиент обрабатывает получаемую информацию в рамках одного "долгого" ответа
+	Запуск внешних по отношению к серверу задач
+	Схема работы:
+	 - сервер принимает от клиента post формы, содержащей все необходимые параметры задачи
+	 - сервер обрабатывает параметры, подготавливает рабочие каталоги и создает (spawn) 
+		 отдельный процесс для обработки запроса клиента
+	 - сервер сообщает клиенту, что ответ будет текстовым и, возможно "долгим"
+	 - сервер контролирует stdout и stderr, а также завершение созданного процесса 
+		 и порционно направляет информацию клиенту по данным событиям. если в результате работы 
+		 задачи были созданы файлы, клиенту направляется информация об этом
+	 - клиент обрабатывает получаемую информацию в рамках одного "долгого" ответа
 
 */
 const path = require('path'),
@@ -22,6 +22,14 @@ const path = require('path'),
 	bodyParser = require('body-parser');
 
 /////////////////////////////////////////////////////////////////////////
+
+function tryBoolean(string){
+	switch(string.toLowerCase().trim()){
+		case "true": return true
+		case "false": return false
+		default: return string
+	}
+}
 
 module.exports=function(system){ 
 
@@ -116,6 +124,8 @@ function(req, res, next){
 		})
 		.on('field', function(name, value) {
 			//принято соглашение, что array-begin .. array-end -- границы массива
+			value = tryBoolean(value)
+			console.log(name, ' = ', value)
 			if (name === 'array-begin') { 
 				arrayCounter++;
 				return
@@ -130,13 +140,11 @@ function(req, res, next){
 				if (!(name in fields)) 
 					fields[name] = [];
 				fields[name].push(value) 
-			}	else {
-				// здесь поля обрабатываем стандартно, массив все еще возможен, но только в случае повторения имен полей.		
-				if (name in fields) { 
-					if (!(fields[name] instanceof Array))	
-						fields[name] = [fields[name]]; //повторяющиеся имена приходится преобразовывать в массив
+			}	else if (name in fields) { 
+					// здесь поля обрабатываем стандартно, массив все еще возможен, но только в случае повторения имен полей.		
+					if (!(fields[name] instanceof Array))	fields[name] = [fields[name]] //повторяющиеся имена приходится преобразовывать в массив
 					fields[name].push(value)  //иначе значения потеряются.
-				} else 
+			} else {
 					fields[name] = value
 			}
 		})
@@ -171,7 +179,6 @@ function(req, res){
 		delete access.granted;
 		delete access.description;
 		params.task = Object.assign(access, params.task);
-		console.log(params)
 		if (!params.deps) 
 			return launch(params, req, res);	//подразделения не указаны? запускаем без контроля подразделений
 
@@ -203,28 +210,30 @@ function(req, res){
 
 router.get('/tasks/meta', function(req, res){
 //выдача метаданных заданного объекта
-  return system.db(`SELECT objects_meta.meta
-                    FROM objects
-                    LEFT JOIN objects_meta 
-                    ON objects.id = objects_meta.object
-                    WHERE objects.name = '${req.query.object}'`)
-  .then(result => res.json(result))
-  .catch(err => system.errorHandler(err, req, res))
+	return system.db(`
+		SELECT objects_meta.meta
+		FROM objects
+		LEFT JOIN objects_meta 
+		ON objects.id = objects_meta.object
+		WHERE objects.name = '${req.query.object}'
+	`)
+	.then(result => res.json(result))
+	.catch(err => system.errorHandler(err, req, res))
 })
 
 router.put('/tasks/meta', bodyParser.json(), function(req, res){
 // операция редактирования/удаления метаданных заданного объекта
 // req.body = {objectId: Number, meta: string}
-  return system.accessCheck(req.ntlm.UserName, system.ADMIN_USERS)
-  .then(()=>
-  	system.db(
-  		(req.body.meta == '{}')
-  		? `DELETE FROM objects_meta WHERE object=${req.body.objectId}`
-  		: `REPLACE INTO objects_meta VALUES (${req.body.objectId}, '${req.body.meta}')`
-  	)
-  )
-  .then(result => res.json({result}))
-  .catch(err => system.errorHandler(err, req, res))
+	return system.accessCheck(req.ntlm.UserName, system.ADMIN_USERS)
+	.then(()=>
+		system.db(
+			(req.body.meta === '{}')
+			? `DELETE FROM objects_meta WHERE object=${req.body.objectId}`
+			: `REPLACE INTO objects_meta VALUES (${req.body.objectId}, '${req.body.meta}')`
+		)
+	)
+	.then(result => res.json({result}))
+	.catch(err => system.errorHandler(err, req, res))
 })
 return router
 }
