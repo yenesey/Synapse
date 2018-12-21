@@ -10,10 +10,10 @@
 			result="objects.id"
 			look-in="objects.name%" 
 			where="objects.class = 'tasks'"
-      :min-length=0
+			:min-length=0
 			style="width:300px;display:inline-block"
 			@select="selectTask"
-      :get-label="labelSelect"
+			:get-label="labelSelect"
 		>
       <i slot-scope="{item, index}">
         {{item.name}} 
@@ -42,10 +42,8 @@
             <div style="width:100%;height:2px;background:linear-gradient(to left, #CBE1F5, #74afd2); margin-top:1em; "></div>
           </v-card-title>
           <v-card-text >
-            <div v-for="_icon in icons" style="width: 32px; user-select: none; display: inline-block;" >
-              <div style="text-align: center;">
-                <v-icon @click.native="selectIcon = _icon">{{_icon}}</v-icon><br>
-              </div>
+            <div v-for="_icon in icons" style="user-select: none; display: inline-block;" >
+              <v-icon class="allIcons" @click.native="selectIcon = _icon">{{_icon}}</v-icon><br>
             </div>
           </v-card-text>
           <v-card-actions>
@@ -163,7 +161,6 @@ export default {
   				self.taskMenuName = JSON.parse(res[0].meta).description;
   			})
   			.catch(function(err){console.log(err)})
-//        self.taskMenuName = (event.name) ? event.name : '';
         self.taskIcon = (self.taskMeta.icon) ? self.taskMeta.icon : '';
       }
       else {
@@ -207,4 +204,20 @@ export default {
 
 </script>
 
+<style>
 
+.theme--light.allIcons.v-icon  {
+	width: 32px;
+	height: 32px;
+	text-align: center;
+}
+
+.theme--light.allIcons.v-icon:hover  {
+	color: teal;
+	font-size: 32px;
+	background: #00000020;
+	border-radius: 15%;
+	position: relative;
+}
+
+</style>

@@ -1,13 +1,13 @@
 <template lang="html">
 	<div class="autocomplete">
 		<div class="autocomplete-input-group" :class="{'autocomplete-selected': value}">
-			<icon-circle @click="clear" title="clear" />
 			<v-text-field 
 				autocomplete="off"
 				v-model="searchText" 
 				:placeholder="placeholder"
 				:class="inputClass"
 				:disabled="disabled"
+				:label="label"
 				@blur="blur"
 				@focus="focus"
 				@input="input"
@@ -15,6 +15,7 @@
 				@keydown.up="keyUp"
 				@keydown.down="keyDown"
 				hide-details
+				clearable
 			/>
 		</div>
 		<div class="autocomplete-list" v-if="showList && internalItems.length">
@@ -43,6 +44,7 @@ export default {
 //		wait: { type: Number, default: 500 },
 		minLength : {type: Number, default: 2 },
 		value: '',
+		label: '',
 		getLabel: {	type: Function,	default: function(item){return Object.values(item).join(",")}},
 		querySearch: { type: Function, default : null },
 		items: Array,
@@ -74,7 +76,7 @@ export default {
 		},
 
 		updateItems : debounce(function(){
-			if (this.searchText.length >= this.minLength)
+			if ((this.searchText && this.searchText.length >= this.minLength) || (this.minLength == 0))
 				if (this.querySearch) 
 					this.querySearch(this.searchText,  this.setItems)
 		}, 500, false), 
@@ -185,7 +187,7 @@ export default {
 */
   transition: border-color .2s cubic-bezier(.645,.045,.355,1);
  	width: 100%;
-	padding: 0 2em 0 0;
+	padding: 0;
 }
 
 .autocomplete-input::-ms-clear {display: none; width : 0; height: 0;}
