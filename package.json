@@ -2,9 +2,9 @@
   "name": "Synapse",
   "version": "3.0.1",
   "description": "Commercial Bank IT-engineer's integrative tool",
-  "main": "app",
+  "main": "server",
   "scripts": {
-    "dev" : "nodemon app",
+    "dev": "nodemon app",
     "build": "cross-env NODE_ENV=production webpack --mode production --hide-modules --display-error-details --config ./client_source/webpack.config.js",
     "build_dev": "cross-env NODE_ENV=development webpack --mode development --progress --hide-modules --display-error-details --config ./client_source/webpack.config.js",
     "build_run": "npm run build | cross-env NODE_ENV=production node app",
@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "activedirectory": "0.7.2",
+    "axios": "^0.18.0",
     "body-parser": "1.18.3",
     "chalk": "2.4.1",
     "compression": "1.7.3",
@@ -31,7 +32,7 @@
     "request": "2.88.0",
     "sleep": "5.2.3",
     "soap": "0.25.0",
-    "sqlite3": "4.0.2",
+    "sqlite3": "^4.0.6",
     "winax": "1.0.14",
     "xlsx-template": "0.4.0",
     "xmlbuilder": "10.0.0"
@@ -67,7 +68,7 @@
     "webpack-cli": "3.1.0",
     "webpack-dev-middleware": "3.2.0",
     "webpack-hot-middleware": "2.23.1",
-    "webpackbar": "^2.6.3"
+    "webpackbar": "^3.1.5"
   },
   "author": "Denis Bogachev <denesey@gmail.com>",
   "repository": {
