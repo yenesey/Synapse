@@ -1,4 +1,3 @@
-
 require('eventsource-polyfill')
 
 require('hmr?reload=true').subscribe(function (event) { //?noInfo=true&reload=true

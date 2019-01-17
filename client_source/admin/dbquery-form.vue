@@ -220,7 +220,7 @@ export default {
 			self.error = "";
 			var start = moment();			
 
-			pxhr({ method:'post', url:'/dbquery', timeout : 60000*30, 
+			pxhr({ method:'post', url:'dbquery', timeout : 60000*30, 
 				data: {
 					sql : this.sql,
 					maxRows: this.maxRows

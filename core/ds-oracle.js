@@ -54,9 +54,9 @@ module.exports = function(config){
 			if (ERR_PASSWORD_EXPIRED === err.errorNum) {
 				config.newPassword = genPassword();
 				return getConnection().then(conn => {
+					console.log(`[ds-oracle][warn]: the new password for "${config.user}" is "${config.newPassword}"`)
 					config.password = config.newPassword;
 					delete config.newPassword;
-					console.log(`[ds-oracle][warn]: the new password for "${config.user}" is "${config.newPassword}"`)
 					return conn.execute(sql, binds, options)
 				}); 
 			}

@@ -80,7 +80,7 @@ export default {
 		
 		querySearch : function(queryString, cb) {
 			var self = this;
-			pxhr({method:'post', url:'/dlookup',
+			pxhr({method:'post', url:'dlookup',
 				data : {
 					db     : self.db,
 					table  : self.table,

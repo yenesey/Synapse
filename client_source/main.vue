@@ -90,7 +90,7 @@
 			</v-btn>
 
 			<v-spacer></v-spacer>
-				<v-toolbar-title>{{dev?'!dev-mode!':''}}</v-toolbar-title>
+				<v-toolbar-title>{{dev?'!!! dev-mode !!!':''}}</v-toolbar-title>
 
 			<v-spacer></v-spacer>
 			<v-toolbar-title>Synapse</v-toolbar-title>

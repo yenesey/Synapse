@@ -5,7 +5,7 @@
 //	3. render: function(h)
 //
 
-import {keys, pxhr} from 'lib' //note: lib is aliased in webpack.config.js
+import _ from 'lib' //note: lib is aliased in webpack.config.js
 
 import Vue from 'vue'
 import VueRouter from 'vue-router'
@@ -33,17 +33,18 @@ import admin from './admin/admin.js'
 import main from './main.vue'
 
 
-pxhr({method:'get', url:'/access/map'})
-.catch(err=>({login: 'Нет доступа!', access:[], err : err})) 
-.then(user=>{
-
+if (typeof baseUrl !== 'undefined') _.baseUrl = baseUrl
+ 
+_.pxhr({method:'get', url:'access/map'})
+.catch(err => ({login: 'Нет доступа!', access:[], err : err})) 
+.then(user => {
 	var menuGroups = user.access
 		.filter(el=>el.class === 'menu')
 		.sort((a,b)=> a.id > b.id)
 	if (menuGroups.findIndex(el=>el.name === 'default') === -1) 
 		menuGroups.unshift( {name: 'default', icon:'chevron_right'} )
 
-	var access = keys(user.access, 'class', el=>el.granted && !user.disabled) /*берем только те, к которым доступ предоставлен */
+	var access = _.keys(user.access, 'class', el=>el.granted && !user.disabled) /*берем только те, к которым доступ предоставлен */
 
 	var routes = [ //маршруты для Vue-router
 		{

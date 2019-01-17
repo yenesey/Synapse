@@ -94,7 +94,7 @@ return combineMiddleware([
 				res.status(500).send('NTLM auth error')
 //				res.sendStatus(500); 
 			},
-			//debug: function() {	//	var args = Array.prototype.slice.apply(arguments); console.log.apply(null, args)},
+			// debug: function() {	var args = Array.prototype.slice.apply(arguments); console.log.apply(null, args)},
 			domain : system.config.ntlm.domain,
 			domaincontroller : system.config.ntlm.dc
 		}),

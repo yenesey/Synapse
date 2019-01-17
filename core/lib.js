@@ -384,6 +384,8 @@ Number.prototype.toPhrase = function(units, round, frAsNum){
 }//toPhrase
 
 
+///////////////////////////////////////////////////////////////////////////
+_.baseUrl = ''
 // XMLHttpRequest (Promise)
 _.pxhr = function(request){
 	return new Promise(function(resolve, reject) {	
@@ -391,9 +393,11 @@ _.pxhr = function(request){
 		if (request.method.toLowerCase() === 'get') //фиксим баг кеширования запросов в IE
 			request.url += (request.url.indexOf('?') === -1?"?":"&") + 'ts=' + Date.now(); 
 
-		xhr.open(request.method, request.url, true); //async==true
+		xhr.open(request.method, _.baseUrl + '/' + request.url, true); //async==true
+		xhr.withCredentials = true;
 		xhr.timeout = request.timeout || 1000 * 60;	//минута по умолчанию
 		xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest'); //request.xhr == true
+		//xhr.setRequestHeader('Origin', 'https://localhost:3000')
 
 		var data = request.data;
 		if (!(request.data instanceof FormData)) { //"multipart/form-data"
