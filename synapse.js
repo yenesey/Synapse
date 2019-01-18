@@ -1,20 +1,21 @@
 "use strict";
 
 /* 
-	Сервер Synapse
+	<<Synapse>>
 
 	запуск из командной строки:
-		node server [options]
+		node synapse [options]
 		 где options:
-				--production - запуск в режиме production, аналог NODE_ENV=production,
-										 иначе сервер работает в режиме разработки - сборка 
-										 клиента на лету с Hot Module Reload (HMR)
-				--port=N   - задать прослушиваемый порт
-										 также можно задать переменной окружения PORT
-				--service  - запустить как службу (влияет на обработку сигналов прерывания
-										 и закрытия процесса)
-		npm run build  - сборка клиентского приложения (bundle)
-		npm run test   - сборка bundle и запуск тестового сервера в режиме production
+				--development  - запуск в режиме разработки, аналог переменной окружения NODE_ENV=development,
+				--port=N       - задать прослушиваемый порт, аналог переменной окружения PORT
+				--ssl   		   - запуск в режиме https, нужны сертификаты в конфигурации (не рекомендуется для --development)
+				--service      - запустить как службу (влияет на обработку сигналов прерывания
+										     и закрытия процесса)
+	запуск через npm:									     
+		npm run dev:api    - бэкенд для разработки
+		npm run dev:server - сборка и отдача клиентского приложения на лету
+
+		npm run build      - сборка статического клиентского приложения (bundle) для production
 
 	------------------------------------------------------------------------------------------------
 	Сервер, клиент, ./core модули (за исключением отмеченных отдельно) © Денис Богачев <d.enisei@yandex.ru>
@@ -31,6 +32,7 @@ const
 	https   = require('https'),
 	http   = require('http'),
 	compression = require('compression');
+
 
 require('moment-precise-range-plugin');
 
@@ -63,7 +65,7 @@ function errorHandler(err, req, res, next) {
 function cors(req, res, next) {
 	const	method = req.method && req.method.toUpperCase && req.method.toUpperCase()
 	// Website you wish to allow to connect
-	res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000')
+	res.setHeader('Access-Control-Allow-Origin', req.protocol + '://' + req.hostname + ':3000')
 	// Set to true if you need the website to include cookies in the requests sent
 	// to the API (e.g. in case you use sessions)
 	res.setHeader('Access-Control-Allow-Credentials', true)
@@ -112,21 +114,23 @@ function easterEgg(){
 process.argv.forEach(arg=>{
 	let pv=arg.split('=');
 	switch(pv[0]){
+		case '--ssl': process.env.SSL = true; break;
 		case '--port': process.env.PORT = pv[1]; break;
 		case '--development': process.env.NODE_ENV = 'development'; break;
 		case '--service': process.env.SERVICE = true; break;
+		case '--backend': process.env.BACKEND = true; break;
 	} 
 })
 
 function close(){
-	console.log('server goes down now...');
+	console.log('server goes down now...')
 	server.close(function () {
-		console.log('all requests finished');
-		process.exit();
+		console.log('all requests finished')
+		process.exit()
 	});
 	setTimeout(function(){
 		server.emit('close')
-	}, 5000);
+	}, 5000)
 }
 
 // ----------------в случае получения сигнала корректно закрываем--------------------
@@ -157,36 +161,31 @@ if (!process.env.SERVICE){ // если не служба,
 require('synapse/system').then(system=>{
 	const	app = express()
 
-	if (process.env.NODE_ENV === 'development' || (process.env.PORT && process.env.PORT !== '443')) {
-		server = http.Server(app)
-	} else {
-		server = https.Server({
-				passphrase: String(system.config.ssl.password),
-				pfx: system.config.ssl.certData
-			},
-			app
-		)
-	}
+	if (process.env.SSL) {
+		let ssl = system.config.ssl
+		server = https.Server({passphrase: String(ssl.password), pfx: ssl.certData}, app)
+	}	else server = http.Server(app)
 
 	server.on('error', err => {
 		console.log(chalk.red.bold("[error]:") + JSON.stringify(err, null, ""));  
 		process.exit();
 	})
 
-	server.listen(process.env.PORT || 443, function () {
+	process.env.PORT = process.env.PORT || (process.env.SSL ? '443' : '80')
+
+	server.listen(process.env.PORT, function () {
 		var format = (obj, color) => Object.keys(obj).reduce((all, key)=> 
 			all + key + ':' + ((typeof color==='function')?color(obj[key]):obj[key]) + ' | ', '| '
 		)
 		
 		var args = { 
 			args : process.argv.length > 2 ? process.argv.slice(2) : [] 
-		};
+		}
 	
 		var info = [
 			[process.versions, ['node', 'v8']],
 			[process,          ['arch']],
 			[this.address(),   ['port']],
-//			[process.env,      ['port']],  
 			[process.env,      ['node_env']],
 			[args,             ['args']],
 			[process,          ['execArgv']]
@@ -208,13 +207,17 @@ require('synapse/system').then(system=>{
 			}, null, true, null, null, true
 		)
 
-		if (process.env.NODE_ENV === 'development') {
+		if (process.env.NODE_ENV === 'development' && process.env.PORT !== '80') {
 			app.use(require('synapse/dev-middleware'))
 		} else {
-			app.use([
-				cors,
-				errorHandler,
 
+			if (process.env.BACKEND) {
+				app.use(cors)
+				console.log('Backend api mode. Type "rs + [enter]" to restart manually')
+			}
+
+			app.use([
+				errorHandler,
 				compression( {threshold : 0} ),
 				express.static( path.join(__dirname, 'client')),
 

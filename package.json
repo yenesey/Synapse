@@ -2,13 +2,26 @@
   "name": "Synapse",
   "version": "3.0.1",
   "description": "Commercial Bank IT-engineer's integrative tool",
-  "main": "server",
+  "main": "synapse",
   "scripts": {
-    "dev": "nodemon app",
+    "dev:api": "nodemon synapse --development --backend",
+    "dev:server": "node synapse --development --port=3000",
     "build": "cross-env NODE_ENV=production webpack --mode production --hide-modules --display-error-details --config ./client_source/webpack.config.js",
-    "build_dev": "cross-env NODE_ENV=development webpack --mode development --progress --hide-modules --display-error-details --config ./client_source/webpack.config.js",
-    "build_run": "npm run build | cross-env NODE_ENV=production node app",
     "postinstall": "mklink /J \"node_modules/synapse\" \"core\""
+  },
+  "nodemonConfig": {
+    "verbose": false,
+    "ignore": [
+      "client_source/*",
+      "client/*",
+      "tasks/*"
+    ],
+    "events": {
+      "restart": ""
+    },
+    "watch": [
+      "./*"
+    ]
   },
   "dependencies": {
     "activedirectory": "0.7.2",
@@ -27,13 +40,11 @@
     "ini": "1.3.5",
     "moment": "2.22.2",
     "moment-precise-range-plugin": "1.3.0",
-    "nodemon": "^1.18.9",
     "oracledb": "github:oracle/node-oracledb#v2.3.0",
     "request": "2.88.0",
     "sleep": "5.2.3",
     "soap": "0.25.0",
     "sqlite3": "^4.0.6",
-    "winax": "1.0.14",
     "xlsx-template": "0.4.0",
     "xmlbuilder": "10.0.0"
   },
@@ -52,6 +63,7 @@
     "html-webpack-plugin": "4.0.0-alpha.2",
     "json-loader": "0.5.7",
     "material-design-icons-iconfont": "3.0.3",
+    "nodemon": "^1.18.9",
     "pug": "^2.0.3",
     "pug-plain-loader": "^1.0.0",
     "style-loader": "0.23.0",
@@ -67,6 +79,7 @@
     "webpack-bundle-analyzer": "3.0.2",
     "webpack-cli": "3.1.0",
     "webpack-dev-middleware": "3.2.0",
+    "webpack-dev-server": "^3.1.14",
     "webpack-hot-middleware": "2.23.1",
     "webpackbar": "^3.1.5"
   },
