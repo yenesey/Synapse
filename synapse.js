@@ -1,25 +1,25 @@
 "use strict";
 
 /* 
-	<<Synapse>>
+  <<Synapse>>
 
-	запуск из командной строки:
-		node synapse [options]
-		 где options:
-				--development  - запуск в режиме разработки, аналог переменной окружения NODE_ENV=development,
-				--port=N       - задать прослушиваемый порт, аналог переменной окружения PORT
-				--ssl   		   - запуск в режиме https, нужны сертификаты в конфигурации (не рекомендуется для --development)
-				--service      - запустить как службу (влияет на обработку сигналов прерывания
-										     и закрытия процесса)
-	запуск через npm:									     
-		npm run dev:api    - бэкенд для разработки
-		npm run dev:server - сборка и отдача клиентского приложения на лету
+  запуск через "node":
+    \> node synapse [--development] [--ssl] [--service] [--port=N]
+     параметры:
+      --development  - запуск в режиме разработки, аналог переменной окружения NODE_ENV=development,
+      --port=N       - задать прослушиваемый порт, аналог переменной окружения PORT
+      --ssl          - запуск в режиме https, нужны сертификаты в конфигурации (не рекомендуется для --development)
+      --service      - запустить как службу (влияет на обработку сигналов прерывания и закрытия процесса)
 
-		npm run build      - сборка статического клиентского приложения (bundle) для production
+  запуск через "npm run":                      
+    \> npm run dev:api    - бэкенд для разработки
+    \> npm run dev:server - сборка и отдача клиентского приложения на лету
 
-	------------------------------------------------------------------------------------------------
-	Сервер, клиент, ./core модули (за исключением отмеченных отдельно) © Денис Богачев <d.enisei@yandex.ru>
-	------------------------------------------------------------------------------------------------
+    \> npm run build      - сборка статического клиентского приложения (bundle) для production
+
+  ------------------------------------------------------------------------------------------------
+  Сервер, клиент, ./core модули (за исключением отмеченных отдельно) © Денис Богачев <d.enisei@yandex.ru>
+  ------------------------------------------------------------------------------------------------
 */
 
 const 
@@ -63,7 +63,7 @@ function errorHandler(err, req, res, next) {
 
 // Cross Origin Resource Sharing for 'development' mode
 function cors(req, res, next) {
-	const	method = req.method && req.method.toUpperCase && req.method.toUpperCase()
+	const method = req.method && req.method.toUpperCase && req.method.toUpperCase()
 	// Website you wish to allow to connect
 	res.setHeader('Access-Control-Allow-Origin', req.protocol + '://' + req.hostname + ':3000')
 	// Set to true if you need the website to include cookies in the requests sent
@@ -159,12 +159,12 @@ if (!process.env.SERVICE){ // если не служба,
 -------------------------------------------------------------------------------------
 */
 require('synapse/system').then(system=>{
-	const	app = express()
+	const app = express()
 
 	if (process.env.SSL) {
 		let ssl = system.config.ssl
 		server = https.Server({passphrase: String(ssl.password), pfx: ssl.certData}, app)
-	}	else server = http.Server(app)
+	} else server = http.Server(app)
 
 	server.on('error', err => {
 		console.log(chalk.red.bold("[error]:") + JSON.stringify(err, null, ""));  
