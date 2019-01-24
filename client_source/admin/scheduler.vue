@@ -182,7 +182,7 @@ export default {
 	mounted : function(){ //при появлении в DOM
 		this.$watch('job', this.changes, {deep:true});
 		var self = this;
-		pxhr({method:'get', url:'/jobs'})
+		pxhr({method:'get', url:'jobs'})
 		.then(function(jobs){ 
 				self.jobs = jobs.map(function(job){
 					job.params = job.params || clone(_default.params);
@@ -216,7 +216,7 @@ export default {
 			if (Object.keys(changes).length===0) return;
 			if (last.id) changes.id = last.id;
 
-			pxhr({ method:'put', url:'/jobs', data : changes })
+			pxhr({ method:'put', url:'jobs', data : changes })
 			.then(function(res){
 					if (!last.id){
 						res.params = res.params || clone(_default.params);
@@ -294,7 +294,7 @@ export default {
 		jobRun : function(evnt, job){
 			var self = this;
 			self.jobState(job, 1)
-			pxhr({ method:'get', url:'/jobs/run?id=' + job.id})
+			pxhr({ method:'get', url:'jobs/run?id=' + job.id})
 			.then(function(res){
           job.last = res.last;
 					self.jobState(job, 0)
@@ -303,7 +303,7 @@ export default {
 		
 		jobDelete : function(job){
 			var self = this;
-			pxhr({ method:'delete', url:'/jobs', data : job })
+			pxhr({ method:'delete', url:'jobs', data : job })
 			.then(function(result){
 				self.jobs.splice(self.jobs.indexOf(job), 1);
 				self.job = clone(_default);

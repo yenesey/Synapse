@@ -99,6 +99,10 @@ export default {
 	computed : {
 		extendable : function(){ 
 			return this.$slots.default[0].componentOptions.tag !== 'tab'
+		},
+		activeTab : function(){ 
+			if (this.tabData.length === 0) return null
+			return this.tabData[this.activeIndex]
 		}
 	},
 

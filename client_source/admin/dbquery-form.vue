@@ -1,57 +1,32 @@
-<template>
-	<div>
+<template lang="pug">
+	div
+		div.resizeable(:style="{height: editorHeight, width: '100%'}")
+			editor.editor-control(v-model='sql', ref='editor-control')
+			div.resize-bar(@mousedown='initDrag')
 
-		<div class="resizeable" :style="{height: editorHeight, width: '100%'}">
-			<!--@keydown.native="editorKey"-->
-		  <editor v-model="sql" class="editor-control" ref="editor-control" />
+				v-btn.action(v-on:click='query', title='Запуск (F9 - в активном редакторе)' style='left: 5px;' ) &#x27A4;
 
-			<div @mousedown="initDrag" class="resize-bar">
-				<div style="width:auto;height:1.5em;line-height:1.0em;font-size:1.0em;padding:4px 10px;color:#57768A;">
-					<button v-on:click="query" type="submit" title="Запуск (F5 - в активном редакторе)">&#10148;</button>
-  
-					<template v-if="tableData.length">
-						<label data-v-f3f3eg9> Итого: {{statusString()}} </label>
-							<input v-on:click="saveResult" type="button" value="Сохранить в .csv" >
-						<label data-v-f3f3eg9> Фильтр: </label>
-							<input v-model="search" style="width:150px" /> 
-					</template>
-					<label data-v-f3f3eg9 style="float:right">Максимум: <input v-model="maxRows" style="width:50px"/> </label>
+				label.action(style='right:70px') Row limit: 
+				input.action(v-model='maxRows', style='right:5px; width:50px; border: thin solid #acdbff; padding:2px;line-height: 1.0em;')
 
-				</div>
-			</div>
-		</div> <!--resizeable-->
-
-		<br>
-
-		<wait v-if="running"></wait>
-		<pre v-if="error" style="font-weight:bold">{{error}}</pre>
-
-		<v-data-table
-			v-if="tableData.length"
-      v-model="selected"
-      :headers="headers"
-      :items="tableData"
-      :search="search"
-      hide-actions
-      class="elevation-1 fixed"
-      width = "100%"
-    >
-      <template slot="items" slot-scope="props">
-        <tr :active="props.selected" @click="props.selected = !props.selected">
-          <td class="text-xs-left" v-for="(v, k) in props.item">{{ v }}</td>
-        </tr>
-      </template>
-
-      <v-alert slot="no-results" :value="true" color="error" icon="warning">
-        Your search for "{{ search }}" found no results.
-      </v-alert>
-    </v-data-table>
-
-	</div>
+				template(v-if='tableData.length')
+					label.action(style='left:120px') Итого: {{statusString()}} 
+					v-btn.action(v-on:click='saveResult' style='left:350px') Save .csv
+					label.action(style='left:480px')  Фильтр: 
+					input.action(v-model='search', style='left:540px; border: thin solid #acdbff; padding:2px; line-height: 1.0em;')
+		br
+		wait(v-if='running')
+		pre(v-if='error', style='font-weight:bold') {{error}}    
+		v-data-table.fixed-header.elevation-1.fixed(v-if='tableData.length', v-model='selected', :headers='headers', :items='tableData', :search='search', hide-actions='')
+			template(slot='items', slot-scope='props')
+				tr(:active='props.selected', @click='props.selected = !props.selected')
+					td.text-xs-left(v-for='(v, k) in props.item') {{ v }}
+			v-alert(slot='no-results', :value='true', color='error', icon='warning')
+				| Your search for &quot;{{ search }}&quot; found no results.
 </template>
 
 <script>
-
+// @keydown.native="editorKey" //	div(style='width:auto; padding: 2px 6px;color:#57768A;')
 import {declByNum, pxhr} from 'lib';
 import moment from 'moment';
 import editor from './editor/ace-editor.js';
@@ -77,7 +52,7 @@ export default {
 		return {
 			sql : 'select * from V$NLS_PARAMETERS --показать параметры сессии',
 			editor : null,
-			maxRows: 100,
+			maxRows: 10,
 			tableData : [],
 			search : "",
 			error : "",
@@ -88,7 +63,7 @@ export default {
 				startHeight : 0, 
 				startY : 0
 			},
-      selected: [],
+			selected: [],
 		}
 	},
 
@@ -98,13 +73,13 @@ export default {
 		
 			if (rows.length === 0) return [];
 			var heads = Object.keys(rows[0]).map(el=>({
-        text: el,
-       //   align: (typeof this.tableData[0][el] === 'string')?'right':'left',
-        sortable: true,
-        width : 50,
-        class : 'flex',
-        value: el
-      }))
+				text: el,
+			 //   align: (typeof this.tableData[0][el] === 'string')?'right':'left',
+				sortable: true,
+				width : 50,
+				class : 'flex',
+				value: el
+			}))
 
 			//вычисляем ширины колонок по размеру текста
 			rows.forEach(row=>{
@@ -124,9 +99,9 @@ export default {
 
 	},
 
-  components: {
-    editor: editor
-  },
+	components: {
+		editor: editor
+	},
 
 	mounted : function(){
 		var self = this; 
@@ -168,7 +143,7 @@ export default {
 		load : function(){
 			var item = localStorage.getItem( this.url() );
 			if (item)	{
-        try {
+				try {
 					item = JSON.parse(item);
 					this.sql = item.sql;
 					this.$parent.tab.name = item.tab;
@@ -244,30 +219,48 @@ export default {
 		} //query 
 	} //methods
 }
+
 </script>
 
 <style>
 
+/*
 table.v-datatable{
-  table-layout: fixed;
+	table-layout: fixed;
+}
+*/
+
+.action {
+	position: absolute;
+	top: 5px;
+	line-height: 1.6rem;
+	/*top: 50%;
+		display: block;
+	transform: translateY(-50%);
+	*/
+	height: 22px; 
+	padding: 0px;
+	margin: 0px;
+	text-transform: none;
 }
 
 .resizeable {
 	position: relative;
 	border: 2px solid #a8cfe6;
-  width: 100%;
-  overflow: auto;
-  color: #999;
+	width: 100%;
+	overflow: auto;
+	color: #999;
 }
 
 .resize-bar {
  -webkit-user-select: none;
  -moz-user-select:  none;
  -ms-user-select: none;
-  user-select: none;
+	user-select: none;
 	bottom: 0px;
 	height: 32px;
-	width:  100%;
+	left: 0px;
+	right: 0px;
 	position: absolute;
 	background-color:rgb(230, 245, 250);
 	color: #000;
@@ -286,8 +279,26 @@ table.v-datatable{
 	position: absolute;
 }
 
-label[data-v-f3f3eg9]{
-	margin-left:40px;
+/*----------------------------------------------------*/
+
+.fixed-header table {
+		table-layout: fixed;
+}
+
+.fixed-header th {
+		background-color: #fff; /* just for LIGHT THEME, change it to #474747 for DARK */
+		position: sticky;
+		top: 0;
+		z-index: 10;
+}
+
+.fixed-header tr.datatable__progress th {
+		top: 56px;
+}
+
+.fixed-header .v-table__overflow {
+		overflow: auto;
+		height: 500px;
 }
 
 </style>

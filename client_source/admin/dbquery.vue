@@ -48,24 +48,22 @@ export default {
 			})	
 		}, Promise.resolve())
 	},
-/*
 	activated : function(){
+		window.tst = this
 		document.addEventListener('keydown', this.keyPreview)
 	},
 
 	deactivated : function(){
 		document.removeEventListener('keydown', this.keyPreview);
 	},
-*/
 	methods: {
 		keyPreview : function(event){
-/*			if (event.keyCode==116){  // 116 = F5 
-				var tabs = this.$refs.tabs;
-				tabs.tabData[tabs.activeIndex].components[0].query();
-
+			if (event.keyCode===120){  // 120 = F9
+				var tab = this.$refs.tabs.activeTab;
+				if (tab) tab.components[0].query();
 				event.preventDefault();
 			}
-			return false*/
+			return false
 		},
 
 		actualClose(){

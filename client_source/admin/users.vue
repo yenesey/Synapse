@@ -212,7 +212,7 @@ export default {
 	methods: {
 		setUser : function(){
 			var self = this;
-			return pxhr({ method:'put', url: '/access/user', 
+			return pxhr({ method:'put', url: 'access/user', 
 				data:{
 					id:self.userId, 
 					login:self.userLogin,
@@ -226,7 +226,7 @@ export default {
 
 		setItem : function(objectId, checked){ //установить/снять галочку с элемента
 			var self = this;
-			return pxhr({ method:'put', url: '/access/map', 
+			return pxhr({ method:'put', url: 'access/map', 
 				data:{
 					userId : self.userId, 
 					objectId : objectId, 
@@ -261,7 +261,7 @@ export default {
 			this.userEmail = this.mail;
 			var self = this;
 			self.canCreate = false;
-			pxhr({ method:'put', url: '/access/user', data:{login: self.userLogin, name : self.userName, email:self.userEmail } })
+			pxhr({ method:'put', url: 'access/user', data:{login: self.userLogin, name : self.userName, email:self.userEmail } })
 			.then(function(res){
 				if (res.error) {
 					self.message = res.error
@@ -269,7 +269,7 @@ export default {
 				}
 				if (res.id){
 					self.userId = res.id;
-					return pxhr({ method:'get', url: '/access/map?user=' + self.userId})
+					return pxhr({ method:'get', url: 'access/map?user=' + self.userId})
 						.then(function(res){//delete res.$user; 
 								self.access = keys(res.access, 'class');
 								self.access.$user = {disabled:self.access.disabled}
@@ -287,7 +287,7 @@ export default {
 			this.displayName = event.displayName;
 			this.mail = event.mail;
 			//наличие всех реквизитов для создания пользователя обязательно:
- 			(event.sAMAccountName && event.displayName && event.mail) ?	this.canCreate = true : this.canCreate = false;
+			(event.sAMAccountName && event.displayName && event.mail) ?	this.canCreate = true : this.canCreate = false;
 		},
 
 		selectUser : function(event) {
@@ -298,7 +298,7 @@ export default {
 			self.userEmail = event.email;
 			self.userDisabled = event.disabled;
 			self.canCreate = false;
-			pxhr({ method:'get', url: '/access/map?user=' + self.userId})
+			pxhr({ method:'get', url: 'access/map?user=' + self.userId})
 			.then(function(res){
 				self.access = keys(res.access, 'class');
 				self.access.$user = {disabled:self.access.disabled}
