@@ -29,6 +29,7 @@ const
 	CronJob = require('cron').CronJob,
 	chalk   = require('chalk'),
 	express = require('express'),
+	morgan  = require('morgan'),
 	https   = require('https'),
 	http   = require('http'),
 	compression = require('compression');
@@ -213,6 +214,7 @@ require('synapse/system').then(system=>{
 
 			if (process.env.BACKEND) {
 				app.use(cors)
+				app.use(morgan('tiny'))
 				console.log('Backend api mode. Type "rs + [enter]" to restart manually')
 			}
 
@@ -220,6 +222,7 @@ require('synapse/system').then(system=>{
 				errorHandler,
 				compression( {threshold : 0} ),
 				express.static( path.join(__dirname, 'client')),
+				require('synapse/api/telebot')(system),
 
 				(system.config.cards && stringToBoolean(system.config.cards.on)
 					? require('synapse/api/cards')(system)  //запрос инфы по картам для сайта
