@@ -159,7 +159,7 @@ router.get('/cards/receipt',	function(req, res){
 			return
 		}
 
-		Promise.all([
+		return Promise.all([
 			//сальдо:
 			ibso(` 
 				select 
@@ -330,7 +330,8 @@ router.get('/cards/receipt',	function(req, res){
 //баланс по карте из UCS
 router.get('/cards/balance',	function(req, res){
 
-	card(req.query.ednumber, req.query.edpassword).then(card=>{
+	card(req.query.ednumber, req.query.edpassword)
+	.then(card=>{
 		if ('error' in card){
 			res.json(card)
 			return

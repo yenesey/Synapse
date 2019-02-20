@@ -18,13 +18,12 @@ SELECT
   OV.C_13 "debt",
   OV.C_2 "fio",
   (select
-     SUBSTR(C_1, 1, 4) ||'.......'|| SUBSTR(C_1, 12, 4)
+     SUBSTR(C_1, 1, 4) ||'.......'|| SUBSTR(C_1, 13, 4)
    from 
      VW_CRIT_VZ_CARDS 
    where 
      REF5 = OV.REF10 
-     and lower(C_2) like '%главная%' 
-     and C_10 = (select max(C_10) from VW_CRIT_VZ_CARDS where REF5 = OV.REF10 and lower(C_2) like '%главная%')
+   --  and lower(C_2) like '%главная%' and C_10 = (select max(C_10) from VW_CRIT_VZ_CARDS where REF5 = OV.REF10 and lower(C_2) like '%главная%')
      and (C_11 is null or C_11 > OV.C_3)
   ) "card",
   NVL(
@@ -35,8 +34,9 @@ SELECT
       VW_CRIT_PROPERTY PROP
     where
       CARD.REF3 = OV.REF2 --связь через клиента
+      and CARD.STATE_ID = 'WRK'
       and SERV.C_3 = CARD.ID
-      and PROP.COLLECTION_ID = SERV.REF8 and PROP.C_1 = 'Номер мобильного телефона'
+      and PROP.COLLECTION_ID = SERV.REF8 and lower(PROP.C_1) like '%номер%телефон%'
       and rownum = 1
   ) ,
   (
@@ -44,7 +44,8 @@ SELECT
       VW_CRIT_VZ_CLIENT CLIENT
     where
       CLIENT.REF1 = OV.REF2 --связь через клиента
-      and rownum = 1 and  regexp_like(regexp_replace(CLIENT.C_11,'[^[[:digit:]|\,]]*'),  '^\d{11}$')
+     -- and regexp_like(regexp_replace(CLIENT.C_11,'[^[[:digit:]|\,]]*'),  '^\d{11}$')
+      and rownum = 1
   )) "tel"
 FROM 
   VW_CRIT_TVR_CARD_OVER OV
@@ -53,6 +54,7 @@ WHERE
   and OV.C_3 = TO_DATE('${param.date1}')
   and OV.C_13 > 0
 `)
+
 
   fs.writeFileSync(
     path.join(param.task.path, 'open.csv'),
@@ -70,14 +72,13 @@ SELECT
   OV.C_13 "debt",
   OV.C_2 "fio",
   (select
-     SUBSTR(C_1, 1, 4) ||'.......'|| SUBSTR(C_1, 12, 4)
+     SUBSTR(C_1, 1, 4) ||'.......'|| SUBSTR(C_1, 13, 4)
    from 
      VW_CRIT_VZ_CARDS 
    where 
      REF5 = OV.REF10 
-     and lower(C_2) like '%главная%' 
-     and C_10 = (select max(C_10) from VW_CRIT_VZ_CARDS where REF5 = OV.REF10 and lower(C_2) like '%главная%')
-     and (C_11 is null or C_11 > F.C_1)
+   --  and lower(C_2) like '%главная%' and C_10 = (select max(C_10) from VW_CRIT_VZ_CARDS where REF5 = OV.REF10 and lower(C_2) like '%главная%')
+     and (C_11 is null or C_11 > OV.C_3)
   ) "card",
   NVL(
   (
@@ -86,9 +87,10 @@ SELECT
       VW_CRIT_CARD_SERVICES SERV,
       VW_CRIT_PROPERTY PROP
     where
-      CARD.REF3 = OV.REF2 --связь через клиента
+      CARD.REF3 = OV.REF2  --связь через клиента
+      and CARD.STATE_ID = 'WRK'
       and SERV.C_3 = CARD.ID
-      and PROP.COLLECTION_ID = SERV.REF8 and PROP.C_1 = 'Номер мобильного телефона'
+      and PROP.COLLECTION_ID = SERV.REF8 and lower(PROP.C_1) like '%номер%телефон%'
       and rownum = 1
   ) ,
   (
@@ -96,18 +98,15 @@ SELECT
       VW_CRIT_VZ_CLIENT CLIENT
     where
       CLIENT.REF1 = OV.REF2 --связь через клиента
-      and rownum = 1 and  regexp_like(regexp_replace(CLIENT.C_11,'[^[[:digit:]|\,]]*'),  '^\d{11}$')
+    --  and regexp_like(regexp_replace(CLIENT.C_11,'[^[[:digit:]|\,]]*'),  '^\d{11}$')
+      and rownum = 1
   )) "tel"
 FROM 
-  VW_CRIT_TVR_CARD_OVER OV,
-  VW_CRIT_FACT_OPER F
+  VW_CRIT_TVR_CARD_OVER OV
 WHERE 
   OV.C_5 = 'Технический овердрафт по карте' 
   and OV.C_13 > 0
-  and OV.C_3 < F.C_1
-  and F.COLLECTION_ID = OV.REF25 
-  and F.C_5 = 'Выдача кредита' 
-  and F.C_1 = TO_DATE('${param.date1}')
+  and exists (select ID from VW_CRIT_FACT_OPER where COLLECTION_ID = OV.REF25 and C_1 > OV.C_3 and C_5 = 'Выдача кредита' and C_1 = TO_DATE('${param.date1}'))
 `)
 
   fs.writeFileSync(

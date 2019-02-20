@@ -36,6 +36,7 @@ module.exports = function(config){
 			connection.module = "BANK\\OBR";				
 			connection.action = "Http.View 4139";
 			var exec = connection.execute.bind(connection);
+
 			return Promise.all([
 				exec("alter session set NLS_DATE_FORMAT='yyyy-mm-dd'"), // hh24:mi:ss
 				exec("alter session set NLS_TIME_FORMAT='hh24:mi:ss'"),
