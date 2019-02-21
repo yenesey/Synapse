@@ -2,6 +2,7 @@
 
 const webpack = require('webpack')
 const VueLoaderPlugin = require('vue-loader/lib/plugin')
+
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 //const HardSourceWebpackPlugin = require('hard-source-webpack-plugin')
@@ -84,12 +85,12 @@ var config = {
 			},
 			{ 
 				test: /\.styl$/, 
-				use: ['style-loader','css-loader', 'stylus-loader']
+				use: ['vue-style-loader','css-loader', 'stylus-loader']
 			},
 
 			{ 
 				test: /\.css$/, 
-				use: ['vue-style-loader', 'style-loader', 'css-loader']
+				use: ['vue-style-loader', 'css-loader']
 			},
 
 			{
@@ -111,9 +112,9 @@ var config = {
 	plugins : [ 
 		new webpack.ContextReplacementPlugin(/moment[/\\]locale$/, /^\.\/(ru)$/), //--берем только русскую локаль
 		new HtmlWebpackPlugin({
-			inject : true,
-			favicon	:  resolve('client_source/assets', 'favicon.ico'),
-			template : resolve('client_source/assets', 'index.html')
+			inject: true,
+			favicon:  resolve('client_source/assets', 'favicon.ico'),
+			template: resolve('client_source/assets', 'index.html')
 		}),
 		new VueLoaderPlugin(),
 		new WebpackBar({minimal:false})

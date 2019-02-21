@@ -164,7 +164,6 @@ export default {
 		routes : Array,
 		menuGroups : Array
 	},
-
 	computed : {
 		dev:() => window.location.port !== '',
 		admin(){

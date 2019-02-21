@@ -203,7 +203,8 @@ router.get('/cards/receipt',	function(req, res){
 				  REC.COLLECTION_ID=ACC.REF8 and
 					REC.C_1 >= TO_DATE('${req.query.edfrom}', 'dd.mm.yyyy') and REC.C_1 < TO_DATE('${req.query.edto}', 'dd.mm.yyyy')+1
 				order by REC.C_1`
-			),
+			)
+			.catch(err=>{console.log('at receipt!'); throw err}),
 
 /*			
 				(card.is_main === '1'
@@ -224,11 +225,12 @@ router.get('/cards/receipt',	function(req, res){
 					VW_CRIT_IP_HOLD h
 				where 	
 				--	nvl(h.C_12,0) = 0				-- признак снятия холда временно не работает: Косяк ЦФТ
-					h.C_2 in (${card.card + (card.card_add?',' + card.card_add:'')})
+					h.REF2 in (${card.id + (card.card_add_ids?',' + card.card_add_ids:'')})
 					and h.C_1 >= SYSDATE - 20
 					and not exists  -- пока проверяем снятие холда вот так извращенски:
 		 			 (select ID from VW_CRIT_IP_TRANSACTION_ALL OPS where OPS.REF3 = h.REF2 and (OPS.C_28 >= h.C_1 - 1 and OPS.C_28 <= h.C_1 + 7 ) and OPS.C_32 = h.C_9)
-			`),
+			`)
+			.catch(err=>{console.log('at holds!'); throw err}),
 
 			//бонусы Solanteq
 			soap.createClientAsync(url)
@@ -328,8 +330,11 @@ router.get('/cards/receipt',	function(req, res){
 })
  
 //баланс по карте из UCS
-router.get('/cards/balance',	function(req, res){
 
+router.get('/cards/balance',	function(req, res){
+	res.json({error:'unavailable'})
+	return
+	/*
 	card(req.query.ednumber, req.query.edpassword)
 	.then(card=>{
 		if ('error' in card){
@@ -349,6 +354,7 @@ router.get('/cards/balance',	function(req, res){
 		console.log('remote:' + req.connection.remoteAddress); 
 		res.json(err.message)
 	}) 
+	*/
 });
 
 return router;
