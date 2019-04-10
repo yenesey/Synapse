@@ -73,7 +73,7 @@ function cors(req, res, next) {
 
 	//res.setHeader('Vary', 'Origin')
 	// Request methods you wish to allow
-	res.setHeader('Access-Control-Allow-Methods', method)
+	res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,POST')
 
 	// Request headers you wish to allow
 	res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With, Accept')
@@ -203,45 +203,39 @@ require('synapse/system').then(system=>{
 		
 		console._log('-'.repeat(l) + '\n' + format(info, chalk.green.bold) + '\n' + '-'.repeat(l));
 
-		new CronJob('00 00 * * *',  function(){
+		new CronJob('00 00 * * *',  function () {
 				console._log('['+chalk.green.bold('#' + moment().format('YYYY-MM-DD') + ']\n' + upTime() + '\n' + memUsage()))
-			}, null, true, null, null, true
-		)
+			}, null, true, null, null, true	)
 
-		if (process.env.NODE_ENV === 'development' && process.env.PORT !== '80') {
-			app.use(require('synapse/dev-middleware'))
-		} else {
-
+		if (process.env.NODE_ENV === 'development') {
 			if (process.env.BACKEND) {
 				app.use(cors)
-				app.use(morgan('tiny'))
+				app.use(morgan('tiny', { stream: { write: msg => console.log(msg) } }))
+				app.use([
+					errorHandler,
+					compression( {threshold : 0} ),
+					express.static( path.join(__dirname, 'client')),
+					require('synapse/api/telebot')(system),
+					(system.config.cards && stringToBoolean(system.config.cards.on)
+						? require('synapse/api/cards')(system)  //запрос инфы по картам для сайта
+						: (req, res, next)=>next()
+					),
+					require('synapse/api/access')(system), // !!! с этого момента и далее вниз контролируется доступ через AD
+					express.static(system.config.path.users, { //каталог с пользовательскими папками
+						setHeaders: function(res, path){
+							res.attachment(path) //добавляем в каджый заголовок инфу о том, что у нас вложение
+						}
+					}),
+					require('synapse/api/dlookup')(system),
+					require('synapse/api/dbquery')(system),
+					require('synapse/api/tasks')(system),
+					require('synapse/api/jobs')(system)
+				])
 				console.log('Backend api mode. Type "rs + [enter]" to restart manually')
+			} else {
+				app.use(require('synapse/dev-middleware'))
 			}
-
-			app.use([
-				errorHandler,
-				compression( {threshold : 0} ),
-				express.static( path.join(__dirname, 'client')),
-				require('synapse/api/telebot')(system),
-
-				(system.config.cards && stringToBoolean(system.config.cards.on)
-					? require('synapse/api/cards')(system)  //запрос инфы по картам для сайта
-					: (req, res, next)=>next()
-				),
-
-				require('synapse/api/access')(system), // !!! с этого момента и далее вниз контролируется доступ через AD
-
-				express.static(system.config.path.users, { //каталог с пользовательскими папками
-					setHeaders: function(res, path){
-						res.attachment(path) //добавляем в каджый заголовок инфу о том, что у нас вложение
-					}
-				}),
-				require('synapse/api/dlookup')(system),
-				require('synapse/api/dbquery')(system),
-				require('synapse/api/tasks')(system),
-				require('synapse/api/jobs')(system)
-			])
-		}
+		}	
 	})
 })
 .catch(console.error)

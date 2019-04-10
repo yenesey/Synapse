@@ -23,7 +23,7 @@ SELECT
      VW_CRIT_VZ_CARDS 
    where 
      REF5 = OV.REF10 
-   --  and lower(C_2) like '%главная%' and C_10 = (select max(C_10) from VW_CRIT_VZ_CARDS where REF5 = OV.REF10 and lower(C_2) like '%главная%')
+     and lower(C_2) like '%главная%'
      and (C_11 is null or C_11 > OV.C_3)
   ) "card",
   NVL(
@@ -77,6 +77,7 @@ SELECT
      VW_CRIT_VZ_CARDS 
    where 
      REF5 = OV.REF10 
+     and lower(C_2) like '%главная%'
    --  and lower(C_2) like '%главная%' and C_10 = (select max(C_10) from VW_CRIT_VZ_CARDS where REF5 = OV.REF10 and lower(C_2) like '%главная%')
      and (C_11 is null or C_11 > OV.C_3)
   ) "card",

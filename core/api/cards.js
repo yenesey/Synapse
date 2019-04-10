@@ -28,7 +28,7 @@ function card(number, password){
 		select 
 			vc.ID as "id",
 			vc.C_1 as "card",
---			vc.REF4 as "vz_account_id", 
+--			vc.REF4 as "vz_account_id",
 --			vc.C_8 as "state",
 			vc.REF5 as "acc_id",
 			vc.C_5 as "acc",
@@ -106,46 +106,58 @@ function avg(receipt, saldoIn, saldoOut, dateIn, dateOut){
 	var dateToStr = dt => [String(dt.getDate()).padStart(2, "0"), String(dt.getMonth()+1).padStart(2, "0"),	String(dt.getFullYear())].join('.');
 	var strToDate = s => new Date(s.split('.').reverse());
 	var opDate = el => strToDate(el.date_wrk.substr(0,10)); //извлечь дату из операции
-	var opSign = (el) => el.d_c === 'D'?-el.sum : el.sum;  //извлечь сумму со знаком (+|-) из операции выписки
+	var opSigned = (el) => el.d_c === 'D'?-el.sum : el.sum;  //извлечь сумму со знаком (+|-) из операции выписки
 
-	var _avg = arr => round(arr.reduce((res, el)=> res + el.saldo, 0) / (( (strToDate(dateOut) - strToDate(dateIn)) / 86400000) + 1), 2); 
+	var _avg = arr => {
+		if (!arr || arr.length === 0) return 0
+		var daysGone = ( (strToDate(dateOut) - strToDate(dateIn)) / 86400000 ) + 1
+		if (arr.length > 1) return round(arr.reduce((res, el)=> res + el.saldo, 0) / daysGone, 2)
+		return arr[0].saldo
+	}
+	
 
-	/* достраиваем массив arr для тех дат, были операции, и где не было операций по выписке */
+	/* достраиваем массив arr для тех дат где не было операций по выписке */
 	function forward(arr, dateFrom, dateTo, state){ // все параметры изменяются, т.к. передаются по ссылке! 
-		//eslint-disable-next-line  
-		while (dateFrom <= dateTo){  
+		while (dateFrom <= dateTo){
 			arr.push({
 				date: dateToStr(dateFrom),
-				saldo: state.saldo,
-				change : state.change
+				saldo: state.saldo
 			});
-			dateFrom.setDate(dateFrom.getDate() + 1); 
-			state.change = 0;
+			dateFrom.setDate(dateFrom.getDate() + 1)
 		}
 	}
 
-	var sa = [];
-	var	datePrev = strToDate(dateIn);
+	var sa = []
+	var	datePrev = strToDate(dateIn)
 	var state = {
-		saldo : saldoIn,
-		change : 0
-	};
+		saldo : saldoIn
+	}
 
-	receipt.forEach(el=>{ 
-		forward(sa, datePrev, opDate(el), state);
-		state.saldo += opSign(el);
-		state.change += opSign(el);
-	});
-	forward(sa, new Date(datePrev-1), new Date(datePrev-1), state); //фиксируем сальдо по последнему элементу выписки
+	var rec = receipt.reduce((res, el, index) => { // конвертируем выписку в структуру { date1: saldo1, .... ,dateN: saldoN }
+		if (el.date_wrk in res)
+			res[el.date_wrk] += opSigned(el)
+		else 
+			res[el.date_wrk] = opSigned(el)
+		return res
+	}, {})
+
+	for (var date in rec) {
+		forward(sa, datePrev, strToDate(date), state)
+		state.saldo += rec[date]
+	}
 	
+	// нужен еще один шаг вперед чтобы зафиксировать сальдо исходящее на последнюю дату в выписке
+	if (strToDate(dateOut) >= datePrev)	forward(sa,  datePrev, new Date(datePrev.valueOf() + 60*60*1000*24 - 1), state)
+	// console.log(sa)	
 	var avg0 = _avg(sa); //средний для версии что до конца периода сальдо - 0
-
-	forward(sa,  datePrev, strToDate(dateOut), state);
+	
+	forward(sa, datePrev, strToDate(dateOut), state);
+	// console.log(sa)	
 	var avg = _avg(sa);  //средний для версии, что до конца периода сальдо = сальдо исходящее
 
 	return {
 		avg : avg,
-		avg0 : avg0 //,sa : sa
+		avg0 : avg0
 	}
 }
 
@@ -302,6 +314,8 @@ router.get('/cards/receipt',	function(req, res){
 							case '05': 
 							case '05_': 
 							case 'A5':
+							case 'CMTP501':
+							case 'CMTP502':
 								result.count += 1; 
 								result.sum += item.sum_op;
 								break;
@@ -332,20 +346,19 @@ router.get('/cards/receipt',	function(req, res){
 //баланс по карте из UCS
 
 router.get('/cards/balance',	function(req, res){
-	res.json({error:'unavailable'})
-	return
-	/*
-	card(req.query.ednumber, req.query.edpassword)
+	
+	return card(req.query.ednumber, req.query.edpassword)
 	.then(card=>{
 		if ('error' in card){
 			res.json(card)
 			return
 		}
-		return t2000(`select sysadm.TWCMS.F_OnlineBalance('${req.query.ednumber}') as BALANCE from dual`)
+	
+		return t2000(`select sysadm.pcardstandard.f_onlinebalance_cs('${req.query.ednumber}') as BALANCE from dual`)
 			.then(balance=>
 				res.json({
 					clientname: card.fio, 
-					balance: (balance.length?balance[0].BALANCE:'UCS данные недоступны')
+					balance: (balance.length?balance[0].BALANCE:'pcardstandard данные недоступны')
 				})
 			)
 	}) 
@@ -354,7 +367,7 @@ router.get('/cards/balance',	function(req, res){
 		console.log('remote:' + req.connection.remoteAddress); 
 		res.json(err.message)
 	}) 
-	*/
+	
 });
 
 return router;
