@@ -48,11 +48,12 @@ console.log = function(){
 	) 
 }
 
-function stringToBoolean(string){
-	switch(string.toLowerCase().trim()){
+function boolAffinity(value){
+	if (typeof value === 'undefined') return false
+	switch(value.toString().toLowerCase().trim()){
 		case "true": case "yes": case "1": return true;
 		case "false": case "no": case "0": case null: return false;
-		default: return Boolean(string);
+		default: return Boolean(value);
 	}
 }
 
@@ -199,43 +200,53 @@ require('synapse/system').then(system=>{
 		},{})
 
 		var l = format(info).length-1;
-		//выводим системную инфу в отформатированном виде
+		// выводим системную инфу в отформатированном виде
 		
-		console._log('-'.repeat(l) + '\n' + format(info, chalk.green.bold) + '\n' + '-'.repeat(l));
+		console._log('-'.repeat(l) + '\n' + format(info, chalk.green.bold) + '\n' + '-'.repeat(l))
 
 		new CronJob('00 00 * * *',  function () {
-				console._log('['+chalk.green.bold('#' + moment().format('YYYY-MM-DD') + ']\n' + upTime() + '\n' + memUsage()))
-			}, null, true, null, null, true	)
+			console._log('['+chalk.green.bold('#' + moment().format('YYYY-MM-DD') + ']\n' + upTime() + '\n' + memUsage()))
+		}, null, true, null, null, true	)
+
+		var backend = [
+			express.static( path.join(__dirname, 'client') ),
+			require('synapse/api/access')(system), // !!! с этого момента и далее вниз контролируется доступ через AD
+			express.static(system.config.path.users, { // каталог с пользовательскими папками
+				setHeaders: function(res, path){
+					res.attachment(path) // добавляем в каджый заголовок инфу о том, что у нас вложение
+				}
+			}),
+			require('synapse/api/dlookup')(system),
+			require('synapse/api/dbquery')(system),
+			require('synapse/api/tasks')(system),
+			require('synapse/api/jobs')(system)
+		]
+		if (system.config.telebot && boolAffinity(system.config.telebot.on)) {
+			// unshift это вставка в начало если что :)
+			backend.unshift(require('synapse/api/telebot')(system))  // telegram bot
+		}
+		if (system.config.cards && boolAffinity(system.config.cards.on)) {
+			backend.unshift(require('synapse/api/cards')(system))  // запрос инфы по картам для сайта
+		}
+
+		app.use([
+			errorHandler, 
+			compression( {threshold : 0} )
+		])
 
 		if (process.env.NODE_ENV === 'development') {
+			// backend (api) и dev-middleware нужно запускать в 2-х раздельных процессах:
 			if (process.env.BACKEND) {
 				app.use(cors)
-				app.use(morgan('tiny', { stream: { write: msg => console.log(msg) } }))
-				app.use([
-					errorHandler,
-					compression( {threshold : 0} ),
-					express.static( path.join(__dirname, 'client')),
-					require('synapse/api/telebot')(system),
-					(system.config.cards && stringToBoolean(system.config.cards.on)
-						? require('synapse/api/cards')(system)  //запрос инфы по картам для сайта
-						: (req, res, next)=>next()
-					),
-					require('synapse/api/access')(system), // !!! с этого момента и далее вниз контролируется доступ через AD
-					express.static(system.config.path.users, { //каталог с пользовательскими папками
-						setHeaders: function(res, path){
-							res.attachment(path) //добавляем в каджый заголовок инфу о том, что у нас вложение
-						}
-					}),
-					require('synapse/api/dlookup')(system),
-					require('synapse/api/dbquery')(system),
-					require('synapse/api/tasks')(system),
-					require('synapse/api/jobs')(system)
-				])
+				app.use(morgan('tiny', {stream: {write: msg => console.log(msg)}}))
+				app.use(backend)
 				console.log('Backend api mode. Type "rs + [enter]" to restart manually')
 			} else {
 				app.use(require('synapse/dev-middleware'))
 			}
-		}	
+		}	else {
+			app.use(backend)
+		}
 	})
 })
 .catch(console.error)

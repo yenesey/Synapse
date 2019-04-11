@@ -114,7 +114,7 @@ export default {
 	methods: {
 
 		initDrag:function(e){
-			// e.target.style.cursor='s-resize';
+			e.target.style.cursor='s-resize';
 			this.drag.startY = e.clientY;
 			this.drag.startHeight = parseInt(this.editorHeight, 10);
 			document.documentElement.addEventListener('mousemove', this.doDrag, false);
@@ -130,7 +130,7 @@ export default {
 			
 		stopDrag : function (e) {
 			this.editor.resize();
-			// e.target.style.cursor='default';
+			e.target.style.cursor='default';
 			document.documentElement.removeEventListener('mousemove', this.doDrag, false);
 			document.documentElement.removeEventListener('mouseup', this.stopDrag, false);
 			this.save();
@@ -268,7 +268,7 @@ table.v-datatable{
 }
 
 .resize-bar:hover {
-	cursor:s-resize;
+	cursor: pointer;
 	background-color:rgb(215, 230, 240);
 }
 
