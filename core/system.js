@@ -1,7 +1,5 @@
 "use strict";
 
-// TODO: rewrite queries using bind vars like it's done in system.user = function()
-
 /*
 	 - системная база данных system.db = function(<SQL>, [<params>])
 	 - системные функции и константы
@@ -49,10 +47,7 @@ function equals(number, string, _var){
 system.db = require('./sqlite')(path.join(_root, 'db/synapse.db')); //основная БД приложения
 ////////////////////////////////////////////////////////////////////////
 system.user = function(user){ //данные пользователя по login или id
-	return (typeof user === 'number'
-		? system.db(`SELECT id, login, name, email, disabled FROM users WHERE id = :1`, [user])
-		: system.db(`SELECT id, login, name, email, disabled FROM users WHERE lower(login) = :1`, [user.toLowerCase()])
-	)	
+	return system.db(`SELECT id, login, name, email, disabled FROM users WHERE ${equals('id', 'login', user)} COLLATE NOCASE`)
 	.then(select => select.length ? select[0] : null)
 }
 
