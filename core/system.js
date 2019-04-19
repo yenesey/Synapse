@@ -124,7 +124,7 @@ system.access = function (user, options) {
 		FROM
 			objects
 		WHERE
-			1=1	
+			1=1
 			${whereCondition}
 		ORDER BY objects.class, objects.name`
 	)

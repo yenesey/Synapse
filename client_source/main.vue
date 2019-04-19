@@ -3,7 +3,6 @@
 		<v-navigation-drawer
 			class="blue lighten-4"
 			persistent
-			:mini-variant="miniVariant"
 			:clipped="clipped"
 			v-model="drawer"
 			enable-resize-watcher
@@ -82,9 +81,11 @@
 		>
 			<v-toolbar-side-icon @click.stop="drawer = !drawer"></v-toolbar-side-icon>
 
+<!--
 			<v-btn icon @click.stop="miniVariant = !miniVariant">
 				<v-icon v-html="miniVariant ? 'chevron_right' : 'chevron_left'"></v-icon>
 			</v-btn>
+-->			
 			<v-btn icon @click.stop="clipped = !clipped">
 				<v-icon>web</v-icon>
 			</v-btn>

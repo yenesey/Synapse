@@ -1,12 +1,12 @@
 'use strict'
 
-const db = require('./core/sqlite')('./db/synapse.db')
+//const db = require('./core/sqlite')('./db/synapse.db')
 const N = 100000;
 
 (async function () {
-	console.time('db')
-	for (var i = 1; i < N; i++) await db(`select * from objects where id = ${i}`)
-	console.timeEnd('db')
+	//console.time('db')
+	//for (var i = 1; i < N; i++) await db(`select * from objects where id = ${i}`)
+	//console.timeEnd('db')
 
 	var sqlite3 = require('sqlite3').verbose();
 	var db1 = new sqlite3.Database('./db/synapse.db');

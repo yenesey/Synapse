@@ -41,7 +41,7 @@ console._log = console.log
 console.log = function () {
 	var args = Array.prototype.slice.apply(arguments)
 	console._log(chalk.reset.cyan.bold(moment().format('HH:mm:ss ')) +
-		args.reduce((all, arg) => all + ((typeof arg === 'object') ? util.inspect(arg):arg), '')
+		args.reduce((all, arg) => all + ((typeof arg === 'object') ? util.inspect(arg) : arg), '')
 	)
 }
 
