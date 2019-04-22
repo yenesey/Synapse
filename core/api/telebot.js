@@ -7,6 +7,12 @@
 const express = require('express')
 const	router = express.Router({ strict: true })
 
+function errorHandler (err, req, res) {
+	console.log(err)
+	console.log('remote:' + req.connection.remoteAddress)
+	res.json({ success: false, error: err.message })
+}
+
 module.exports = function (system) {
 	var ibso = require('../ds-oracle')(system.config.ibs)
 	var t2000 = require('../ds-oracle')(system.config.t)
@@ -103,11 +109,7 @@ module.exports = function (system) {
 					data: data
 				})
 			})
-		}).catch(err => {
-			console.log(err)
-			console.log('remote:' + req.connection.remoteAddress)
-			res.json(err.message)
-		})
+		}).catch(err => errorHandler(err, req, res))
 	})
 
 	//	баланс по карте из ПЦ
@@ -115,23 +117,18 @@ module.exports = function (system) {
 		const query = req.query
 		return ibso(`
 			select
-				vc.C_1 "pan",
 				acc.C_6 "balance",
-				ovr.C_8 "limit",
-				(select listagg(C_1, ',') within group(order by null) from vw_crit_vz_cards where REF4 = vc.REF4 and ID != vc.ID)	"card_add",
-				vct.C_3 "is_main"
+				vc.C_1 "pan",
+				ovr.C_7 "limit"
 			from
-				VW_CRIT_IP_CARD_TYPE vct,
-				VW_CRIT_VZ_CARDS vc,
-				VW_CRIT_AC_FIN acc,
-				VW_CRIT_DEPN dep
-				left join 
-					VW_CRIT_OVER_OPEN ovr ON ovr.REF3 = dep.ID
+				VW_CRIT_DEPN dep 
+					left join
+						VW_CRIT_OVER_OPEN ovr on ovr.REF3 = dep.ID,
+				VW_CRIT_AC_FIN acc 
+					left join
+						VW_CRIT_VZ_CARDS vc on vc.REF5 = acc.ID
 			where 
-				vc.C_8 != 'Закрыта' and
-				vc.REF2 = vct.ID and
 				dep.REF3 = acc.ID and 
-				acc.ID = vc.REF5 and
 				acc.ID = :acc_id
 			`,
 		{ acc_id: query.acc_id }
@@ -141,24 +138,19 @@ module.exports = function (system) {
 				return
 			}
 			const card = data[0]
-
-			return t2000(`select sysadm.pcardstandard.f_onlinebalance_cs(:pan) "balance" from dual`, { pan: card.pan })
-				.then(data => {
-					if (data.length === 0) {
-						res.json({ success: false })
-						return
-					}
-					res.json({
-						success: true,
-						balance: card.balance,
-						balance_pc: data[0].balance,
-						unused_limit: card.limit
-					})
+			return (card.pan
+				? t2000(`select sysadm.pcardstandard.f_onlinebalance_cs(:pan) "balance" from dual`, { pan: card.pan })
+				: Promise.resolve([])
+			).then(data => {
+				res.json({
+					success: true,
+					balance: card.balance,
+					balance_pc: data.length > 0 ? data[0].balance : null,
+					unused_limit: card.limit
 				})
-		}).catch(err => {
-			console.log('remote:' + req.connection.remoteAddress)
-			res.json(err.message)
-		})
+			})
+			//
+		}).catch(err => errorHandler(err, req, res))
 	})
 
 	// выписка
@@ -202,13 +194,8 @@ module.exports = function (system) {
 				REC.REF2 = DOC.ID
 		`,
 		{ acc_id: query.acc_id, operation_date: query.date }
-		).then(data => {
-			res.json(data)
-		}).catch(err => {
-			console.log(err)
-			console.log('remote:' + req.connection.remoteAddress)
-			res.json(err.message)
-		})
+		).then(data => res.json({ success: true, receipt: data })
+		).catch(err => errorHandler(err, req, res))
 	})
 
 	return router

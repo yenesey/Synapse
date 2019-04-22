@@ -1,6 +1,7 @@
 'use strict'
 /*
 	источник данных Oracle
+	todo: ping connection every 10 min's
 */
 var crypto = require('crypto')
 var oracledb = require('oracledb')
