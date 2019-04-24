@@ -1,6 +1,6 @@
 <template lang="pug"> 
 v-app
-	v-navigation-drawer.blue.lighten-4(:width='width' :clipped='clipped', v-model='drawer', fixed, app, style='z-index:10' ref='nav')
+	v-navigation-drawer.blue.lighten-4(:width='navWidth' :value='navVisible' :clipped='navClipped' fixed app style='z-index:10' ref='nav')
 		v-list.blue.lighten-4
 			v-list-tile(@click="navigate('/')")
 				v-list-tile-action
@@ -26,13 +26,9 @@ v-app
 							v-icon(v-text="task.icon || group.icon || 'chevron_right'")
 						v-list-tile-content
 							v-list-tile-title {{task.name || 'noname'}}
-	v-toolbar.blue.lighten-4(app='', :clipped-left='clipped', height='48px', style='z-index:9')
-		v-toolbar-side-icon(@click.stop='drawer = !drawer')
-		//
-			<v-btn icon @click.stop="miniVariant = !miniVariant">
-			<v-icon v-html="miniVariant ? 'chevron_right' : 'chevron_left'"></v-icon>
-			</v-btn>
-		v-btn(icon='', @click.stop='clipped = !clipped')
+	v-toolbar.blue.lighten-4(app='', :clipped-left='navClipped', height='48px', style='z-index:9')
+		v-toolbar-side-icon(@click.stop="toggleNav('Visible')")
+		v-btn(icon='', @click.stop="toggleNav('Clipped')")
 			v-icon web
 		v-spacer
 		v-toolbar-title {{dev?'!!! dev-mode !!!':''}}
@@ -51,30 +47,14 @@ v-app
 			v-slide-y-transition(mode='out-in')
 				keep-alive
 					router-view(:key='$route.fullPath')
-	//
-		<v-navigation-drawer
-		temporary
-		:right="right"
-		v-model="rightDrawer"
-		fixed
-		app
-		>
-		<v-list>
-		<v-list-tile @click="right = !right">
-		<v-list-tile-action>
-		<v-icon>compare_arrows</v-icon>
-		</v-list-tile-action>
-		<v-list-tile-title>Switch drawer (click me)</v-list-tile-title>
-		</v-list-tile>
-		</v-list>
-		</v-navigation-drawer>
 	v-footer(app='')
 		v-icon account_balance
 		span Denis Bogachev © 2016-2018 
 </template>
 
 <script>
-import {keys} from 'lib'
+import { keys } from 'lib'
+import { mapState } from 'vuex'
 
 export default {
 	name : 'app_view',
@@ -86,12 +66,6 @@ export default {
 	},
 	data() {
 		return {
-			clipped: false,
-			drawer: true,
-			miniVariant: false,
-			right: false,
-			rightDrawer: true,
-			width: 200,
 			drag: {
 				el: null,
 				startX: 0, 
@@ -109,7 +83,8 @@ export default {
 			if (_tasks && _tasks.children)
 				return keys(_tasks.children, 'menu' /*menu is objects.class in synapse.db*/ )
 			return {}
-		}
+		},
+		...mapState(['navWidth', 'navVisible', 'navClipped'])
 	},
 	mounted () {
 		this.drag.el = document.querySelector('.v-navigation-drawer__border')
@@ -119,6 +94,11 @@ export default {
 	methods : {
 		navigate(to){
 			this.$root.$router.push(to)
+		},
+
+		toggleNav (flag) {
+			let key = 'nav' + flag
+			this.$store.commit(key, !this[key])
 		},
 
 		initDrag: function(e){
@@ -139,6 +119,7 @@ export default {
 			if (width < 100) width = 100
 			this.$refs.nav.$el.style.width = this.width + 'px'
 			this.width = width
+			this.$store.commit('navWidth', width)
 		},
 
 		stopDrag : function (e) {
