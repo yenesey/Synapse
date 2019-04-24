@@ -1,20 +1,19 @@
 //////////////////////////////////////////////////////////
-//  Ключевые моменты, для понимания кода:
-//  1. vue-loader для webpack (-->require.context)
-//  2. Vue, VueRouter
+//  Ключевые моменты, которые нужно знать для понимания как это работает:
+//  1. Vue, Vuex, VueRouter
+//  2. vue-loader для webpack (-->require.context)
 //  3. render: function(h)
 //
 
 import _ from 'lib' //note: lib is aliased in webpack.config.js
+import store from './store' // Vuex store
 
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 Vue.use(VueRouter)
-import store from './store'
 
 import 'babel-polyfill'
 import './vuetify'
-
 
 //////////////////////////////////////////////////////////
 // регистрация компонент - глобально 
@@ -29,7 +28,7 @@ import './vuetify'
 })(require.context('./components', false, /\.vue$/))(require.context('./tasks/components', false, /\.vue$/))
 
 
-import Task from './task.vue'
+import task from './task.vue'
 import admin from './admin/admin.js'
 import main from './main.vue'
 
@@ -89,7 +88,7 @@ _.pxhr({method: 'get', url: 'access/map'})
 					menu: el.menu || 'default',
 					component: {
 						render: (h) => h(
-							el.menu !== 'tools' ? Task : 'div', 
+							el.menu !== 'tools' ? task : 'div', 
 							{ props: {  id: el.id,  name: el.name } },  [ h(obj, {slot: 'default'}) ]   
 						) 
 					}
@@ -115,5 +114,5 @@ _.pxhr({method: 'get', url: 'access/map'})
 	})
 
 })
-.catch(console.error); // eslint-disable-line
+.catch(console.error) // eslint-disable-line
 
