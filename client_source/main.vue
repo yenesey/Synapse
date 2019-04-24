@@ -28,7 +28,7 @@ v-app
 							v-list-tile-title {{task.name || 'noname'}}
 	v-toolbar.blue.lighten-4(app='', :clipped-left='navClipped', height='48px', style='z-index:9')
 		v-toolbar-side-icon(@click.stop="toggleNav('Visible')")
-		v-btn(icon='', @click.stop="toggleNav('Clipped')")
+		v-btn(icon @click.stop="toggleNav('Clipped')" v-show='navVisible')
 			v-icon web
 		v-spacer
 		v-toolbar-title {{dev?'!!! dev-mode !!!':''}}
@@ -102,14 +102,14 @@ export default {
 		},
 
 		initDrag: function(e){
+			var de = document.documentElement
+			de.style.cursor = this.drag.el.style.cursor
+			de.addEventListener('mousemove', this.doDrag, false)
+			de.addEventListener('mouseup', this.stopDrag, false)
 			this.drag.startX = e.clientX
-			this.drag.startWidth = this.width
-			
+			this.drag.startWidth = this.navWidth
 			this.drag.el.style['background-color']='rgba(0,0,0,0.32)'
 			this.$refs.nav.$el.style['transition-property'] = 'none'
-			document.documentElement.style.cursor = this.drag.el.style.cursor
-			document.documentElement.addEventListener('mousemove', this.doDrag, false)
-			document.documentElement.addEventListener('mouseup', this.stopDrag, false)
 			e.stopPropagation()
 			e.preventDefault()
 		},
@@ -123,11 +123,12 @@ export default {
 		},
 
 		stopDrag : function (e) {
-			this.drag.el.style.background='rgba(0,0,0,0.12)'
+			var de = document.documentElement
+			de.style.cursor = 'default'
+			de.removeEventListener('mousemove', this.doDrag, false)
+			de.removeEventListener('mouseup', this.stopDrag, false)
+			this.drag.el.style['background-color']='rgba(0,0,0,0.12)'
 			this.$refs.nav.$el.style['transition-property'] = 'transform, width'
-			document.documentElement.style.cursor = 'default'
-			document.documentElement.removeEventListener('mousemove', this.doDrag, false)
-			document.documentElement.removeEventListener('mouseup', this.stopDrag, false)
 		}
 	}
 
