@@ -1,76 +1,76 @@
-<template lang="pug"> v-app
-  v-navigation-drawer.blue.lighten-4(persistent='', :clipped='clipped', v-model='drawer', enable-resize-watcher='', fixed='', app='', style='z-index:10')
-    v-list.blue.lighten-4
-      v-list-tile(@click="navigate('/')")
-        v-list-tile-action
-          v-icon account_circle
-        v-list-tile-title.user {{user}}
-      template(v-for='(group, index) in menuGroups')
-        // перебор групп меню
-        // default оформляем без группы
-        v-list-tile(v-if="group.name==='default'", v-for='task in tasks[group.name]', :key='task.path', @click="navigate('/tasks/'+task.path)", ripple='')
-          v-list-tile-action
-            v-icon(v-text="task.icon || group.icon || 'chevron_right'")
-          v-list-tile-content
-            v-list-tile-title {{task.name || 'noname'}}
-        // все прочие кроме default пихаем в группу (при наличии доступных элементов)
-        v-list-group(v-if="group.name!=='default' && tasks[group.name]")
-          v-list-tile(slot='activator', @click="navigate('/tasks')", ripple='')
-            v-list-tile-action
-              v-icon(v-text='group.icon')
-            v-list-tile-content
-              v-list-tile-title(v-text='group.description || group.name')
-          v-list-tile(v-for='task in tasks[group.name]', :key='task.path', @click="navigate('/tasks/'+task.path)", ripple='')
-            v-list-tile-action.ml-3
-              v-icon(v-text="task.icon || group.icon || 'chevron_right'")
-            v-list-tile-content
-              v-list-tile-title {{task.name || 'noname'}}
-  v-toolbar.blue.lighten-4(app='', :clipped-left='clipped', height='48px', style='z-index:9')
-    v-toolbar-side-icon(@click.stop='drawer = !drawer')
-    //
-      <v-btn icon @click.stop="miniVariant = !miniVariant">
-      <v-icon v-html="miniVariant ? 'chevron_right' : 'chevron_left'"></v-icon>
-      </v-btn>
-    v-btn(icon='', @click.stop='clipped = !clipped')
-      v-icon web
-    v-spacer
-    v-toolbar-title {{dev?'!!! dev-mode !!!':''}}
-    v-spacer
-    v-toolbar-title Synapse
-    v-menu(offset-y='', v-if='admin')
-      v-btn(icon='', slot='activator')
-        v-icon(v-html='admin.icon')
-      v-list
-        v-list-tile(router='', :to="'/admin/'+item.path", v-for='(item, index) in admin.children', :key='index')
-          v-list-tile-action
-            v-icon {{ item.icon }}
-          v-list-tile-title {{ item.name }}
-  v-content
-    v-container(fluid='')
-      v-slide-y-transition(mode='out-in')
-        keep-alive
-          router-view(:key='$route.fullPath')
-  //
-    <v-navigation-drawer
-    temporary
-    :right="right"
-    v-model="rightDrawer"
-    fixed
-    app
-    >
-    <v-list>
-    <v-list-tile @click="right = !right">
-    <v-list-tile-action>
-    <v-icon>compare_arrows</v-icon>
-    </v-list-tile-action>
-    <v-list-tile-title>Switch drawer (click me)</v-list-tile-title>
-    </v-list-tile>
-    </v-list>
-    </v-navigation-drawer>
-  v-footer(app='')
-    v-icon account_balance
-    span Denis Bogachev © 2016-2018 
-    v-icon scatter_plot
+<template lang="pug"> 
+v-app
+	v-navigation-drawer.blue.lighten-4(:width='width' :clipped='clipped', v-model='drawer', fixed, app, style='z-index:10' ref='nav')
+		v-list.blue.lighten-4
+			v-list-tile(@click="navigate('/')")
+				v-list-tile-action
+					v-icon account_circle
+				v-list-tile-title.user {{user}}
+			template(v-for='(group, index) in menuGroups')
+				// перебор групп меню
+				// default оформляем без группы
+				v-list-tile(v-if="group.name==='default'", v-for='task in tasks[group.name]', :key='task.path', @click="navigate('/tasks/'+task.path)", ripple='')
+					v-list-tile-action
+						v-icon(v-text="task.icon || group.icon || 'chevron_right'")
+					v-list-tile-content
+						v-list-tile-title {{task.name || 'noname'}}
+				// все прочие кроме default пихаем в группу (при наличии доступных элементов)
+				v-list-group(v-if="group.name!=='default' && tasks[group.name]")
+					v-list-tile(slot='activator', @click="navigate('/tasks')", ripple='')
+						v-list-tile-action
+							v-icon(v-text='group.icon')
+						v-list-tile-content
+							v-list-tile-title(v-text='group.description || group.name')
+					v-list-tile(v-for='task in tasks[group.name]', :key='task.path', @click="navigate('/tasks/'+task.path)", ripple='')
+						v-list-tile-action.ml-3
+							v-icon(v-text="task.icon || group.icon || 'chevron_right'")
+						v-list-tile-content
+							v-list-tile-title {{task.name || 'noname'}}
+	v-toolbar.blue.lighten-4(app='', :clipped-left='clipped', height='48px', style='z-index:9')
+		v-toolbar-side-icon(@click.stop='drawer = !drawer')
+		//
+			<v-btn icon @click.stop="miniVariant = !miniVariant">
+			<v-icon v-html="miniVariant ? 'chevron_right' : 'chevron_left'"></v-icon>
+			</v-btn>
+		v-btn(icon='', @click.stop='clipped = !clipped')
+			v-icon web
+		v-spacer
+		v-toolbar-title {{dev?'!!! dev-mode !!!':''}}
+		v-spacer
+		v-toolbar-title Synapse
+		v-menu(offset-y='', v-if='admin')
+			v-btn(icon='', slot='activator')
+				v-icon(v-html='admin.icon')
+			v-list
+				v-list-tile(router='', :to="'/admin/'+item.path", v-for='(item, index) in admin.children', :key='index')
+					v-list-tile-action
+						v-icon {{ item.icon }}
+					v-list-tile-title {{ item.name }}
+	v-content
+		v-container(fluid='')
+			v-slide-y-transition(mode='out-in')
+				keep-alive
+					router-view(:key='$route.fullPath')
+	//
+		<v-navigation-drawer
+		temporary
+		:right="right"
+		v-model="rightDrawer"
+		fixed
+		app
+		>
+		<v-list>
+		<v-list-tile @click="right = !right">
+		<v-list-tile-action>
+		<v-icon>compare_arrows</v-icon>
+		</v-list-tile-action>
+		<v-list-tile-title>Switch drawer (click me)</v-list-tile-title>
+		</v-list-tile>
+		</v-list>
+		</v-navigation-drawer>
+	v-footer(app='')
+		v-icon account_balance
+		span Denis Bogachev © 2016-2018 
 </template>
 
 <script>
@@ -84,31 +84,69 @@ export default {
 		routes : Array,
 		menuGroups : Array
 	},
-	computed : {
-		dev:() => window.location.port !== '',
-		admin(){
-			return this.routes.find(r=>r.path==='/admin')
-		},
-		tasks(){
-			var _tasks = this.routes.find(r=>r.path==='/tasks');
-			if (_tasks && _tasks.children)
-				return keys(_tasks.children, 'menu' /*menu is objects.class in synapse.db*/ )
-			return {};
-		}
-	},
-
 	data() {
 		return {
 			clipped: false,
 			drawer: true,
 			miniVariant: false,
 			right: false,
-			rightDrawer: true
+			rightDrawer: true,
+			width: 200,
+			drag: {
+				el: null,
+				startX: 0, 
+				startWidth: 0
+			}
 		}
+	},
+	computed : {
+		dev: () => window.location.port !== '',
+		admin() {
+			return this.routes.find(r=>r.path==='/admin')
+		},
+		tasks () {
+			var _tasks = this.routes.find(r=>r.path==='/tasks');
+			if (_tasks && _tasks.children)
+				return keys(_tasks.children, 'menu' /*menu is objects.class in synapse.db*/ )
+			return {}
+		}
+	},
+	mounted () {
+		this.drag.el = document.querySelector('.v-navigation-drawer__border')
+		this.drag.el.style.cursor='col-resize'
+		this.drag.el.addEventListener('mousedown', this.initDrag)
 	},
 	methods : {
 		navigate(to){
 			this.$root.$router.push(to)
+		},
+
+		initDrag: function(e){
+			this.drag.startX = e.clientX
+			this.drag.startWidth = this.width
+			
+			this.drag.el.style['background-color']='rgba(0,0,0,0.32)'
+			this.$refs.nav.$el.style['transition-property'] = 'none'
+			document.documentElement.style.cursor = this.drag.el.style.cursor
+			document.documentElement.addEventListener('mousemove', this.doDrag, false)
+			document.documentElement.addEventListener('mouseup', this.stopDrag, false)
+			e.stopPropagation()
+			e.preventDefault()
+		},
+			
+		doDrag: function(e) {
+			var width = this.drag.startWidth + e.clientX - this.drag.startWidth
+			if (width < 100) width = 100
+			this.$refs.nav.$el.style.width = this.width + 'px'
+			this.width = width
+		},
+
+		stopDrag : function (e) {
+			this.drag.el.style.background='rgba(0,0,0,0.12)'
+			this.$refs.nav.$el.style['transition-property'] = 'transform, width'
+			document.documentElement.style.cursor = 'default'
+			document.documentElement.removeEventListener('mousemove', this.doDrag, false)
+			document.documentElement.removeEventListener('mouseup', this.stopDrag, false)
 		}
 	}
 
@@ -173,10 +211,17 @@ export default {
 	margin: 0.6em 0.5em 1.6em 0.5em;
 }
 
-
+/*-----------------------*/
+/*.v-navigation-drawer {
+	transition: none !important;
+}*/
+.v-navigation-drawer__border {
+	width: 6px;
+}
+/*-----------------------*/
 .v-list__tile {
 	height : 42px;
-	transition: all .18s !important; 
+	transition: all .18s !important;
 }
 
 .v-list__tile:hover{

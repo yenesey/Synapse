@@ -1,10 +1,10 @@
-"use strict";
+"use strict"
 
 const webpack = require('webpack')
 const VueLoaderPlugin = require('vue-loader/lib/plugin')
 
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin
-const HtmlWebpackPlugin = require('html-webpack-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin')
 //const HardSourceWebpackPlugin = require('hard-source-webpack-plugin')
 const WebpackBar = require('webpackbar')
 
@@ -85,18 +85,16 @@ var config = {
 			},
       {
         test: /\.(sa|sc|c)ss$/,
-        use: [
-          'vue-style-loader', 'css-loader',	'sass-loader'      
-        ]
+        use: ['vue-style-loader', 'css-loader', 'sass-loader']
       },
 			{
-				test: /\.styl$/, 
-				use: ['vue-style-loader','css-loader', 'stylus-loader']
+				test: /\.styl$/,
+				use: ['vue-style-loader', 'css-loader', 'stylus-loader']
 			},
       // devMode ? 'vue-style-loader' : MiniCssExtractPlugin.loader,
 			{
 				test: /\.(png|jpg|gif|svg|woff|woff2|eot|ttf)$/,
-				use : {
+				use: {
 					loader: 'url-loader',
 					options: {
 						limit: 160000,
@@ -107,10 +105,10 @@ var config = {
 		]
 	},
 
-	mode : 'development',
-	devtool	: 'cheap-eval-source-map',
+	mode: 'development',
+	devtool: 'cheap-eval-source-map',
 
-	plugins : [ 
+	plugins: [ 
 		new webpack.ContextReplacementPlugin(/moment[/\\]locale$/, /^\.\/(ru)$/), //--берем только русскую локаль
 		new HtmlWebpackPlugin({
 			inject: true,
@@ -138,11 +136,11 @@ var config = {
 }
 
 if (process.env.NODE_ENV === 'production') {
-	config.mode = 'production'; //'none'
+	config.mode = 'production' // 'none'
 	config.devtool = 'source-map'
 	if (process.env.npm_config_report)
 		config.plugins.push(new BundleAnalyzerPlugin({analyzerMode: 'static'}))
-	
+
 } else { //dev mode by default
 	config.plugins.push(new webpack.HotModuleReplacementPlugin())
 	config.plugins.push(		
@@ -153,4 +151,4 @@ if (process.env.NODE_ENV === 'production') {
 	config.entry.synapse.unshift(	'@/hmr-iexplore') 
 }
 
-module.exports = config;
+module.exports = config

@@ -1,8 +1,8 @@
 //////////////////////////////////////////////////////////
-//	Ключевые моменты, для понимания кода:
-//	1. vue-loader для webpack (-->require.context)
-//	2. Vue, VueRouter
-//	3. render: function(h)
+//  Ключевые моменты, для понимания кода:
+//  1. vue-loader для webpack (-->require.context)
+//  2. Vue, VueRouter
+//  3. render: function(h)
 //
 
 import _ from 'lib' //note: lib is aliased in webpack.config.js
@@ -10,6 +10,7 @@ import _ from 'lib' //note: lib is aliased in webpack.config.js
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 Vue.use(VueRouter)
+import store from './store'
 
 import 'babel-polyfill'
 import './vuetify'
@@ -55,10 +56,10 @@ _.pxhr({method: 'get', url: 'access/map'})
 	if (access.admin && access.admin.length)
 		routes.push({
 			path: '/admin',
-//			name: 'Админ',
+//      name: 'Админ',
 			icon: 'settings',
 			component: {render: (h) => h('router-view')}, 
-			children:	access.admin.map(el=>({
+			children: access.admin.map(el=>({
 					name: el.name,
 					path: String(el.id),
 					icon: admin[el.id].icon,
@@ -75,13 +76,13 @@ _.pxhr({method: 'get', url: 'access/map'})
 			// name: 'Tasks',
 			icon: 'timeline',
 			component: {render: (h) => h('router-view')},
-			children:	access.tasks.sort((a, b) => (a.id === b.id ? 0: a.id > b.id ? 1: -1) ).map(el => {
+			children: access.tasks.sort((a, b) => (a.id === b.id ? 0: a.id > b.id ? 1: -1) ).map(el => {
 				let task = allTasks.keys().find(key=> key.indexOf(el.name) !== -1)
 				let obj = (task)
 					? allTasks(task).default
 					: { render: (h) => h('pre', {}, [el.description] ) }
 
-				return {	
+				return {  
 					name: el.name,
 					path: String(el.id),
 					icon: el.icon,
@@ -89,20 +90,21 @@ _.pxhr({method: 'get', url: 'access/map'})
 					component: {
 						render: (h) => h(
 							el.menu !== 'tools' ? Task : 'div', 
-							{	props: {	id: el.id,	name: el.name } },	[	h(obj, {slot: 'default'}) ] 	
+							{ props: {  id: el.id,  name: el.name } },  [ h(obj, {slot: 'default'}) ]   
 						) 
 					}
 				}
 			})
 		})
-	}	
+	} 
 
 	// запускаем приложение:
 	new Vue({ 
 		el: '#app', 
+		store: store,
 		render: (h) => h(main, { 
 				props: {
-					user: user.login,	
+					user: user.login, 
 					routes: routes, 
 					status: (user.err ? user.err.message: 'Добро пожаловать!'),
 					menuGroups: menuGroups
