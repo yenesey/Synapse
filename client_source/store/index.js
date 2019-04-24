@@ -58,7 +58,7 @@ const store = new Vuex.Store({
 store.subscribe((mutation, state) => {
 	let key = mutation.type
 	if (key in state) { 
-		// mutations with the same name as store key are autosaved - thats the rule 
+		// mutations with the same name as state key are autosaved - thats the rule 
 		localStorage.setItem(STORE_PREFIX + key, state[key])
 	}
 })
