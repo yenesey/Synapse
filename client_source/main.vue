@@ -1,157 +1,76 @@
-<template>
-	<v-app>
-		<v-navigation-drawer
-			class="blue lighten-4"
-			persistent
-			:clipped="clipped"
-			v-model="drawer"
-			enable-resize-watcher
-			fixed
-			app
-			style="z-index:10"
-		>
-
-		 <v-list class="blue lighten-4">
-
-				<v-list-tile @click="navigate('/')">
-					<v-list-tile-action>
-						<v-icon>account_circle</v-icon>
-					</v-list-tile-action>
-					<v-list-tile-title class="user">{{user}}</v-list-tile-title>
-				</v-list-tile>
-
-				<template v-for="(group, index) in menuGroups"> <!-- перебор групп меню-->
-					<!-- default оформляем без группы-->
-					<v-list-tile 
-						v-if="group.name==='default'"
-						v-for="task in tasks[group.name]" 
-						:key="task.path" 
-						@click="navigate('/tasks/'+task.path)"
-						ripple
-					>
-						<v-list-tile-action>
-							<v-icon v-text="task.icon || group.icon || 'chevron_right'"></v-icon>
-						</v-list-tile-action>
-						<v-list-tile-content>
-							<v-list-tile-title>{{task.name || 'noname'}}</v-list-tile-title>
-						</v-list-tile-content>
-					</v-list-tile>
-
-					<!-- все прочие кроме default пихаем в группу (при наличии доступных элементов)-->
-					<v-list-group v-if="group.name!=='default' && tasks[group.name]">
-						<v-list-tile 
-							slot="activator" 
-							@click="navigate('/tasks')"
-							ripple
-						>
-							<v-list-tile-action>
-								<v-icon v-text="group.icon"></v-icon>
-							</v-list-tile-action>
-							<v-list-tile-content>
-								<v-list-tile-title v-text="group.description || group.name" />
-							</v-list-tile-content>
-						</v-list-tile>
-	
-						<v-list-tile 
-							v-for="task in tasks[group.name]" 
-							:key="task.path" 
-							@click="navigate('/tasks/'+task.path)"
-							ripple
-						>
-							<v-list-tile-action class="ml-3">
-								<v-icon v-text="task.icon || group.icon || 'chevron_right'"></v-icon>
-							</v-list-tile-action>
-							<v-list-tile-content>
-								<v-list-tile-title>{{task.name || 'noname'}}</v-list-tile-title>
-							</v-list-tile-content>
-						</v-list-tile>
-					</v-list-group>
-				</template>	
-			
-			</v-list>
-		</v-navigation-drawer>
-
-
-		<v-toolbar
-			app
-			:clipped-left="clipped"
-			height = "48px"
-			class="blue lighten-4"
-			style="z-index:9"
-		>
-			<v-toolbar-side-icon @click.stop="drawer = !drawer"></v-toolbar-side-icon>
-
-<!--
-			<v-btn icon @click.stop="miniVariant = !miniVariant">
-				<v-icon v-html="miniVariant ? 'chevron_right' : 'chevron_left'"></v-icon>
-			</v-btn>
--->			
-			<v-btn icon @click.stop="clipped = !clipped">
-				<v-icon>web</v-icon>
-			</v-btn>
-
-			<v-spacer></v-spacer>
-				<v-toolbar-title>{{dev?'!!! dev-mode !!!':''}}</v-toolbar-title>
-
-			<v-spacer></v-spacer>
-			<v-toolbar-title>Synapse</v-toolbar-title>
-
-			<v-menu offset-y v-if="admin">
-				<v-btn icon 
-					slot="activator">
-					<v-icon v-html="admin.icon"></v-icon>
-				</v-btn>
-
-				<v-list>
-					<v-list-tile
-					 	router :to="'/admin/'+item.path"
-						v-for="(item, index) in admin.children"
-						:key="index"
-					 >
-						<v-list-tile-action>
-							<v-icon>{{ item.icon }}</v-icon>
-						</v-list-tile-action>
-						<v-list-tile-title>{{ item.name }}</v-list-tile-title>
-					</v-list-tile>
-				</v-list>
-			</v-menu>
-		
-		</v-toolbar>
-
-		<v-content>
-			<v-container fluid> 
-				<v-slide-y-transition mode="out-in">
-					<keep-alive>
-						<router-view :key="$route.fullPath"></router-view>
-					</keep-alive>
-				</v-slide-y-transition>
-			</v-container>
-		</v-content>
-		
-	 <!-- 
-		<v-navigation-drawer
-			temporary
-			:right="right"
-			v-model="rightDrawer"
-			fixed
-			app
-		>
-			<v-list>
-				<v-list-tile @click="right = !right">
-					<v-list-tile-action>
-						<v-icon>compare_arrows</v-icon>
-					</v-list-tile-action>
-					<v-list-tile-title>Switch drawer (click me)</v-list-tile-title>
-				</v-list-tile>
-			</v-list>
-		</v-navigation-drawer>
--->
-
-		<v-footer app>
-			<span>&copy; 2016-2018 Denis Bogachev&nbsp;</span><v-icon>scatter_plot</v-icon>
-<!--			<v-icon>account_balance</v-icon><span>Ταυρ - δεζαιη &copy; 2018</span> -->
-		</v-footer>
-	</v-app>
+<template lang="pug"> v-app
+  v-navigation-drawer.blue.lighten-4(persistent='', :clipped='clipped', v-model='drawer', enable-resize-watcher='', fixed='', app='', style='z-index:10')
+    v-list.blue.lighten-4
+      v-list-tile(@click="navigate('/')")
+        v-list-tile-action
+          v-icon account_circle
+        v-list-tile-title.user {{user}}
+      template(v-for='(group, index) in menuGroups')
+        // перебор групп меню
+        // default оформляем без группы
+        v-list-tile(v-if="group.name==='default'", v-for='task in tasks[group.name]', :key='task.path', @click="navigate('/tasks/'+task.path)", ripple='')
+          v-list-tile-action
+            v-icon(v-text="task.icon || group.icon || 'chevron_right'")
+          v-list-tile-content
+            v-list-tile-title {{task.name || 'noname'}}
+        // все прочие кроме default пихаем в группу (при наличии доступных элементов)
+        v-list-group(v-if="group.name!=='default' && tasks[group.name]")
+          v-list-tile(slot='activator', @click="navigate('/tasks')", ripple='')
+            v-list-tile-action
+              v-icon(v-text='group.icon')
+            v-list-tile-content
+              v-list-tile-title(v-text='group.description || group.name')
+          v-list-tile(v-for='task in tasks[group.name]', :key='task.path', @click="navigate('/tasks/'+task.path)", ripple='')
+            v-list-tile-action.ml-3
+              v-icon(v-text="task.icon || group.icon || 'chevron_right'")
+            v-list-tile-content
+              v-list-tile-title {{task.name || 'noname'}}
+  v-toolbar.blue.lighten-4(app='', :clipped-left='clipped', height='48px', style='z-index:9')
+    v-toolbar-side-icon(@click.stop='drawer = !drawer')
+    //
+      <v-btn icon @click.stop="miniVariant = !miniVariant">
+      <v-icon v-html="miniVariant ? 'chevron_right' : 'chevron_left'"></v-icon>
+      </v-btn>
+    v-btn(icon='', @click.stop='clipped = !clipped')
+      v-icon web
+    v-spacer
+    v-toolbar-title {{dev?'!!! dev-mode !!!':''}}
+    v-spacer
+    v-toolbar-title Synapse
+    v-menu(offset-y='', v-if='admin')
+      v-btn(icon='', slot='activator')
+        v-icon(v-html='admin.icon')
+      v-list
+        v-list-tile(router='', :to="'/admin/'+item.path", v-for='(item, index) in admin.children', :key='index')
+          v-list-tile-action
+            v-icon {{ item.icon }}
+          v-list-tile-title {{ item.name }}
+  v-content
+    v-container(fluid='')
+      v-slide-y-transition(mode='out-in')
+        keep-alive
+          router-view(:key='$route.fullPath')
+  //
+    <v-navigation-drawer
+    temporary
+    :right="right"
+    v-model="rightDrawer"
+    fixed
+    app
+    >
+    <v-list>
+    <v-list-tile @click="right = !right">
+    <v-list-tile-action>
+    <v-icon>compare_arrows</v-icon>
+    </v-list-tile-action>
+    <v-list-tile-title>Switch drawer (click me)</v-list-tile-title>
+    </v-list-tile>
+    </v-list>
+    </v-navigation-drawer>
+  v-footer(app='')
+    v-icon account_balance
+    span Denis Bogachev © 2016-2018 
+    v-icon scatter_plot
 </template>
 
 <script>

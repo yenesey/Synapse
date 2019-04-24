@@ -66,7 +66,7 @@ var config = {
 									}
 								]
 							],
-
+							
 							plugins: [
 								[
 									'transform-imports',
@@ -83,16 +83,17 @@ var config = {
 
 				}
 			},
-			{ 
+      {
+        test: /\.(sa|sc|c)ss$/,
+        use: [
+          'vue-style-loader', 'css-loader',	'sass-loader'      
+        ]
+      },
+			{
 				test: /\.styl$/, 
 				use: ['vue-style-loader','css-loader', 'stylus-loader']
 			},
-
-			{ 
-				test: /\.css$/, 
-				use: ['vue-style-loader', 'css-loader']
-			},
-
+      // devMode ? 'vue-style-loader' : MiniCssExtractPlugin.loader,
 			{
 				test: /\.(png|jpg|gif|svg|woff|woff2|eot|ttf)$/,
 				use : {

@@ -121,12 +121,12 @@ module.exports = function (system) {
 				vc.C_1 "pan",
 				ovr.C_7 "limit"
 			from
-				VW_CRIT_DEPN dep 
+				VW_CRIT_DEPN dep
 					left join
 						VW_CRIT_OVER_OPEN ovr on ovr.REF3 = dep.ID,
-				VW_CRIT_AC_FIN acc 
+				VW_CRIT_AC_FIN acc
 					left join
-						VW_CRIT_VZ_CARDS vc on vc.REF5 = acc.ID
+						VW_CRIT_VZ_CARDS vc on vc.REF5 = acc.ID and vc.C_8 = 'Рабочая'
 			where 
 				dep.REF3 = acc.ID and 
 				acc.ID = :acc_id

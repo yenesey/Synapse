@@ -5,3 +5,4 @@ db
 client
 sslcert
 users
+package-lock.json
