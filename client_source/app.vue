@@ -98,7 +98,7 @@ export default {
 
 		initDrag: function(e){
 			var doc = document.documentElement
-			doc.style.cursor = e.target.style.cursor
+			doc.style.cursor = 'col-resize'
 			doc.addEventListener('mousemove', this.doDrag, false)
 			doc.addEventListener('mouseup', this.stopDrag, false)
 
@@ -133,6 +133,36 @@ export default {
 @font-face {
 	font-family: 'Sony_Sketch_EF';
 	src: url('./assets/Sony_Sketch_EF.woff') format('woff'); 
+}
+
+@font-face {
+  font-family: 'Material Icons';
+  font-style: normal;
+  font-weight: 400;
+  src: url("./assets/MaterialIcons-Regular.woff") format("woff");
+}
+
+.material-icons {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  /* Preferred icon size */
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+  /* Support for all WebKit browsers. */
+  -webkit-font-smoothing: antialiased;
+  /* Support for Safari and Chrome. */
+  text-rendering: optimizeLegibility;
+  /* Support for Firefox. */
+  -moz-osx-font-smoothing: grayscale;
+  /* Support for IE. */
+  font-feature-settings: 'liga'; 
 }
 
 .v-toolbar__title {

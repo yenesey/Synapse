@@ -1,4 +1,4 @@
-"use strict"
+'use strict'
 
 const webpack = require('webpack')
 const VueLoaderPlugin = require('vue-loader/lib/plugin')
@@ -54,33 +54,34 @@ var config = {
 				exclude: /node_modules|core/,
 				test: /\.js$/,
 				use: {
-						loader: 'babel-loader',
-						options: {
-							cacheDirectory: true,
-							//presets: ['env'],
-							presets: [
-								[
-									'@vue/app',
-									{
-										'useBuiltIns': 'entry'
-									}
-								]
-							],
-							
-							plugins: [
-								[
-									'transform-imports',
-									{
-										vuetify: {
-											transform: 'vuetify/es5/components/${member}',
-											preventFullImport: true
-										}
-									}
-								],
-								'syntax-dynamic-import'
+					loader: 'babel-loader',
+					options: {
+						cacheDirectory: true,
+						//presets: ['env'],
+						presets: [
+							[
+								'@vue/app',
+								{
+									'useBuiltIns': 'entry'
+								}
 							]
-						}
-
+						],
+						/*	
+						// this is for vuetify-a-la-carte.js (saved for history)
+						plugins: [
+							[
+								'transform-imports',
+								{
+									vuetify: {
+										transform: 'vuetify/es5/components/${member}',
+										preventFullImport: true
+									}
+								}
+							],
+							'syntax-dynamic-import'
+						]
+						*/
+					}
 				}
 			},
       {
@@ -137,7 +138,7 @@ var config = {
 
 if (process.env.NODE_ENV === 'production') {
 	config.mode = 'production' // 'none'
-	config.devtool = 'source-map'
+	config.devtool = ''
 	if (process.env.npm_config_report)
 		config.plugins.push(new BundleAnalyzerPlugin({analyzerMode: 'static'}))
 

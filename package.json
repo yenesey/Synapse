@@ -63,7 +63,6 @@
     "file-loader": "2.0.0",
     "html-webpack-plugin": "4.0.0-alpha.2",
     "json-loader": "0.5.7",
-    "material-design-icons-iconfont": "3.0.3",
     "node-sass": "^4.11.0",
     "nodemon": "^1.18.9",
     "pug": "^2.0.3",
