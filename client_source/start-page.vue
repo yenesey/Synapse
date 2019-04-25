@@ -13,7 +13,7 @@
 module.exports = {
 	computed : {
 		uname : function(){
-			return this.$root.$children[0].status;
+			return this.$root.$children[0].status
 		}
 	}
 }

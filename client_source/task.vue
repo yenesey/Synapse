@@ -39,7 +39,7 @@
 	 </transition>
 	
 		<pre v-if="text" style="font-weight:bold">{{text}}</pre>
-</div>
+	</div>
 </template>
 
 <script>

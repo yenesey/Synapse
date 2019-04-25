@@ -5,18 +5,18 @@
 //  3. render: function(h)
 //
 
-import _ from 'lib' //note: lib is aliased in webpack.config.js
+import 'babel-polyfill'
+import _ from 'lib' // note: lib is aliased in webpack.config.js
 import store from './store' // Vuex store
 
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 Vue.use(VueRouter)
-
-import 'babel-polyfill'
 import './vuetify'
 
+
 //////////////////////////////////////////////////////////
-// регистрация компонент - глобально 
+// регистрация компонент - глобально
 (function reg(context){
 	context.keys().forEach(function(item){
 		Vue.component(
@@ -28,12 +28,12 @@ import './vuetify'
 })(require.context('./components', false, /\.vue$/))(require.context('./tasks/components', false, /\.vue$/))
 
 
-import task from './task.vue'
+import taskWrapper from './task.vue'
 import admin from './admin/admin.js'
-import main from './main.vue'
+import App from './app.vue'
 
 
-if (typeof baseUrl !== 'undefined') _.baseUrl = baseUrl
+if (typeof baseUrl !== 'undefined') _.baseUrl = baseUrl // eslint-disable-line
  
 _.pxhr({method: 'get', url: 'access/map'})
 .catch(err => ({login: 'Нет доступа!', access: [], err: err})) 
@@ -88,7 +88,7 @@ _.pxhr({method: 'get', url: 'access/map'})
 					menu: el.menu || 'default',
 					component: {
 						render: (h) => h(
-							el.menu !== 'tools' ? task : 'div', 
+							el.menu !== 'tools' ? taskWrapper : 'div', 
 							{ props: {  id: el.id,  name: el.name } },  [ h(obj, {slot: 'default'}) ]   
 						) 
 					}
@@ -101,7 +101,7 @@ _.pxhr({method: 'get', url: 'access/map'})
 	new Vue({ 
 		el: '#app', 
 		store: store,
-		render: (h) => h(main, { 
+		render: (h) => h(App, { 
 				props: {
 					user: user.login, 
 					routes: routes, 

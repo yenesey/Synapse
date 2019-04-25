@@ -2,7 +2,7 @@ import Vue from 'vue'
 import Vuex from 'vuex'
 Vue.use(Vuex)
 
-const STORE_PREFIX = 'store_'
+const PREFIX = 'store_'
 
 // state
 const state = {
@@ -39,11 +39,13 @@ const mutations = {
 
 // restore state from LS just before Vuex storage creation
 for (let key in state) {
-	let value = localStorage.getItem(STORE_PREFIX + key)
+	let value = localStorage.getItem(PREFIX + key)
 	if (value) {
 		try {
 			value = JSON.parse(value) // - who knows, is there complex or simple value?
-		} catch (err) {}
+		} catch (err) { 
+			console.error(err) 
+		}
 		state[key] = value
 	}
 }
@@ -59,7 +61,7 @@ store.subscribe((mutation, state) => {
 	let key = mutation.type
 	if (key in state) { 
 		// mutations with the same name as state key are autosaved - thats the rule 
-		localStorage.setItem(STORE_PREFIX + key, state[key])
+		localStorage.setItem(PREFIX + key, state[key])
 	}
 })
 

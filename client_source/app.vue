@@ -7,8 +7,7 @@ v-app
 					v-icon account_circle
 				v-list-tile-title.user {{user}}
 			template(v-for='(group, index) in menuGroups')
-				// перебор групп меню
-				// default оформляем без группы
+				// перебор групп меню (default оформляем без группы)
 				v-list-tile(v-if="group.name==='default'", v-for='task in tasks[group.name]', :key='task.path', @click="navigate('/tasks/'+task.path)", ripple='')
 					v-list-tile-action
 						v-icon(v-text="task.icon || group.icon || 'chevron_right'")
@@ -26,12 +25,13 @@ v-app
 							v-icon(v-text="task.icon || group.icon || 'chevron_right'")
 						v-list-tile-content
 							v-list-tile-title {{task.name || 'noname'}}
-	v-toolbar.blue.lighten-4(app='', :clipped-left='navClipped', height='48px', style='z-index:9')
+	v-toolbar.blue.lighten-4(app='', :clipped-left='navClipped', height='48px', style='z-index:9'  ref='toolbar')
 		v-toolbar-side-icon(@click.stop="toggleNav('Visible')")
 		v-btn(icon @click.stop="toggleNav('Clipped')" v-show='navVisible')
 			v-icon web
-		v-spacer
-		v-toolbar-title {{dev?'!!! dev-mode !!!':''}}
+		template(v-if='isDevMode')
+			v-spacer
+			v-toolbar-title !!! dev-mode !!!
 		v-spacer
 		v-toolbar-title Synapse
 		v-menu(offset-y='', v-if='admin')
@@ -42,8 +42,9 @@ v-app
 					v-list-tile-action
 						v-icon {{ item.icon }}
 					v-list-tile-title {{ item.name }}
-	v-content
-		v-container(fluid='')
+	v-content(ref='content')
+		div.dragbar(@mousedown='initDrag')
+		v-container.fluid
 			v-slide-y-transition(mode='out-in')
 				keep-alive
 					router-view(:key='$route.fullPath')
@@ -67,14 +68,13 @@ export default {
 	data() {
 		return {
 			drag: {
-				el: null,
 				startX: 0, 
 				startWidth: 0
 			}
 		}
 	},
 	computed : {
-		dev: () => window.location.port !== '',
+		isDevMode: () => window.location.port !== '',
 		admin() {
 			return this.routes.find(r=>r.path==='/admin')
 		},
@@ -86,12 +86,7 @@ export default {
 		},
 		...mapState(['navWidth', 'navVisible', 'navClipped'])
 	},
-	mounted () {
-		this.drag.el = document.querySelector('.v-navigation-drawer__border')
-		this.drag.el.style.cursor='col-resize'
-		this.drag.el.addEventListener('mousedown', this.initDrag)
-	},
-	methods : {
+	methods: {
 		navigate(to){
 			this.$root.$router.push(to)
 		},
@@ -102,33 +97,32 @@ export default {
 		},
 
 		initDrag: function(e){
-			var de = document.documentElement
-			de.style.cursor = this.drag.el.style.cursor
-			de.addEventListener('mousemove', this.doDrag, false)
-			de.addEventListener('mouseup', this.stopDrag, false)
+			var doc = document.documentElement
+			doc.style.cursor = e.target.style.cursor
+			doc.addEventListener('mousemove', this.doDrag, false)
+			doc.addEventListener('mouseup', this.stopDrag, false)
+
 			this.drag.startX = e.clientX
 			this.drag.startWidth = this.navWidth
-			this.drag.el.style['background-color']='rgba(0,0,0,0.32)'
-			this.$refs.nav.$el.style['transition-property'] = 'none'
+			for (var ref in this.$refs) this.$refs[ref].$el.style['transition-property'] = 'none'
+			e.target.style['background-color']='rgba(0,0,0,0.32)'
 			e.stopPropagation()
 			e.preventDefault()
 		},
 			
 		doDrag: function(e) {
-			var width = this.drag.startWidth + e.clientX - this.drag.startWidth
+			var width = this.drag.startWidth - (this.drag.startX - e.clientX)
 			if (width < 100) width = 100
-			this.$refs.nav.$el.style.width = this.width + 'px'
-			this.width = width
 			this.$store.commit('navWidth', width)
 		},
 
 		stopDrag : function (e) {
-			var de = document.documentElement
-			de.style.cursor = 'default'
-			de.removeEventListener('mousemove', this.doDrag, false)
-			de.removeEventListener('mouseup', this.stopDrag, false)
-			this.drag.el.style['background-color']='rgba(0,0,0,0.12)'
-			this.$refs.nav.$el.style['transition-property'] = 'transform, width'
+			var doc = document.documentElement
+			doc.style.cursor = 'default'
+			doc.removeEventListener('mousemove', this.doDrag, false)
+			doc.removeEventListener('mouseup', this.stopDrag, false)
+			e.target.style['background-color']='rgba(0,0,0,0.12)'
+			for (var ref in this.$refs) this.$refs[ref].$el.style['transition-property'] = 'all'
 		}
 	}
 
@@ -193,13 +187,15 @@ export default {
 	margin: 0.6em 0.5em 1.6em 0.5em;
 }
 
-/*-----------------------*/
-/*.v-navigation-drawer {
-	transition: none !important;
-}*/
-.v-navigation-drawer__border {
+.dragbar {
+	position: absolute; 
+	top: 0px;
 	width: 6px;
+	bottom: 0px;
+	background-color: rgba(0,0,0,0.12);
+	cursor: col-resize;
 }
+
 /*-----------------------*/
 .v-list__tile {
 	height : 42px;
