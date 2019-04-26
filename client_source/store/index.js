@@ -13,20 +13,16 @@ const state = {
 
 // getters
 const getters = {
-	navWidth: (state) => state.navWidth,
-	navVisible: (state) => state.navVisible,
-	navClipped: (state) => state.navClipped
 }
 
 // actions
 const actions = {
-	
 }
 
 // mutations
 const mutations = {
-	navWidth (state, width) {
-		state.navWidth = width
+	navWidth (state, value) {
+		state.navWidth = value
 	},
 	navVisible (state, value) {
 		state.navVisible = value

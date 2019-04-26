@@ -8,7 +8,7 @@ const config = require('../client_source/webpack.config')
 const compiler = require('webpack')(config)
 const dev = require('webpack-dev-middleware')
 const hot = require('webpack-hot-middleware')
-const combineMiddleware = require('./lib').combineMiddleware
+const { combineMiddleware } = require('./lib')
 
 module.exports = combineMiddleware([
 	dev(compiler, {

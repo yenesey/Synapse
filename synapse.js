@@ -135,7 +135,7 @@ function close () {
 }
 
 // ----------------в случае получения сигнала корректно закрываем--------------------
-process.on('SIGHUP', close).on('SIGTERM', close).on('SIGINT', close) 
+process.on('SIGHUP', close).on('SIGTERM', close).on('SIGINT', close)
 
 if (!process.env.SERVICE) { // если не служба,
 // то будет полезно обработать некоторые нажатия клавиш в консоли

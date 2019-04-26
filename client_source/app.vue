@@ -132,6 +132,8 @@ export default {
 <style>
 @font-face {
 	font-family: 'Sony_Sketch_EF';
+  font-style: normal;
+  font-weight: 400;
 	src: url('./assets/Sony_Sketch_EF.woff') format('woff'); 
 }
 

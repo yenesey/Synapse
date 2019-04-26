@@ -6,7 +6,12 @@
 
 const express = require('express')
 const router = express.Router({ strict: true })
-const crypto = require('crypto')
+
+function errorHandler (err, req, res) {
+	console.log(err)
+	console.log('remote:' + req.connection.remoteAddress)
+	res.json({ success: false, error: err.message })
+}
 
 module.exports = function (system) {
 	const ibso = require('../ds-oracle')(system.config.ibs)
@@ -309,11 +314,7 @@ module.exports = function (system) {
 					})
 				})
 			})
-		}).catch(err => {
-			console.log(err)
-			console.log('remote:' + req.connection.remoteAddress)
-			res.json(err.message)
-		})
+		}).catch(err => errorHandler(err, req, res))
 	})
 
 	// баланс по карте из ПЦ
@@ -332,12 +333,7 @@ module.exports = function (system) {
 							balance: (balance.length ? balance[0].BALANCE : 'pcardstandard данные недоступны')
 						})
 					)
-			})
-			.catch(err => {
-				console.log(err)
-				console.log('remote:' + req.connection.remoteAddress)
-				res.json(err.message)
-			})
+			}).catch(err => errorHandler(err, req, res))
 	})
 
 	router.get('/cards/sms-code',	function (req, res) {
@@ -360,11 +356,7 @@ module.exports = function (system) {
 			} else {
 				res.json({ success: true,	code: code	})
 			}
-		}).catch(err => {
-			console.log(err)
-			console.log('remote:' + req.connection.remoteAddress)
-			res.json(err.message)
-		})
+		}).catch(err => errorHandler(err, req, res))
 	})
 
 	return router
