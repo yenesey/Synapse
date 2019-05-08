@@ -54,10 +54,10 @@ module.exports = function (system) {
 		where 
 			vc.C_8 != 'Закрыта' and
 			vc.REF2 = vct.ID and
-			cl.REF1 = vc.REF3 and 
+			cl.ID = vc.REF24 and 
 			dp.REF3 = vc.REF5 and ` +
 			(number.length === 20
-				? `vc.C_5='${number}' and vct.C_3 = 1`  // если дан 20зн счет, проверяем кодовое слово главной (==1) карты
+				? `vc.C_5='${number}' and vct.C_3 = 1`  // если дан 20-зн счет, проверяем кодовое слово главной (==1) карты
 				: `vc.C_1='${number}'`
 			)
 		).then(info => {
@@ -70,7 +70,6 @@ module.exports = function (system) {
 			if (card.password === 'НЕ_ПЕРЕДАЛИ') {
 				return { error: 'Кодовое слово не задано' }
 			}
-			//			return {error:'Кодовое слово не задано'}
 
 			if (card.password !== password &&	(new RegExp(`CODEWORD1~${password}~`)).test(card.password) !== true) {
 				return  { error: 'Кодовое слово не верно' }
@@ -178,28 +177,56 @@ module.exports = function (system) {
 				// выписка:
 				ibso(`
 				select 
-					DECODE( REC.C_5, 'Дебет', 'D', 'Кредит', 'С') as "d_c",
+					OPS.C_59 as "d_c",
 					TO_CHAR(DOC.C_10, 'dd.mm.yyyy') as "date_wrk",
-					TO_CHAR(NVL(OPS.C_28, DOC.C_10))  as "date_op",
-					OPS.C_11   as "type_name",
-					OPS.C_27   as "type",
-					OPS.C_3    as "card", 
-					OPS.C_33   as "info",
+					TO_CHAR(NVL(OPS.C_41, DOC.C_10), 'dd.mm.yyyy')  as "date_op",
+					OPS.C_4   as "type_name",
+					OPS.C_15   as "type",
+					OPS.C_5    as "card", 
+					OPS.C_50   as "info",
 					DOC.C_11   as "doc_np",
-	--				OPS.C_5    as "comis",
-					OPS.C_32   as "auth_code",
-	--				OPS.C_6    as "val_comis",
-					ROUND(NVL(OPS.C_13, DOC.C_4), 2) as "sum",
-					NVL(OPS.C_14, DOC.C_6) as "val",
-					ROUND(NVL(OPS.C_17, DOC.C_5), 2) as "sum_op",
-					NVL(OPS.C_18, 'RUB') as "val_op"
+					OPS.C_48   as "auth_code",
+					ROUND(NVL(OPS.C_52, DOC.C_4), 2) as "sum",
+					NVL(OPS.C_53, DOC.C_6) as "val",
+					ROUND(NVL(OPS.C_54, DOC.C_5), 2) as "sum_op",
+					NVL(OPS.C_55, 'RUB') as "val_op",
+					DECODE(OPS.C_15,  -- настройки брать тут VW_CRIT_FP_TUNE_ALL where CODE = 'TVR_DEPN_CALC_PRC_TRAN_TYPE' -> VW_CRIT_SETTINGS_VAL
+						'A5R',-1,
+						'CCMTP502TPTP225',-1,
+						'A5R',-1,
+						'CCMTP501TPTP141',-1,
+						'CCMTP501TPTP141',-1,
+						'CCMTP501TPTP109',-1,
+						'CCMTP501TPTP109',-1,
+						'CCMTP502TPTP206',-1,
+						'05R',-1,
+						'A6',-1,
+						'A6',-1,
+						'05R',-1,
+						'CCMTP502TPTP225',-1,
+						'CCMTP502TPTP206',-1,
+						'DСMTP502TPTP226',1,
+						'DCMTP501TPTP449',1,
+						'DCMTP501TPTP449',1,
+						'DCMTP501TPTP101',1,
+						'DCMTP501TPTP101',1,
+						'A6R',1,
+						'A6R',1,
+						'DСMTP502TPTP226',1,
+						'A5',1,
+						'05',1,
+						'05',1,
+						'DCMTP502TPTP205',1,
+						'DCMTP502TPTP205',1,
+						'A5',1,
+						0) as "k-n"
 				from 
 					VW_CRIT_AC_FIN ACC,
 					VW_CRIT_FULL_RECORDS REC, 
 					VW_CRIT_MAIN_DOCUM DOC 
-				left join VW_CRIT_IP_TRANSACTION_ALL OPS on 
-						OPS.REF4 = DOC.REF30 and 
-						OPS.REF3 in (${card.id + (card.card_add_ids ? ',' + card.card_add_ids : '')})
+				left join VW_CRIT_OWS_TRANSACTION_ALL OPS on
+						OPS.REF6 = DOC.REF30 and
+						OPS.REF5 in (${card.id + (card.card_add_ids ? ',' + card.card_add_ids : '')})
 				where
  					ACC.ID=${card.acc_id} and 
 					DOC.ID = REC.REF2 and
@@ -291,21 +318,8 @@ module.exports = function (system) {
 					receipt: receipt,
 					holds: holds,
 					trn_pays: receipt.reduce((result, item) => {
-						switch (item.type) {
-						case '05':
-						case '05_':
-						case 'A5':
-						case 'CMTP501':
-						case 'CMTP502':
-							result.count += 1
-							result.sum += item.sum_op
-							break
-						case '06R':
-						case 'B5':
-							result.count -= 1
-							result.sum -= item.sum_op
-							break
-						}
+						result.count += item['k-n'] // -- item['k-n'] принимает значения: [-1, 0, 1]
+						result.sum += item.sum_op * item['k-n']
 						return result
 					},
 					{

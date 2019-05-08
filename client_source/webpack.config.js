@@ -18,7 +18,8 @@ var config = {
 
 	output: {
 		path: resolve('client'),
-		filename: '[name].js'
+		filename: '[name].js',
+		publicPath: '/'
 	},
 
 	resolve : {
@@ -107,7 +108,7 @@ var config = {
 	},
 
 	mode: 'development',
-	devtool: 'cheap-eval-source-map',
+	devtool: 'source-map',
 
 	plugins: [ 
 		new webpack.ContextReplacementPlugin(/moment[/\\]locale$/, /^\.\/(ru)$/), //--берем только русскую локаль
@@ -117,7 +118,7 @@ var config = {
 			template: resolve('client_source/assets', 'index.html')
 		}),
 		new VueLoaderPlugin(),
-		new WebpackBar({minimal:false})
+		new WebpackBar({ minimal: false })
 //		new HardSourceWebpackPlugin()
 	],
 
@@ -140,7 +141,7 @@ if (process.env.NODE_ENV === 'production') {
 	config.mode = 'production' // 'none'
 	config.devtool = ''
 	if (process.env.npm_config_report)
-		config.plugins.push(new BundleAnalyzerPlugin({analyzerMode: 'static'}))
+		config.plugins.push(new BundleAnalyzerPlugin({ analyzerMode: 'static' }))
 
 } else { //dev mode by default
 	config.plugins.push(new webpack.HotModuleReplacementPlugin())
