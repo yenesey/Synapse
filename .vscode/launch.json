@@ -3,8 +3,8 @@
   "configurations": [
     {
       "type": "chrome",
-      "request": "launch", // or - attach
-      "name": "Launch Chrome",
+      "request": "launch",
+      "name": "Client with Chrome",
       "url": "http://localhost:3000",
       "webRoot": "${workspaceFolder}/client_source",
       "breakOnLoad": true,
@@ -13,12 +13,13 @@
       }
     },
     {
-      "type": "firefox",
-      "request": "launch",
-      "name": "vuejs: firefox",
-      "url": "http://localhost:3000",
-      "webRoot": "${workspaceFolder}/client_source",
-      "pathMappings": [{ "url": "webpack:///src/", "path": "${webRoot}/" }]
+      "type": "node",
+      "request": "attach",
+      "name": "Server",
+      "address": "127.0.0.1",
+      "port": 9229,
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/synapse.js"
     }
   ]
 }
