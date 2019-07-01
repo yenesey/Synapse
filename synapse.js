@@ -7,6 +7,7 @@
     \> node synapse [--development] [--ssl] [--service] [--port=N]
      параметры:
       --development  - запуск в режиме разработки, аналог переменной окружения NODE_ENV=development,
+      --dev-server   - только фронт (сборка клиента webpack + hot)
       --port=N       - задать прослушиваемый порт, аналог переменной окружения PORT
       --ssl          - запуск в режиме https, нужны сертификаты в конфигурации (не рекомендуется для --development)
       --service      - запустить как службу (влияет на обработку сигналов прерывания и закрытия процесса)
@@ -119,12 +120,12 @@ process.argv.forEach(arg => {
 	case '--port': process.env.PORT = pv[1]; break
 	case '--development': process.env.NODE_ENV = 'development'; break
 	case '--service': process.env.SERVICE = true; break
-	case '--backend': process.env.BACKEND = true; break
+	case '--dev-server': process.env.DEV_SERVER = true; break
 	}
 })
 
 function close () {
-	console.log('server goes down now...')
+	console.log('server going down now...')
 	server.close(function () {
 		console.log('all requests finished')
 		process.exit()
@@ -206,7 +207,30 @@ require('synapse/system').then(system => {
 			console._log('[' + chalk.green.bold('#' + moment().format('YYYY-MM-DD') + ']\n' + upTime() + '\n' + memUsage()))
 		}, null, true, null, null, true)
 
-		var backend = [
+		app.use([
+			errorHandler,
+			compression({ threshold: 0 })
+		])
+
+		if (process.env.DEV_SERVER) {
+			app.use(require('synapse/dev-middleware'))
+			return
+		}
+
+		if (process.env.NODE_ENV === 'development') {
+			console.log('Backend api mode. Type "rs + [enter]" to restart manually')
+			app.use(cors)
+			app.use(morgan('tiny', { stream: { write: msg => console.log(msg) } }))
+		}
+
+		if (system.config.telebot && boolAffinity(system.config.telebot.on)) {
+			app.use(require('synapse/api/telebot')(system)) // telegram bot
+		}
+		if (system.config.cards && boolAffinity(system.config.cards.on)) {
+			app.use(require('synapse/api/cards')(system))  // запрос инфы по картам для сайта
+		}
+
+		app.use([
 			express.static(path.join(__dirname, 'client')),
 			require('synapse/api/access')(system), // !!! с этого момента и далее вниз контролируется доступ через AD
 			express.static(system.config.path.users, { // каталог с пользовательскими папками
@@ -218,33 +242,7 @@ require('synapse/system').then(system => {
 			require('synapse/api/dbquery')(system),
 			require('synapse/api/tasks')(system),
 			require('synapse/api/jobs')(system)
-		]
-		if (system.config.telebot && boolAffinity(system.config.telebot.on)) {
-			// unshift это вставка в начало если что :)
-			backend.unshift(require('synapse/api/telebot')(system))  // telegram bot
-		}
-		if (system.config.cards && boolAffinity(system.config.cards.on)) {
-			backend.unshift(require('synapse/api/cards')(system))  // запрос инфы по картам для сайта
-		}
-
-		app.use([
-			errorHandler,
-			compression({ threshold: 0 })
 		])
-
-		if (process.env.NODE_ENV === 'development') {
-			// backend (api) и dev-middleware нужно запускать в 2-х раздельных процессах:
-			if (process.env.BACKEND) {
-				app.use(cors)
-				app.use(morgan('tiny', { stream: { write: msg => console.log(msg) } }))
-				app.use(backend)
-				console.log('Backend api mode. Type "rs + [enter]" to restart manually')
-			} else {
-				app.use(require('synapse/dev-middleware'))
-			}
-		}	else {
-			app.use(backend)
-		}
 	})
 })
 	.catch(console.error)

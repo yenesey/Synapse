@@ -340,7 +340,7 @@ module.exports = function (system) {
 					return
 				}
 
-				return t2000(`select sysadm.pcardstandard.f_onlinebalance_cs('${req.query.ednumber}') as BALANCE from dual`)
+				return t2000(`select sysadm.pcardstandard.f_onlinebalance_cs('${card.card}') as BALANCE from dual`)
 					.then(balance =>
 						res.json({
 							clientname: card.fio,
@@ -361,14 +361,14 @@ module.exports = function (system) {
 			`begin :result := SYSADM.EXCHANGE.F_CreateTaskInSMS(:phone, :text, 'smsCode'); end;`,
 			{
 				phone: req.query.phone,
-				text: code,
+				text: 'Kod proverki nomera telefona: ' + code,
 				result: t2000.GET_NUMBER
 			}
 		).then(data => {
 			if (data.result === 0) {
 				res.json({ success: false	})
 			} else {
-				res.json({ success: true,	code: code	})
+				res.json({ success: true,	code: code})
 			}
 		}).catch(err => errorHandler(err, req, res))
 	})

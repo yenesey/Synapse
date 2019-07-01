@@ -14,39 +14,51 @@ module.exports = async function(param, system){
 
   let rec = await ora(`
 SELECT
-  OV.C_3 "date_begin",
+ OV.C_3 "date_begin",
   OV.C_13 "debt",
   OV.C_2 "fio",
   (select
-     SUBSTR(C_1, 1, 4) ||'.......'|| SUBSTR(C_1, 13, 4)
+    SUBSTR(VZ.C_1, 1, 4) ||'.......'|| SUBSTR(VZ.C_1, 13, 4)
    from 
-     VW_CRIT_VZ_CARDS 
+     VW_CRIT_VZ_CARDS VZ
    where 
-     REF5 = OV.REF10 
-     and lower(C_2) like '%главная%'
-     and (C_11 is null or C_11 > OV.C_3)
+     VZ.REF5 = OV.REF10
+     and VZ.ID = NVL(
+    		(select max(ID) from VW_CRIT_VZ_CARDS where C_2 like '%главная%' and REF5 = OV.REF10),
+    		(select max(ID) from VW_CRIT_VZ_CARDS where REF5 = OV.REF10)
+ 	   )
   ) "card",
   NVL(
   (
-    select PROP.C_7 from 
+    select regexp_replace(PROP.C_7,'[^[[:digit:]|\,]]*') from 
       VW_CRIT_VZ_CARDS CARD,
       VW_CRIT_CARD_SERVICES SERV,
       VW_CRIT_PROPERTY PROP
     where
-      CARD.REF3 = OV.REF2 --связь через клиента
+      CARD.REF3 = OV.REF2  --связь через клиента
       and CARD.STATE_ID = 'WRK'
       and SERV.C_3 = CARD.ID
       and PROP.COLLECTION_ID = SERV.REF8 and lower(PROP.C_1) like '%номер%телефон%'
       and rownum = 1
   ) ,
-  (
+  NVL((
     select regexp_replace(CLIENT.C_11,'[^[[:digit:]|\,]]*') from 
       VW_CRIT_VZ_CLIENT CLIENT
     where
-      CLIENT.REF1 = OV.REF2 --связь через клиента
-     -- and regexp_like(regexp_replace(CLIENT.C_11,'[^[[:digit:]|\,]]*'),  '^\d{11}$')
+      CLIENT.REF1 = OV.REF2
       and rownum = 1
-  )) "tel"
+  ),
+  (
+  	select regexp_replace(CONT.C_4,'[^[[:digit:]|\,]]*') from 
+      VW_CRIT_CONTACTS CONT,
+      VW_CRIT_CL_PRIV CL
+    where
+    	CL.ID = OV.REF2 --связь через клиента
+    	and CONT.COLLECTION_ID = CL.REF8
+    	and CONT.C_3 = 'Телефон:'
+			and rownum = 1
+  ))
+  ) "tel"
 FROM 
   VW_CRIT_TVR_CARD_OVER OV
 WHERE 
@@ -68,22 +80,23 @@ WHERE
   
 rec = await ora(`
 SELECT 
-  OV.C_3 "date_begin",
+OV.C_3 "date_begin",
   OV.C_13 "debt",
   OV.C_2 "fio",
   (select
-     SUBSTR(C_1, 1, 4) ||'.......'|| SUBSTR(C_1, 13, 4)
+    SUBSTR(VZ.C_1, 1, 4) ||'.......'|| SUBSTR(VZ.C_1, 13, 4)
    from 
-     VW_CRIT_VZ_CARDS 
+     VW_CRIT_VZ_CARDS VZ
    where 
-     REF5 = OV.REF10 
-     and lower(C_2) like '%главная%'
-   --  and lower(C_2) like '%главная%' and C_10 = (select max(C_10) from VW_CRIT_VZ_CARDS where REF5 = OV.REF10 and lower(C_2) like '%главная%')
-     and (C_11 is null or C_11 > OV.C_3)
+     VZ.REF5 = OV.REF10
+     and VZ.ID = NVL(
+    		(select max(ID) from VW_CRIT_VZ_CARDS where C_2 like '%главная%' and REF5 = OV.REF10),
+    		(select max(ID) from VW_CRIT_VZ_CARDS where REF5 = OV.REF10)
+ 	   )
   ) "card",
   NVL(
   (
-    select PROP.C_7 from 
+    select regexp_replace(PROP.C_7,'[^[[:digit:]|\,]]*') from 
       VW_CRIT_VZ_CARDS CARD,
       VW_CRIT_CARD_SERVICES SERV,
       VW_CRIT_PROPERTY PROP
@@ -94,14 +107,24 @@ SELECT
       and PROP.COLLECTION_ID = SERV.REF8 and lower(PROP.C_1) like '%номер%телефон%'
       and rownum = 1
   ) ,
-  (
+  NVL((
     select regexp_replace(CLIENT.C_11,'[^[[:digit:]|\,]]*') from 
       VW_CRIT_VZ_CLIENT CLIENT
     where
-      CLIENT.REF1 = OV.REF2 --связь через клиента
-    --  and regexp_like(regexp_replace(CLIENT.C_11,'[^[[:digit:]|\,]]*'),  '^\d{11}$')
+      CLIENT.REF1 = OV.REF2
       and rownum = 1
-  )) "tel"
+  ),
+  (
+  	select regexp_replace(CONT.C_4,'[^[[:digit:]|\,]]*') from 
+      VW_CRIT_CONTACTS CONT,
+      VW_CRIT_CL_PRIV CL
+    where
+    	CL.ID = OV.REF2 --связь через клиента
+    	and CONT.COLLECTION_ID = CL.REF8
+    	and CONT.C_3 = 'Телефон:'
+			and rownum = 1
+  ))
+  ) "tel"
 FROM 
   VW_CRIT_TVR_CARD_OVER OV
 WHERE 

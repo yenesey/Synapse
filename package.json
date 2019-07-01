@@ -4,8 +4,8 @@
   "description": "Commercial Bank IT-engineer's integrative tool",
   "main": "synapse",
   "scripts": {
-    "dev:api": "nodemon --inspect synapse --development --backend",
-    "dev:server": "node synapse --development --port=3000",
+    "dev:api": "nodemon --inspect synapse --development",
+    "dev:server": "node synapse --development --dev-server --port=3000",
     "build": "cross-env NODE_ENV=production webpack --mode production --hide-modules --display-error-details --config ./client_source/webpack.config.js",
     "postinstall": "mklink /J \"node_modules/synapse\" \"core\""
   },

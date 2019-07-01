@@ -8,14 +8,18 @@ const express = require('express')
 const	router = express.Router({ strict: true })
 
 function errorHandler (err, req, res) {
-	console.log(err)
+	console.log(err.message + ' while ' + req.url)
 	console.log('remote:' + req.connection.remoteAddress)
 	res.json({ success: false, error: err.message })
 }
 
 module.exports = function (system) {
-	var ibso = require('../ds-oracle')(system.config.ibs)
-	var t2000 = require('../ds-oracle')(system.config.t)
+	const t2000 = require('../ds-oracle')(system.config.t)
+	const ibso = require('../ds-oracle')(Object.assign({ callTimeout: 120 * 1000, ping: 2, by: 'telebot->abs' }, system.config.ibs))
+
+	// const t2000 = (query, params) => promiseTimeout(120 * 1000, _t2000(query, params))
+	// const ibso = (query, params) => promiseTimeout(120 * 1000,	_ibso(query, params))
+
 	//
 	// авторизация
 	router.get('/telebot/auth', function (req, res) { // /telebot/auth?phone_num=XXXXXXXXXX
@@ -48,8 +52,9 @@ module.exports = function (system) {
 				VW_CRIT_FAKTURA_LITE 
 			where 
 				C_3 like :phone_num
-			`,
-
+			`
+			/*, 
+			выбор телефона из карточки клиента отключен по предложению разработчика бота
 			`
 			select 
 				distinct CL.ID as "client_id"
@@ -59,7 +64,7 @@ module.exports = function (system) {
 			where 
 				CT.COLLECTION_ID = CL.REF8 and
 				CT.C_4 like :phone_num
-			`
+			`*/
 		]
 
 		queryClientByPhone.reduce((result, queryItem) =>
@@ -67,12 +72,11 @@ module.exports = function (system) {
 				if (!(data && data.length > 0)) return ibso(queryItem, { phone_num: '%' + query.phone_num + '%' })
 				return data
 			}),	Promise.resolve()
-		).then(data => {
-			if (data.length !== 1) {
+		).then(([{ client_id }]) => {
+			if (!client_id) {
 				res.json({ success: false })
 				return
 			}
-			let client_id = data[0].client_id
 
 			return ibso(`
 				select
@@ -82,6 +86,8 @@ module.exports = function (system) {
 					cl.C_1 "client_name",
 					acc.REF3 "client_id",
 					acc.ID "account_id",
+					(select ipc.C_2 from VW_CRIT_VZ_ACCOUNTS ipc, VW_CRIT_VZ_CARDS crd where crd.REF4 = ipc.ID and crd.REF5 = acc.ID and crd.STATE_ID = 'WRK') "account_id_pc",
+
 					acc.C_6 "balance",
 					(
 					select 
@@ -92,6 +98,7 @@ module.exports = function (system) {
 						(doc.REF7 = acc.ID or doc.REF8 = acc.ID) and
 						 doc.C_28 = (select max(C_28) from VW_CRIT_MAIN_DOCUM where (REF7 = acc.ID or REF8 = acc.ID) )
 					)  "balance_date"
+
 				from 
 					VW_CRIT_CL_PRIV cl,
 					VW_CRIT_AC_FIN acc,
@@ -110,6 +117,19 @@ module.exports = function (system) {
 				})
 			})
 		}).catch(err => errorHandler(err, req, res))
+	})
+
+	//	баланс по карте из ПЦ
+	router.get('/telebot/balance_pc', function (req, res) { //  /telebot/balance_pc?account_id_pc=NNNNNNNN
+		const query = req.query
+		return t2000(`select sysadm.pcardstandard.F_OnlineBalance_CSbyACCID(:acc_id) "balance" from dual`, { acc_id: query.account_id_pc })
+			//.then(singleton('balance'))
+			.then(([{ balance }]) =>
+				res.json({
+					success: true,
+					balance_pc: balance
+				})
+			).catch(err => errorHandler(err, req, res))
 	})
 
 	//	баланс по карте из ПЦ
@@ -132,16 +152,13 @@ module.exports = function (system) {
 				acc.ID = :acc_id
 			`,
 		{ acc_id: query.acc_id }
-		).then(data => {
-			if (data.length === 0) {
+		).then(([card]) => {
+			if (!card) {
 				res.json({ success: false })
 				return
 			}
-			const card = data[0]
-			return (card.pan
-				? t2000(`select sysadm.pcardstandard.f_onlinebalance_cs(:pan) "balance" from dual`, { pan: card.pan })
-				: Promise.resolve([])
-			).then(data => {
+			// F_OnlineBalance_CSbyACCID(sACC_ID)
+			return t2000(`select sysadm.pcardstandard.f_onlinebalance_cs(:pan) "balance" from dual`, { pan: card.pan }).then(data => {
 				res.json({
 					success: true,
 					balance: card.balance,
@@ -158,7 +175,11 @@ module.exports = function (system) {
 		const query = req.query
 		ibso(`
 			select 
-				DECODE( REC.C_5, 'Дебет', '-', 'Кредит', '+') "change",
+				CASE REC.C_5
+          WHEN 'Дебет' THEN '-'
+          WHEN 'Кредит' THEN '+'
+          ELSE '?'
+				END "change",
 				TO_CHAR(DOC.C_28, 'dd.mm.yyyy hh24:mi:ss') "date",
 				REC.C_3 "in",
 				REC.C_6 "sum",
@@ -193,8 +214,19 @@ module.exports = function (system) {
 				DOC.C_28 > TO_DATE(:operation_date, 'dd.mm.yyyy hh24:mi:ss') and
 				REC.REF2 = DOC.ID
 		`,
-		{ acc_id: query.acc_id, operation_date: query.date }
-		).then(data => res.json({ success: true, receipt: data })
+		{
+			acc_id: query.acc_id,
+			operation_date: query.date
+		}).then(receipt =>
+			ibso(`select ipc.C_2 "account_id_pc" from VW_CRIT_VZ_ACCOUNTS ipc, VW_CRIT_VZ_CARDS crd where crd.REF4 = ipc.ID and crd.REF5 = :acc_id and crd.STATE_ID = 'WRK'`, { acc_id: query.acc_id} )
+				// .then(singleton('account_id_pc'))
+				.then(([{ account_id_pc }]) =>
+					res.json({
+						success: true,
+						account_id_pc: account_id_pc,
+						receipt: receipt
+					})
+				)
 		).catch(err => errorHandler(err, req, res))
 	})
 

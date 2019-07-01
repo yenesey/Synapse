@@ -4,7 +4,7 @@
     {
       "type": "chrome",
       "request": "launch",
-      "name": "Client with Chrome",
+      "name": "Client (Chrome)",
       "url": "http://localhost:3000",
       "webRoot": "${workspaceFolder}/client_source",
       "breakOnLoad": true,
@@ -15,7 +15,7 @@
     {
       "type": "node",
       "request": "attach",
-      "name": "Server",
+      "name": "Server (connect)",
       "address": "127.0.0.1",
       "port": 9229,
       "cwd": "${workspaceFolder}",
