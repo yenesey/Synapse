@@ -5,11 +5,13 @@
 	 - конфигурация системы  system.config = {}
 */
 
-const	path = require('path')
+const path = require('path')
 const promisify = require('util').promisify
 const fs = require('fs')
-const _root = path.join(__dirname, '..')
-const system = Object.create(null)
+const ROOT_DIR = path.join(__dirname, '..')
+const deepProxy = require('./deep-proxy')
+
+const system = {}
 
 Object.defineProperties(
 	system,
@@ -42,7 +44,7 @@ function equals (number, string, _var) {
 	if (typeof _var === 'number')	return number + '=' + _var
 	if (typeof _var === 'string')	return string + '=' + '\'' + _var + '\''
 }
-system.db = require('./sqlite')(path.join(_root, 'db/synapse.db')) // основная БД приложения
+system.db = require('./sqlite')(path.join(ROOT_DIR, 'db/synapse.db')) // основная БД приложения
 // -------------------------------------------------------------------------------
 system.user = function (user) { // данные пользователя по login или id
 	return system.db(`SELECT id, login, name, email, disabled FROM users WHERE ${equals('id', 'login', user)} COLLATE NOCASE`)
@@ -137,7 +139,7 @@ system.access = function (user, options) {
 				} catch (err) {
 					console.log('[error]:'  + err.message.replace('\n', '') + '   object.id=' + access[index].id)
 				}
-				return {	...obj,  ...meta }
+				return {...obj, ...meta}
 			})
 			return cast(access)
 		})
@@ -190,25 +192,40 @@ module.exports = system.db('SELECT * FROM settings')
 	.then(select => {
 		var config = select.reduce((all, item) => {
 			if (!(item.group in all))	{
-				all[item.group] = Object.create(null)
+				all[item.group] = {}
 			}
 			all[item.group][item.key] = String(item.value)
 			return all
-		}, Object.create(null)
+		}, {}
 		)
+
 		for (var key in config.path) {
 			if (!path.isAbsolute(config.path[key])) { // достраиваем относительные пути до полных
-				config.path[key] = path.join(_root, config.path[key])
+				config.path[key] = path.join(ROOT_DIR, config.path[key])
 			}
 		}
 
-		config.path.root = _root
-		system.config = config
+		config.path.root = ROOT_DIR
+
+		system.config = deepProxy(config, { // мега-фича :) автозапись установок в случае изменения
+			set (target, path, value, receiver) {
+				var sql = Reflect.has(target, key)
+					? `UPDATE settings SET value = $value WHERE [group] = $group AND [key] = $key`
+					: `INSERT INTO settings ([group], [key], value, description) VALUES ($group, $key, $value, '')`
+				system.db(sql, { $group: path[0], $key: path[1], $value: value })
+					.then(() => console.log('[system]: config updated for ' + path.join('.')))
+					.catch(console.log)
+			},
+			deleteProperty (target, path) {
+				console.log('[system]: delete ', path.join('.'))
+			}
+		})
 
 		if (system.config.ssl.cert)	{
-			return promisify(fs.readFile)(path.join(_root, 'sslcert', system.config.ssl.cert))
+			return promisify(fs.readFile)(path.join(ROOT_DIR, 'sslcert', system.config.ssl.cert))
 				.then(cert => {
-					system.config.ssl.certData = cert
+					system.ssl = {}
+					system.ssl.certData = cert
 					return system
 				})
 		}

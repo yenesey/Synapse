@@ -6,6 +6,7 @@
 
 const express = require('express')
 const	router = express.Router({ strict: true })
+const ora = require('../ds-oracle')
 
 function errorHandler (err, req, res) {
 	console.log(err.message + ' while ' + req.url)
@@ -14,16 +15,11 @@ function errorHandler (err, req, res) {
 }
 
 module.exports = function (system) {
-	const t2000 = require('../ds-oracle')(system.config.t)
-	const ibso = require('../ds-oracle')(Object.assign({ callTimeout: 120 * 1000, ping: 2, by: 'telebot->abs' }, system.config.ibs))
-
-	// const t2000 = (query, params) => promiseTimeout(120 * 1000, _t2000(query, params))
-	// const ibso = (query, params) => promiseTimeout(120 * 1000,	_ibso(query, params))
-
 	//
 	// авторизация
 	router.get('/telebot/auth', function (req, res) { // /telebot/auth?phone_num=XXXXXXXXXX
 		const query = req.query
+		const ibso = ora(system.config.ibs)
 
 		if (!query.phone_num || query.phone_num.length < 10) { // phone_num must be 10 signs at least
 			res.json({ success: false })
@@ -122,8 +118,8 @@ module.exports = function (system) {
 	//	баланс по карте из ПЦ
 	router.get('/telebot/balance_pc', function (req, res) { //  /telebot/balance_pc?account_id_pc=NNNNNNNN
 		const query = req.query
+		const t2000 = ora(system.config.t)
 		return t2000(`select sysadm.pcardstandard.F_OnlineBalance_CSbyACCID(:acc_id) "balance" from dual`, { acc_id: query.account_id_pc })
-			//.then(singleton('balance'))
 			.then(([{ balance }]) =>
 				res.json({
 					success: true,
@@ -135,6 +131,8 @@ module.exports = function (system) {
 	//	баланс по карте из ПЦ
 	router.get('/telebot/limitauth', function (req, res) { //  /telebot/limitauth?acc_id=NNNNNNNN
 		const query = req.query
+		const ibso = ora(system.config.ibs)
+		const t2000 = ora(system.config.t)
 		return ibso(`
 			select
 				acc.C_6 "balance",
@@ -173,6 +171,7 @@ module.exports = function (system) {
 	// выписка
 	router.get('/telebot/receipt', function (req, res) { // /telebot/receipt?acc_id=NNNNNNN&date=dd.mm.yyyy hh:mm:ss
 		const query = req.query
+		const ibso = ora(system.config.ibs)
 		ibso(`
 			select 
 				CASE REC.C_5
@@ -218,12 +217,31 @@ module.exports = function (system) {
 			acc_id: query.acc_id,
 			operation_date: query.date
 		}).then(receipt =>
-			ibso(`select ipc.C_2 "account_id_pc" from VW_CRIT_VZ_ACCOUNTS ipc, VW_CRIT_VZ_CARDS crd where crd.REF4 = ipc.ID and crd.REF5 = :acc_id and crd.STATE_ID = 'WRK'`, { acc_id: query.acc_id} )
-				// .then(singleton('account_id_pc'))
-				.then(([{ account_id_pc }]) =>
+
+			ibso(`
+				select
+					acc.C_6 "balance",
+					ovr.C_7 "unused_limit",
+					ipc.C_2 "account_id_pc"
+				from
+ 					VW_CRIT_AC_FIN acc
+						left join
+							VW_CRIT_VZ_CARDS vc on vc.REF5 = acc.ID and vc.C_8 = 'Рабочая'
+						left join
+							VW_CRIT_DEPN dep on dep.REF3 = acc.ID
+						left join
+							VW_CRIT_OVER_OPEN ovr on ovr.REF3 = dep.ID
+						left join
+							VW_CRIT_VZ_ACCOUNTS ipc on vc.REF4 = ipc.ID
+				where 
+					 acc.ID = :acc_id
+				`,
+			{ acc_id: query.acc_id }
+			)
+				.then(([accInfo]) =>
 					res.json({
 						success: true,
-						account_id_pc: account_id_pc,
+						...accInfo,
 						receipt: receipt
 					})
 				)

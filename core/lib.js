@@ -99,9 +99,13 @@ _.debounceKeyed = function (func, wait) {
 	} // function()
 }
 
+function isDictionary(obj) { 
+	return typeof obj === 'object' && typeof obj.constructor === 'undefined'
+}
+
 _.clone = function (obj) {
 	if ((obj === null) || (typeof obj !== 'object')) return obj
-	var _clone = new obj.constructor()
+	var _clone = isDictionary(obj) ? Object.create(null) : new obj.constructor()
 	for (var key in obj) _clone[key] = _.clone(obj[key])
 	return _clone
 }
@@ -135,7 +139,7 @@ _.difference = function (obj1, obj2) {
 
 _.uniq = function (array) {
 	return array.filter(function (item, index) {
-		return array.indexOf(item) === index // Array.includes not needed
+		return array.indexOf(item) === index
 	})
 }
 

@@ -5,143 +5,141 @@
   TODO: проверка прав админа
 */
 
-var express = require('express'),
-	router = express.Router({strict:true}),
-	bodyParser = require('body-parser'),
-	cronJob = require('cron').CronJob,
-	email = require('emailjs/email'),
-	util = require('util'),
-	path = require('path'),
-	os  = require('os'),
-	moment = require('moment'),
-  parser = require('cron-parser'),
-	fsp = require('../fsp');
+const express = require('express')
+const router = express.Router({ strict: true })
+const bodyParser = require('body-parser')
+const cronJob = require('cron').CronJob
+const email = require('emailjs/email')
+const util = require('util')
+const path = require('path')
+const os  = require('os')
+const moment = require('moment')
+const parser = require('cron-parser')
+const fsp = require('../fsp')
 
-/////////////////////////////////////////////////////////////////////////
-var crons = {}; //ассоциативный массив (ключ-значение). id : handle
-//где id соответствует job.id , а handle - объект cron.schedule
-/////////////////////////////////////////////////////////////////////////
-module.exports = function(system){   
+var crons = {} // ассоциативный массив (ключ-значение). id : handle //где id соответствует job.id , а handle - объект cron.schedule
 
-var launcher = require('../launcher.js')(system.config),
-	folder = require('../user-folders.js')(system.config.path.users, system.config.tasks.history),
-	mail = email.server.connect(system.config.mail);
-	mail.sendp = util.promisify(mail.send);//.bind(mail);
+module.exports = function (system) {
+// -
+	const launcher = require('../launcher.js')(system.config)
+	const folder = require('../user-folders.js')(system.config.path.users, system.config.tasks.history)
+	const mail = email.server.connect(system.config.mail)
 
-function destroy(job){
-  if (job.id in crons){
-//  	crons[job.id].destroy();
-		stop(job);
-		delete crons[job.id]
-	}
-}
+	mail.sendp = util.promisify(mail.send)
 
-function start(job){
-  if (job.id in crons) crons[job.id].start()
-}
-
-function stop(job){
-  if (job.id in crons) crons[job.id].stop()
-}
-
-function task(job){
-	function success(taskPath, stdout){
-		if (!job.params.pp) return
-
-	//печать на указанный принтер (пока Windows-only)
-		if (job.params.pp.print)
-			launcher.exec('cscript',
-				['/nologo', './core/winprint.js', taskPath, job.params.pp.print], 
-				{
-					log : false, //не логируем процесс стандартным методом
-					cp866 : true
-				},
-				function(data){}, //но можно, при желании, отловить вывод здесь
-				function(code){}
-			)
-
-		//рассылка получателям
-
-		if (job.params.pp.email.length){
-			var to = job.params.pp.email.join(',')
-			if (to.length)
-				fsp.ls(taskPath)
-				.then(items=>items.filter(item=>!item.folder).map(file=>file.name))
-				.then(files=>{
-					if (files)
-						return mail.sendp({
-							from:    `Synapse <synapse@${os.hostname().toLowerCase()}`,
-							to:      to,
-							subject: job.description || job.name,
-	//					  text:    stdout || ' ',
-							attachment : files.map(name=>{
-								return {
-									path : path.join(taskPath, name),
-									type: 'text/html',
-									name : name
-								}
-							}).concat([{data:"<html><pre>" + stdout + "</pre></html>", alternative:true}])
-						})
-				})
-				.catch(err=>
-					console.log('[jobs] error trying email job results: ' + err.message + ' ' + util.inspect({id : job.id, 	task: job.task, name: job.name }))
-				)
-		}	//job.params.pp.email.length
-	} //function success
-
-	function error(stdout){
-		system.users('Администраторы')
-		.then(data=>data.map((el)=>el.email))
-		.then(emails=>
-			mail.sendp({
-				from:    `Synapse <synapse@${os.hostname().toLowerCase()}`,
-				to:      emails.join(','),
-				subject: job.description || job.name,
-				attachment : [{data:"<html><pre>" + stdout + "</pre></html>", alternative : true}]
-			})
-		)
-		.catch(err=>console.log(err.stack))
-	}
-
-	return function(){
-		var stdout = "";
-		var argv = Object.assign({}, job.params.argv);
-		var _eval = '';
-		for (var key in argv){
-			try	{
-				_eval = eval(argv[key])
-				argv[key] = _eval
-			} catch (err){
-		//		console.log(err)
-			}
+	function destroy (job) {
+		if (job.id in crons) {
+		// 	crons[job.id].destroy();
+			stop(job)
+			delete crons[job.id]
 		}
-		return folder('cron')
-		.then(taskPath=>
-			launcher.task(
-				Object.assign( {task : {
-						name : job.name, 
-						class:job.class, 
-						id:job.task, 
-						path:taskPath
-					}}, argv
-				),	
-				function(data){
-					stdout += data
-				},
-				function(code){
-          system.db(
-						'UPDATE jobs SET last = ?, code = ? WHERE id = ?',
-						[moment().format('YYYY-MM-DD HH:mm'), code, job.id]
-          );
-					if (code === 0) 
-						success(taskPath, stdout);
-					if (code === 1)
-						error(stdout);
+	}
+
+	function start (job) {
+		if (job.id in crons) crons[job.id].start()
+	}
+
+	function stop (job) {
+		if (job.id in crons) crons[job.id].stop()
+	}
+
+	function task (job) {
+		function success (taskPath, stdout) {
+			if (!job.params.pp) return
+
+			// печать на указанный принтер (пока Windows-only)
+			if (job.params.pp.print) {
+				launcher.exec('cscript',
+					['/nologo', './core/winprint.js', taskPath, job.params.pp.print], 
+					{
+						log: false, // не логируем процесс стандартным методом
+						cp866: true
+					},
+					function (data) {}, // но можно, при желании, отловить вывод здесь
+					function (code) {}
+				)
+			}
+
+			// рассылка получателям
+			if (job.params.pp.email.length) {
+				var to = job.params.pp.email.join(',')
+				if (to.length) {
+					fsp.ls(taskPath)
+						.then(items => items.filter(item => !item.folder).map(file => file.name))
+						.then(files => {
+							if (files) {
+								return mail.sendp({
+									from:    `Synapse <synapse@${os.hostname().toLowerCase()}`,
+									to:      to,
+									subject: job.description || job.name,
+									//  text:    stdout || ' ',
+									attachment: files.map(name => ({
+										path: path.join(taskPath, name),
+										type: 'text/html',
+										name: name
+									})
+									).concat([{ data: '<html><pre>" + stdout + "</pre></html>', alternative: true }])
+								})
+							}	
+						})
+						.catch(err =>
+							console.log('[jobs] error trying email job results: ' + err.message + ' ' + util.inspect({ id: job.id, task: job.task, name: job.name }))
+						)
 				}
-			)//execute
-		)
-	}//scheduled function
-} //task(job)
+			}	// job.params.pp.email.length
+		} // function success
+
+		function error (stdout) {
+			system.users('Администраторы')
+				.then(data=>data.map((el)=>el.email))
+				.then(emails=>
+					mail.sendp({
+						from: `Synapse <synapse@${os.hostname().toLowerCase()}`,
+						to: emails.join(','),
+						subject: job.description || job.name,
+						attachment: [{ data: '<html><pre>" + stdout + "</pre></html>', alternative: true }]
+					})
+				)
+				.catch(err => console.log(err.stack))
+		}
+
+		return function () {
+			var stdout = ''
+			var argv = Object.assign({}, job.params.argv)
+			var _eval = ''
+			for (var key in argv) {
+				try	{
+					_eval = eval(argv[key])
+					argv[key] = _eval
+				} catch (err) {
+					// console.log(err)
+				}
+			}
+			return folder('cron')
+				.then(taskPath =>
+					launcher.task(
+						Object.assign({
+							task: {
+								name: job.name,
+								class: job.class,
+								id: job.task,
+								path: taskPath
+							}
+						}, argv),
+						function (data) {
+							stdout += data
+						},
+						function (code) {
+							system.db('UPDATE jobs SET last = ?, code = ? WHERE id = ?',
+								[moment().format('YYYY-MM-DD HH:mm'), code, job.id]
+							)
+							if (code === 0)	success(taskPath, stdout)
+							if (code === 1)	error(stdout)
+						}
+					) // execute
+				)
+		}// scheduled function
+	} // task(job)
 
 function schedule(job){
 //повесить job на расписание

@@ -6,6 +6,8 @@
 
 const express = require('express')
 const router = express.Router({ strict: true })
+const ora = require('../ds-oracle')
+const soap = require('soap')
 
 function errorHandler (err, req, res) {
 	console.log(err)
@@ -14,19 +16,15 @@ function errorHandler (err, req, res) {
 }
 
 module.exports = function (system) {
-	const ibso = require('../ds-oracle')(system.config.ibs)
-	const t2000 = require('../ds-oracle')(system.config.t)
-
-	const soap = require('soap')
 	const url = 'http://172.16.8.3:8962/solar-loyalty/loyaltyApi.wsdl'
 
-	ibso("alter session set NLS_DATE_FORMAT='dd.mm.yyyy hh24:mi:ss'")
+	// ibso("alter session set NLS_DATE_FORMAT='dd.mm.yyyy hh24:mi:ss'")
 	// получение инфы по карте и проверка пароля
 	function card (number, password) {
+		const ibso = ora(system.config.ibs)
 		if ((typeof number !== 'string') || (typeof password !== 'string'))	{
 			throw Error('Wrong parameter type!')
 		}
-
 		return ibso(`
 		select 
 			vc.ID as "id",
@@ -156,6 +154,7 @@ module.exports = function (system) {
 
 	// комплексная выписка по карте
 	router.get('/cards/receipt',	function (req, res) {
+		const ibso = ora(system.config.ibs,  { keepAlive: true })
 		card(req.query.ednumber, req.query.edpassword).then(card => {
 			if ('error' in card) {
 				res.json(card)
@@ -239,7 +238,7 @@ module.exports = function (system) {
 				// холды:
 				ibso(`
 				select 
-					to_char(h.C_1) as "date_op",
+					to_char(h.C_1, 'dd.mm.yyyy') as "date_op",
 					h.C_2 as "card",
 					h.C_7 as "sum",
 					h.C_17 as "sum_op",
@@ -300,6 +299,8 @@ module.exports = function (system) {
 						console.log(err)
 					})
 			]).then(([saldo, receipt, holds, bonus]) => {
+				ibso.close()
+
 				for (var key in saldo) saldo[key] = round(saldo[key], 2)
 				if (bonus) {
 					saldo.bonus = Number(bonus)
@@ -333,6 +334,7 @@ module.exports = function (system) {
 
 	// баланс по карте из ПЦ
 	router.get('/cards/balance',	function (req, res) {
+		const t2000 = ora(system.config.t)
 		return card(req.query.ednumber, req.query.edpassword)
 			.then(card => {
 				if ('error' in card) {
@@ -351,6 +353,7 @@ module.exports = function (system) {
 	})
 
 	router.get('/cards/sms-code',	function (req, res) {
+		const t2000 = ora(system.config.t)
 		var code = ''
 		var possible = '0123456789'
 		for (let i = 0; i < 6; i++) {
@@ -366,9 +369,9 @@ module.exports = function (system) {
 			}
 		).then(data => {
 			if (data.result === 0) {
-				res.json({ success: false	})
+				res.json({ success: false })
 			} else {
-				res.json({ success: true,	code: code})
+				res.json({ success: true,	code: code })
 			}
 		}).catch(err => errorHandler(err, req, res))
 	})
