@@ -164,11 +164,11 @@ require('synapse/system').then(system => {
 
 	if (process.env.SSL) {
 		let ssl = system.ssl
-		server = https.Server({ passphrase: String(ssl.password), pfx: ssl.certData }, app)
+		server = https.Server({ passphrase: String(system.config.ssl.password), pfx: ssl.certData }, app)
 	} else server = http.Server(app)
 
 	server.on('error', err => {
-		console.log(chalk.red.bold('[error]:') + JSON.stringify(err, null, ''))  
+		console.log(chalk.red.bold('[error]:') + JSON.stringify(err, null, ''))
 		process.exit()
 	})
 
