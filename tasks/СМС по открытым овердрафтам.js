@@ -10,7 +10,7 @@ const iconv = require('iconv-lite')
 
 module.exports = async function(param, system){
 
-  const ora = require('synapse/ds-oracle')(system.config.ibs)
+  const ora = require('synapse/ds-oracle')(Object.assign({keepAlive: true}, system.config.ibs))
 
   let rec = await ora(`
 SELECT
@@ -28,7 +28,7 @@ SELECT
     		(select max(ID) from VW_CRIT_VZ_CARDS where REF5 = OV.REF10)
  	   )
   ) "card",
-  NVL(
+   NVL(
   (
     select regexp_replace(PROP.C_7,'[^[[:digit:]|\,]]*') from 
       VW_CRIT_VZ_CARDS CARD,
@@ -39,6 +39,7 @@ SELECT
       and CARD.STATE_ID = 'WRK'
       and SERV.C_3 = CARD.ID
       and PROP.COLLECTION_ID = SERV.REF8 and lower(PROP.C_1) like '%номер%телефон%'
+      and length(regexp_replace(PROP.C_7,'[^[[:digit:]|\,]]*')) >= 10
       and rownum = 1
   ) ,
   NVL((
@@ -46,24 +47,26 @@ SELECT
       VW_CRIT_VZ_CLIENT CLIENT
     where
       CLIENT.REF1 = OV.REF2
+      and length(regexp_replace(CLIENT.C_11,'[^[[:digit:]|\,]]*')) >= 10
       and rownum = 1
   ),
   (
-  	select regexp_replace(CONT.C_4,'[^[[:digit:]|\,]]*') from 
+    select regexp_replace(CONT.C_4,'[^[[:digit:]|\,]]*') from 
       VW_CRIT_CONTACTS CONT,
       VW_CRIT_CL_PRIV CL
     where
-    	CL.ID = OV.REF2 --связь через клиента
-    	and CONT.COLLECTION_ID = CL.REF8
-    	and CONT.C_3 = 'Телефон:'
-			and rownum = 1
+      CL.ID = OV.REF2 --связь через клиента
+      and CONT.COLLECTION_ID = CL.REF8
+      and lower(CONT.C_3) like '%телефон%'
+      and length(regexp_replace(CONT.C_4,'[^[[:digit:]|\,]]*')) >= 10
+      and rownum = 1
   ))
   ) "tel"
 FROM 
   VW_CRIT_TVR_CARD_OVER OV
 WHERE 
   OV.C_5 = 'Технический овердрафт по карте'
-  and OV.C_3 = TO_DATE('${param.date1}')
+  and OV.C_3 = TO_DATE('${param.date1}', 'yyyy-mm-dd')
   and OV.C_13 > 0
 `)
 
@@ -105,6 +108,7 @@ OV.C_3 "date_begin",
       and CARD.STATE_ID = 'WRK'
       and SERV.C_3 = CARD.ID
       and PROP.COLLECTION_ID = SERV.REF8 and lower(PROP.C_1) like '%номер%телефон%'
+      and length(regexp_replace(PROP.C_7,'[^[[:digit:]|\,]]*')) >= 10
       and rownum = 1
   ) ,
   NVL((
@@ -112,17 +116,19 @@ OV.C_3 "date_begin",
       VW_CRIT_VZ_CLIENT CLIENT
     where
       CLIENT.REF1 = OV.REF2
+      and length(regexp_replace(CLIENT.C_11,'[^[[:digit:]|\,]]*')) >= 10
       and rownum = 1
   ),
   (
-  	select regexp_replace(CONT.C_4,'[^[[:digit:]|\,]]*') from 
+    select regexp_replace(CONT.C_4,'[^[[:digit:]|\,]]*') from 
       VW_CRIT_CONTACTS CONT,
       VW_CRIT_CL_PRIV CL
     where
-    	CL.ID = OV.REF2 --связь через клиента
-    	and CONT.COLLECTION_ID = CL.REF8
-    	and CONT.C_3 = 'Телефон:'
-			and rownum = 1
+      CL.ID = OV.REF2 --связь через клиента
+      and CONT.COLLECTION_ID = CL.REF8
+      and lower(CONT.C_3) like '%телефон%'
+      and length(regexp_replace(CONT.C_4,'[^[[:digit:]|\,]]*')) >= 10
+      and rownum = 1
   ))
   ) "tel"
 FROM 
@@ -130,7 +136,7 @@ FROM
 WHERE 
   OV.C_5 = 'Технический овердрафт по карте' 
   and OV.C_13 > 0
-  and exists (select ID from VW_CRIT_FACT_OPER where COLLECTION_ID = OV.REF25 and C_1 > OV.C_3 and C_5 = 'Выдача кредита' and C_1 = TO_DATE('${param.date1}'))
+  and exists (select ID from VW_CRIT_FACT_OPER where COLLECTION_ID = OV.REF25 and C_1 > OV.C_3 and C_5 = 'Выдача кредита' and C_1 = TO_DATE('${param.date1}','yyyy-mm-dd'))
 `)
 
   fs.writeFileSync(

@@ -78,7 +78,7 @@ module.exports = function (system) {
 										type: 'text/html',
 										name: name
 									})
-									).concat([{ data: '<html><pre>" + stdout + "</pre></html>', alternative: true }])
+									).concat([{ data: '<html><pre>' + stdout + '</pre></html>', alternative: true }])
 								})
 							}	
 						})
@@ -97,7 +97,7 @@ module.exports = function (system) {
 						from: `Synapse <synapse@${os.hostname().toLowerCase()}`,
 						to: emails.join(','),
 						subject: job.description || job.name,
-						attachment: [{ data: '<html><pre>" + stdout + "</pre></html>', alternative: true }]
+						attachment: [{ data: '<html><pre>' + stdout + '</pre></html>', alternative: true }]
 					})
 				)
 				.catch(err => console.log(err.stack))
