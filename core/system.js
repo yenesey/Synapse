@@ -217,7 +217,9 @@ module.exports = system.db('SELECT * FROM settings')
 					.catch(console.log)
 			},
 			deleteProperty (target, path) {
-				console.log('[system]: delete ', path.join('.'))
+				system.db(`DELETE FROM settings WHERE [group] = $group AND [key] = $key`, { $group: path[0], $key: path[1] })
+					.then(() => console.log('[system]: delete ' + path.join('.')))
+					.catch(console.log)
 			}
 		})
 

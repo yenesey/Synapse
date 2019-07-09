@@ -76,8 +76,6 @@ module.exports = function (config, options = { keepAlive: false }) {
 					console.log(`[ds-oracle]: the new password for "${config.user}" is "${config.newPassword}"`)
 					config.password = config.newPassword
 					delete config.newPassword
-					// todo: save new password in system.db?
-					return
 				})
 			}
 
