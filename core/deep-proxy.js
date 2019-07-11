@@ -3,6 +3,8 @@
 // бо в npm-модулях какой то sh..
 
 function deepProxy (target, handler) {
+	if (typeof handler === 'undefined') throw new Error('Handler undefined')
+
 	const proxyCache = new WeakMap()
 
 	function makeHandler (path) {
@@ -60,3 +62,15 @@ function deepProxy (target, handler) {
 }
 
 module.exports = deepProxy
+
+/*
+let proxied = deepProxy(obj, {
+	set(target, path, value, receiver) {
+		console.log('set', path.join('.'), '=', value)
+	},
+
+	deleteProperty(target, path) {
+		console.log('delete', path.join('.'))
+	}
+})
+*/

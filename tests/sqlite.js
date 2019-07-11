@@ -1,42 +1,41 @@
 'use strict'
 
-//const db = require('./core/sqlite')('./db/synapse.db')
-const N = 100000;
-
-(async function () {
-	//console.time('db')
-	//for (var i = 1; i < N; i++) await db(`select * from objects where id = ${i}`)
-	//console.timeEnd('db')
-
-	var sqlite3 = require('sqlite3').verbose();
-	var db1 = new sqlite3.Database('./db/synapse.db');
-
-	db1.serialize(function () {
-		console.time('db')
-		var stmt = db1.prepare(`select * from objects where id = ?`)
-		for (var i = 0; i < N; i++) stmt.run(i)
-		stmt.finalize()
-		console.timeEnd('db')
-	})
-})()
-
 /*
-var sqlite3 = require('sqlite3').verbose();
-var db = new sqlite3.Database(':memory:');
+const N = 10000000000
+console.time('db')
+for (var i = 1; i < N; i++) ;
+console.timeEnd('db')
+*/
+/*
+var sqlite3 = require('sqlite3').verbose()
+var db1 = new sqlite3.Database('../db/synapse.db')
 
-db.serialize(function() {
-	db.run("CREATE TABLE lorem (info TEXT)");
+function qry (sql, param) {
+	return new Promise(function (resolve, reject) {
+		var data = []
+		db1.each(sql, param, function (err, row) {
+			if (err) reject(err)
+			data.push(row)
+			console.log(row)
+		}, function (err, count) {
+			if (err) reject(err)
+			resolve(data)
+		})
+	})
+}
+qry('select * from conf order by id_p').then(console.log)
+*/
 
-	var stmt = db.prepare("INSERT INTO lorem VALUES (?)");
-	for (var i = 0; i < 10; i++) {
-		stmt.run("Ipsum " + i);
-	}
-	stmt.finalize();
+const sleep = require('sleep')
+var sqlite = require('synapse/sqlite.js')
+var db = sqlite('../db/synapse.db')
+db('select * from conf order by id_p').then(console.log)
 
-	db.each("SELECT rowid AS id, info FROM lorem", function(err, row) {
-		console.log(row.id + ": " + row.info);
-	});
-});
-console.log('HI!')
-db.close();
+//sleep.sleep(10)
+/*
+const N = 10000000000
+console.time('db')
+for (var i = 1; i < N; i++);
+console.timeEnd('db')
+console.log('loop ', i, ' times')
 */

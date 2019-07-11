@@ -8,12 +8,12 @@ const url = 'http://localhost'
 
 request.get({
 	url: url + `/access/map`,
-	/*
+	
 	agentOptions: {
 		pfx: fs.readFileSync('../sslcert/scan2256.pfx'),
 		passphrase: '1'
 	},
-*/
+
 	auth: {
 		'user': 'synapse_ad',
 		'pass': '1qaz2wsx3edc.',
