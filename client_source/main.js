@@ -92,7 +92,7 @@ _.pxhr({method: 'get', url: 'access/map'})
 			icon: 'timeline',
 			component: {render: (h) => h('router-view')},
 			children: access.tasks.sort((a, b) => (a.id === b.id ? 0: a.id > b.id ? 1: -1) ).map(el => {
-				let task = allTasks.keys().find(key=> key.indexOf(el.name) !== -1)
+				let task = allTasks.keys().find(key => key.substr(0, key.lastIndexOf('.')) === './' + el.name)
 				let obj = (task)
 					? allTasks(task).default
 					: { render: (h) => h('pre', {}, [el.description] ) }

@@ -34,7 +34,7 @@ module.exports = function (config, options = { keepAlive: false }) {
 				connection = _conn
 				connection.module = 'BANK\\OBR'
 				connection.action = 'Http.View 4139'
-				connection.callTimeout = config.callTimeout || connection.callTimeout
+				// connection.callTimeout = config.callTimeout || connection.callTimeout
 				return connection
 				/*
 				var exec = connection.execute.bind(connection)

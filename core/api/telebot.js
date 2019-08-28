@@ -221,6 +221,10 @@ module.exports = function (system) {
 			ibso(`
 				select
 					acc.C_6 "balance",
+					(case acc.C_19 
+						when 'Закрыт' then 'closed'
+						else ''
+					end) "state",
 					ovr.C_7 "unused_limit",
 					ipc.C_2 "account_id_pc"
 				from

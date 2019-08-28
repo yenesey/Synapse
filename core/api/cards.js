@@ -69,7 +69,7 @@ module.exports = function (system) {
 				return { error: 'Кодовое слово не задано' }
 			}
 
-			if (card.password !== password &&	(new RegExp(`CODEWORD1~${password}~`)).test(card.password) !== true) {
+			if (card.password !== password &&	(new RegExp(`CODEWORD1~${password}~`, 'i')).test(card.password) !== true) {
 				return  { error: 'Кодовое слово не верно' }
 			}
 
