@@ -209,12 +209,19 @@ require('synapse/system').then(system => {
 
 		app.use([
 			errorHandler,
-			compression({ threshold: 0 })
+			compression({ threshold: 0 }),
+			express.static(system.config.path.users, { // каталог с пользовательскими папками
+				setHeaders: function (res, path) {
+					res.attachment(path) // добавляем в каджый заголовок инфу о том, что у нас вложение
+				}
+			})
 		])
 
 		if (process.env.DEV_SERVER) {
 			app.use(require('synapse/dev-middleware'))
 			return
+		}	else {
+			app.use(express.static(path.join(__dirname, 'client')))
 		}
 
 		if (process.env.NODE_ENV === 'development') {
@@ -231,13 +238,7 @@ require('synapse/system').then(system => {
 		}
 
 		app.use([
-			express.static(path.join(__dirname, 'client')),
-			require('synapse/api/access')(system), // !!! с этого момента и далее вниз контролируется доступ через AD
-			express.static(system.config.path.users, { // каталог с пользовательскими папками
-				setHeaders: function (res, path) {
-					res.attachment(path) // добавляем в каджый заголовок инфу о том, что у нас вложение
-				}
-			}),
+			require('synapse/api/access')(system), // -- с этого момента и далее вниз контролируется доступ через AD
 			require('synapse/api/dlookup')(system),
 			require('synapse/api/dbquery')(system),
 			require('synapse/api/tasks')(system),
