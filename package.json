@@ -4,7 +4,7 @@
   "description": "Commercial Bank IT-engineer's integrative tool",
   "main": "synapse",
   "scripts": {
-    "dev:api": "nodemon --inspect synapse --development",
+    "dev:api": "nodemon --inspect synapse --development --port=444",
     "dev:server": "node synapse --development --dev-server --port=3000",
     "build": "cross-env NODE_ENV=production webpack --mode production --hide-modules --display-error-details --config ./client_source/webpack.config.js",
     "postinstall": "mklink /J \"node_modules/synapse\" \"core\""
@@ -46,6 +46,7 @@
     "sleep": "5.2.3",
     "soap": "0.25.0",
     "sqlite3": "^4.0.6",
+    "winax": "1.0.14",
     "xlsx-template": "0.4.0",
     "xmlbuilder": "10.0.0"
   },
