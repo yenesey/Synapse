@@ -232,7 +232,9 @@ module.exports = function (system) {
 					(DOC.C_31 is null or DOC.C_31 not in ('RATEDIFF', 'RECONT', 'RECONT+')) and  --Код. н.п. (убрать лишнее)
 					REC.COLLECTION_ID=ACC.REF8 and
 					REC.C_1 >= TO_DATE('${req.query.edfrom}', 'dd.mm.yyyy') and REC.C_1 < TO_DATE('${req.query.edto}', 'dd.mm.yyyy')+1
-				order by REC.C_1`
+				order by REC.C_1`,
+				{ },
+				{ maxRows: 3000 }
 				).catch(err => { console.log('at receipt!'); throw err }),
 
 				// холды:
