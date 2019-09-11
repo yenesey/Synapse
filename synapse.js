@@ -7,7 +7,8 @@
     \> node synapse [--development] [--ssl] [--service] [--port=N]
      параметры:
       --development  - запуск в режиме разработки, аналог переменной окружения NODE_ENV=development,
-      --dev-server   - только фронт (сборка клиента webpack + hot)
+	  --dev-server   - только фронт (сборка клиента webpack + hot)
+	  --base-url     - дает знать клиенту, куда бросать AJAX запросы (по умолчанию - http://localhost)
       --port=N       - задать прослушиваемый порт, аналог переменной окружения PORT
       --ssl          - запуск в режиме https, нужны сертификаты в конфигурации (не рекомендуется для --development)
       --service      - запустить как службу (влияет на обработку сигналов прерывания и закрытия процесса)
@@ -121,6 +122,7 @@ process.argv.forEach(arg => {
 	case '--development': process.env.NODE_ENV = 'development'; break
 	case '--service': process.env.SERVICE = true; break
 	case '--dev-server': process.env.DEV_SERVER = true; break
+	case '--base-url': process.env.BASE_URL = pv[1]; break
 	}
 })
 
