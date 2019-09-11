@@ -210,10 +210,13 @@ module.exports = system.db('SELECT * FROM settings')
 
 		system.config = deepProxy(config, { // мега-фича :) автозапись установок в случае изменения
 			set (target, path, value, receiver) {
-				var sql = Reflect.has(target, key)
+				var vars = { $group: path[0], $key: path[1], $value: value }
+
+				var sql = Reflect.has(target[vars.$group], vars.$key)
 					? `UPDATE settings SET value = $value WHERE [group] = $group AND [key] = $key`
 					: `INSERT INTO settings ([group], [key], value, description) VALUES ($group, $key, $value, '')`
-				system.db(sql, { $group: path[0], $key: path[1], $value: value })
+				console.log(vars)
+				system.db(sql, vars)
 					.then(() => console.log('[system]: config updated for ' + path.join('.')))
 					.catch(console.log)
 			},
