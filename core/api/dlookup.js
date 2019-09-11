@@ -42,7 +42,7 @@ function _sql (query) {
 		'WHERE (' +
 		query.lookIn.split(',').reduce((all, field) => {
 			/(%)?([\w|\d|\.]+)(%)?/.test(field)
-			return iif(all, '', ' OR ') + '(lower(' + RegExp.$2 + ") LIKE lower('" + RegExp.$1 + query.request + RegExp.$3 + "'))"
+			return iif(all, '', ' OR ') + '(lower(' + RegExp.$2 + ') LIKE lower(\'' + RegExp.$1 + query.request + RegExp.$3 + '\'))'
 		}, '') + ') ' + iif(query.where, ' AND (', ') ') +
 		iif(query.order, ' ORDER BY ')
 }
@@ -52,8 +52,8 @@ function _ldap (query) {
 
 	return {
 		fields: query.lookIn.replace(/%|\s/g, '').split(','),
-		query: query.request !== '%' ?
-			lookIn.reduce((all, field) => {
+		query: query.request !== '%' 
+			? lookIn.reduce((all, field) => {
 				/(\*)?([\w|\d]+)(\*)?/.test(field)
 				return (all || '') + '(' + RegExp.$2 + '=' + RegExp.$1 + query.request + RegExp.$3 + ')'
 			}, '|') : ''

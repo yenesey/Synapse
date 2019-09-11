@@ -229,20 +229,20 @@ require('synapse/system').then(system => {
 			app.use(cors)
 			app.use(morgan('tiny', { stream: { write: msg => console.log(msg) } }))
 		}
-/*
+
 		if (system.config.telebot && boolAffinity(system.config.telebot.on)) {
 			app.use(require('synapse/api/telebot')(system)) // telegram bot
 		}
 		if (system.config.cards && boolAffinity(system.config.cards.on)) {
 			app.use(require('synapse/api/cards')(system))  // запрос инфы по картам для сайта
 		}
-*/
+
 		app.use([
 			require('synapse/api/access')(system), // -- с этого момента и далее вниз контролируется доступ через AD
 			require('synapse/api/dlookup')(system),
 			require('synapse/api/dbquery')(system),
 			require('synapse/api/tasks')(system),
-  		require('synapse/api/forms')(system),
+			require('synapse/api/forms')(system),
 			require('synapse/api/jobs')(system)
 		])
 	})
