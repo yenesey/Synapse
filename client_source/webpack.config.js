@@ -46,11 +46,6 @@ var config = {
 				test: /\.vue$/,
 				use: 'vue-loader'
 			},
-			{ // temporary! todo: rename all tasks\ into .vue
-				test: /\.html$/,
-				include: [resolve('/client_source/tasks')],
-				loader: 'vue-loader'
-			},
 			{
 				exclude: /node_modules|core/,
 				test: /\.js$/,
@@ -147,7 +142,7 @@ if (process.env.NODE_ENV === 'production') {
 	config.plugins.push(new webpack.HotModuleReplacementPlugin())
 	config.plugins.push(		
 		new webpack.DefinePlugin({
-			'baseUrl': JSON.stringify('http://synapse:444')
+			'baseUrl': JSON.stringify('http://synapse')
 		})
 	)
 	config.entry.synapse.unshift(	'@/hmr-iexplore') 
