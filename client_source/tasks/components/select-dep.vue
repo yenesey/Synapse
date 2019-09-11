@@ -1,7 +1,7 @@
 ﻿<template>
 <div>
-	<label for="deps"><i>Подразделение:</i></label><br>	
 	<dlookup 
+    label="Подразделение"
 	  name="deps" 
 	  table="IBS.VW_CRIT_BRANCH" 
 	  order="C_1"
@@ -11,10 +11,9 @@
 		:min-length=0
 		:get-label="getLabel"
 	  style="width:200px;display:inline-block"
-    save
 	> 
 		<!--выпадающий список можно формировать самому:-->
-		<span slot-scope="{item, index}"> {{item.C_2}} </span>
+		<span slot-scope="{item, index}"> {{item.C_2}} <i style="color:teal">{{' (' + item.C_1 + ')'}}</i></span>
 	</dlookup>
 </div>
 </template>

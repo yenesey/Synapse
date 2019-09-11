@@ -6,23 +6,7 @@
 
   <datepicker label="Отчет на" name="dateRep" :value="moment().add(-1, 'day').format('YYYY-MM-DD')"></datepicker><br>
 
-  <label for="deps"><i>Подразделение:</i></label> <br>	
-  <dlookup 
-    name="deps" 
-    db="./db/synapse.db" 
-    table="objects" 
-    order="name"
-    look-in="%name%,%description%" 
-    fields="description" 
-    result="name" 
-    where="class='deps'" 
-  	min-length="0"
-    style="width:250px;display:inline-block"
-    :get-label="getLabel"
-  > 
-  	<!--выпадающий список можно формировать самому:-->
-  	<span slot-scope="{item, index}"> {{item.description}} <i style="color:teal">{{' (' + (item.name=='002%' ? '002-00%' : item.name) + ')'}}</i></span>
-  </dlookup> <br>
+  <select-dep-db/>
   <br>
   <v-checkbox label="п.2.2.4" name="2.2.4" style="margin:0" hide-details></v-checkbox>
   <v-checkbox label="п.2.2.1 (включая п.2.2.3.5)" name="2.2.1" style="margin:0" hide-details></v-checkbox>
@@ -32,13 +16,3 @@
 
 </div>
 </template>
-
-<script>
-export default {
-	methods: {
-		getLabel : function(item){
-			return item.description
-		}
-	}
-}
-</script>
