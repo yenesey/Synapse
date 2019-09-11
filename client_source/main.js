@@ -51,7 +51,7 @@ import admin from './admin/admin.js'
 import App from './app.vue'
 
 
-_.baseUrl = baseUrl // eslint-disable-line
+if (typeof baseUrl !== 'undefined') _.baseUrl = baseUrl // eslint-disable-line
  
 _.pxhr({method: 'get', url: 'access/map'})
 .catch(err => ({login: 'Нет доступа!', access: [], err: err})) 
