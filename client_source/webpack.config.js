@@ -142,7 +142,7 @@ if (process.env.NODE_ENV === 'production') {
 	config.plugins.push(new webpack.HotModuleReplacementPlugin())
 	config.plugins.push(		
 		new webpack.DefinePlugin({
-			'baseUrl': JSON.stringify('http://synapse')
+			'baseUrl': JSON.stringify('http://localhost')
 		})
 	)
 	config.entry.synapse.unshift(	'@/hmr-iexplore') 
