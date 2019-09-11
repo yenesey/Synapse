@@ -14,7 +14,6 @@ import VueRouter from 'vue-router'
 import Vuetify from 'vuetify/dist/vuetify.min.js'
 import ru from 'vuetify/es5/locale/ru.js'
 import 'vuetify/dist/vuetify.min.css'
-//import 'vuetify/src/stylus/app.styl';
 
 Vue.use(VueRouter)
 
@@ -57,7 +56,7 @@ if (typeof baseUrl !== 'undefined') _.baseUrl = baseUrl // eslint-disable-line
 _.pxhr({method: 'get', url: 'access/map'})
 .catch(err => ({login: 'Нет доступа!', access: [], err: err})) 
 .then(user => {
-	var menuGroups = user.access.filter(el => el.class === 'menu').sort((a,b)=> (a.id === b.id ? 0: a.id > b.id ? 1: -1) )
+	var menuGroups = user.access.filter(el => el.class === 'menu').sort((a, b) => a.id === b.id ? 0: a.id > b.id ? 1: -1)
 	if (menuGroups.findIndex(el=>el.name === 'default') === -1) 
 		menuGroups.unshift( {name: 'default', icon: 'chevron_right'} )
 
@@ -88,14 +87,14 @@ _.pxhr({method: 'get', url: 'access/map'})
 
 
 	if (access.tasks && access.tasks.length){
-		let allTasks = require.context('./tasks', false, /\.vue$|\.html$/) //todo: rename files .html to .vue
+		let allTasks = require.context('./tasks', false, /\.vue$/) //todo: rename files .html to .vue
 		routes.push({
 			path: '/tasks',
 			// name: 'Tasks',
 			icon: 'timeline',
 			component: {render: (h) => h('router-view')},
 			children: access.tasks.sort((a, b) => (a.id === b.id ? 0: a.id > b.id ? 1: -1) ).map(el => {
-				let task = allTasks.keys().find(key=> key.substr(0, key.lastIndexOf('.')) === './' + el.name)
+				let task = allTasks.keys().find(key => key.substr(0, key.lastIndexOf('.')) === './' + el.name)
 				let obj = (task)
 					? allTasks(task).default
 					: { render: (h) => h('pre', {}, [el.description] ) }
@@ -134,4 +133,3 @@ _.pxhr({method: 'get', url: 'access/map'})
 
 })
 .catch(console.error) // eslint-disable-line
-
