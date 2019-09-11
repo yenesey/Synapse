@@ -20,7 +20,7 @@ Vue.use(VueRouter)
 Vue.use(Vuetify, {
 	lang: {
 		locales: {ru},
-		current: 'ru-ru'
+		current: 'ru'
 	},
 	theme: {
 		primary: '#ACDBFF',
