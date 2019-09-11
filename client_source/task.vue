@@ -110,11 +110,11 @@ export default {
 			var self = this;
 			var formData = new FormData(self.$refs.form);  //event.target.form  не инициализируется с это кнопкой
 			event.preventDefault();
-	
+
 			var model = self.getTaskModel();
 			for (var key in model)
-				if (key[0] !== '$')
-					formData.append(key, JSON.stringify(model[key]))
+				if (!model.params || (model.params && model.params.indexOf(key)>=0))
+					formData.append(key, typeof model[key] === 'object' ? JSON.stringify(model[key]) : model[key])
 			
 			self.text = '';
 			self.status = 'running';
