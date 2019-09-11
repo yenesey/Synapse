@@ -44,6 +44,7 @@ function equals (number, string, _var) {
 	if (typeof _var === 'number')	return number + '=' + _var
 	if (typeof _var === 'string')	return string + '=' + '\'' + _var + '\''
 }
+
 system.db = require('./sqlite')(path.join(ROOT_DIR, 'db/synapse.db')) // основная БД приложения
 // -------------------------------------------------------------------------------
 system.user = function (user) { // данные пользователя по login или id

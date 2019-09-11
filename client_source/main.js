@@ -87,7 +87,7 @@ _.pxhr({method: 'get', url: 'access/map'})
 
 
 	if (access.tasks && access.tasks.length){
-		let allTasks = require.context('./tasks', false, /\.vue$|\.html$/) //todo: rename files .html to .vue
+		let allTasks = require.context('./tasks', false, /\.vue$/) //todo: rename files .html to .vue
 		routes.push({
 			path: '/tasks',
 			// name: 'Tasks',
@@ -133,4 +133,3 @@ _.pxhr({method: 'get', url: 'access/map'})
 
 })
 .catch(console.error) // eslint-disable-line
-

@@ -242,6 +242,7 @@ require('synapse/system').then(system => {
 			require('synapse/api/dlookup')(system),
 			require('synapse/api/dbquery')(system),
 			require('synapse/api/tasks')(system),
+			require('synapse/api/forms')(system),
 			require('synapse/api/jobs')(system)
 		])
 	})

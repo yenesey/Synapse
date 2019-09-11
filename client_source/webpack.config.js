@@ -46,11 +46,6 @@ var config = {
 				test: /\.vue$/,
 				use: 'vue-loader'
 			},
-			{ // temporary! todo: rename all tasks\ into .vue
-				test: /\.html$/,
-				include: [resolve('/client_source/tasks')],
-				loader: 'vue-loader'
-			},
 			{
 				exclude: /node_modules|core/,
 				test: /\.js$/,

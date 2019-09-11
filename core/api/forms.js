@@ -9,9 +9,7 @@ const moment = require('moment'),
 	iconv = require('iconv-lite'), //кодировка 
 	xml = require('xmldom').DOMParser,
 	express = require('express'),
-	router = express.Router({
-		strict: true
-	}),
+	router = express.Router({strict: true}),
 	bodyParser = require('body-parser'),
 	cronJob = require('cron').CronJob,
 	request = require('request'),
