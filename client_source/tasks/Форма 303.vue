@@ -1,0 +1,12 @@
+﻿<template>
+<div>
+
+<pre>Сведения о ссудах, предоставленных юридическим лицам.</pre>
+
+  <datepicker label="Отчет на" name="dateRep" :value="moment().format('YYYY-MM-01')"></datepicker> 
+  
+  <select-dep/>
+
+</div>
+</template>
+
