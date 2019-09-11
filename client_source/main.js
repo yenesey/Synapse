@@ -15,6 +15,11 @@ import Vuetify from 'vuetify/dist/vuetify.min.js'
 import ru from 'vuetify/es5/locale/ru.js'
 import 'vuetify/dist/vuetify.min.css'
 //import 'vuetify/src/stylus/app.styl';
+<<<<<<< HEAD
+=======
+import ru from'vuetify/es5/locale/ru.js'
+
+>>>>>>> 95176e7d6c437928935dce2238b337f992b83739
 
 Vue.use(VueRouter)
 
