@@ -114,6 +114,7 @@ function easterEgg () {
 }
 
 /// /////////////Обрабатываем командную строку////////////////
+// todo: make likewise @burn-token project
 process.argv.forEach(arg => {
 	let pv = arg.split('=')
 	switch (pv[0]) {

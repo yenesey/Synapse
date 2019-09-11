@@ -113,6 +113,9 @@ var config = {
 			template: resolve('client_source/assets', 'index.html')
 		}),
 		new VueLoaderPlugin(),
+		new webpack.DefinePlugin({
+			'baseUrl': JSON.stringify(process.env.BASE_URL || '')
+		}),
 		new WebpackBar({ minimal: false })
 //		new HardSourceWebpackPlugin()
 	],
@@ -140,11 +143,6 @@ if (process.env.NODE_ENV === 'production') {
 
 } else { // dev mode by default
 	config.plugins.push(new webpack.HotModuleReplacementPlugin())
-	config.plugins.push(		
-		new webpack.DefinePlugin({
-			'baseUrl': JSON.stringify(process.env.BASE_URL || 'http://localhost')
-		})
-	)
 	config.entry.synapse.unshift('@/hmr-iexplore') 
 }
 
