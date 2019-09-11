@@ -44,6 +44,7 @@ function equals (number, string, _var) {
 	if (typeof _var === 'number')	return number + '=' + _var
 	if (typeof _var === 'string')	return string + '=' + '\'' + _var + '\''
 }
+
 system.db = require('./sqlite')(path.join(ROOT_DIR, 'db/synapse.db')) // основная БД приложения
 // -------------------------------------------------------------------------------
 system.user = function (user) { // данные пользователя по login или id
@@ -209,13 +210,10 @@ module.exports = system.db('SELECT * FROM settings')
 
 		system.config = deepProxy(config, { // мега-фича :) автозапись установок в случае изменения
 			set (target, path, value, receiver) {
-				var vars = { $group: path[0], $key: path[1], $value: value }
-
-				var sql = Reflect.has(target[vars.$group], vars.$key)
+				var sql = Reflect.has(target, key)
 					? `UPDATE settings SET value = $value WHERE [group] = $group AND [key] = $key`
 					: `INSERT INTO settings ([group], [key], value, description) VALUES ($group, $key, $value, '')`
-				console.log(vars)
-				system.db(sql, vars)
+				system.db(sql, { $group: path[0], $key: path[1], $value: value })
 					.then(() => console.log('[system]: config updated for ' + path.join('.')))
 					.catch(console.log)
 			},

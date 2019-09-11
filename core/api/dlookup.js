@@ -129,26 +129,18 @@ router.post('/dlookup', bodyParser.json(), function(req, res){
 				})
 				.then(result=>res.json(result))
 		}	
-		//файл|ldap не указан? значит это запрос в ibso c контролем доступа и всеми наворотами
-		return system.access(user.id, {object : query.table, class:'ibs'})	
-			.then(access=>{
-				if (!access.granted){
-					res.json({error:'Access denied!'});
-					return 
-				}
-				
-				return ibso(user.id, access.constraint)
-				.then(clause =>{
-					if (clause){
-						if ('where' in query)
-							query.where += ' AND ' + clause;
-						else
-							query.where = clause
-					}
-					return ora(_sql(query))	
-				})
-				.then(data=>res.json(data))
-			})			
+		//файл|ldap не указан? значит это запрос в ibso 
+		return ibso(user.id)
+		.then(clause =>{
+			if (clause){
+				if ('where' in query)
+					query.where += ' AND ' + clause;
+				else
+					query.where = clause
+			}
+			return ora(_sql(query))	
+		})
+		.then(data=>res.json(data))
 	})
 	.catch(err=>system.errorHandler(err, req, res))
 
