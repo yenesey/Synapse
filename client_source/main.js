@@ -12,12 +12,14 @@ import store from './store' // Vuex store
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 import Vuetify from 'vuetify/dist/vuetify.min.js'
+import ru from 'vuetify/es5/locale/ru.js'
 import 'vuetify/dist/vuetify.min.css'
 
 Vue.use(VueRouter)
 
 Vue.use(Vuetify, {
 	lang: {
+		locales: {ru},
 		current: 'ru-ru'
 	},
 	theme: {
