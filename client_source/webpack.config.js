@@ -39,9 +39,9 @@ var config = {
 	module: {
 		rules: [
 			{
-        test: /\.pug$/,
-        loader: 'pug-plain-loader'
-      },
+				test: /\.pug$/,
+				loader: 'pug-plain-loader'
+			},
 			{
 				test: /\.vue$/,
 				use: 'vue-loader'
@@ -80,15 +80,15 @@ var config = {
 					}
 				}
 			},
-      {
-        test: /\.(sa|sc|c)ss$/,
-        use: ['vue-style-loader', 'css-loader', 'sass-loader']
-      },
+			{
+				test: /\.(sa|sc|c)ss$/,
+				use: ['vue-style-loader', 'css-loader', 'sass-loader']
+			},
 			{
 				test: /\.styl$/,
 				use: ['vue-style-loader', 'css-loader', 'stylus-loader']
 			},
-      // devMode ? 'vue-style-loader' : MiniCssExtractPlugin.loader,
+	  		// devMode ? 'vue-style-loader' : MiniCssExtractPlugin.loader,
 			{
 				test: /\.(png|jpg|gif|svg|woff|woff2|eot|ttf)$/,
 				use: {
@@ -113,13 +113,16 @@ var config = {
 			template: resolve('client_source/assets', 'index.html')
 		}),
 		new VueLoaderPlugin(),
+		new webpack.DefinePlugin({
+			'baseUrl': JSON.stringify(process.env.BASE_URL || '')
+		}),
 		new WebpackBar({ minimal: false })
 //		new HardSourceWebpackPlugin()
 	],
 
 	optimization: {
 		splitChunks: {
-//    chunks: 'all',
+			// chunks: 'all',
 			cacheGroups: {
 				vendors: {
 					test: /node_modules/,
@@ -138,14 +141,9 @@ if (process.env.NODE_ENV === 'production') {
 	if (process.env.npm_config_report)
 		config.plugins.push(new BundleAnalyzerPlugin({ analyzerMode: 'static' }))
 
-} else { //dev mode by default
+} else { // dev mode by default
 	config.plugins.push(new webpack.HotModuleReplacementPlugin())
-	config.plugins.push(		
-		new webpack.DefinePlugin({
-			'baseUrl': JSON.stringify('http://localhost')
-		})
-	)
-	config.entry.synapse.unshift(	'@/hmr-iexplore') 
+	config.entry.synapse.unshift('@/hmr-iexplore') 
 }
 
 module.exports = config
