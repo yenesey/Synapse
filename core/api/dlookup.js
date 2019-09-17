@@ -2,8 +2,6 @@
 /*
   Серверная часть компонента dlookup
 */
-const express = require('express')
-const router = express.Router({	strict: true })
 const bodyParser = require('body-parser')
 
 function iif (entry, pre, pos) {
@@ -61,7 +59,7 @@ function _ldap (query) {
 }
 
 module.exports = function (system) {
-
+	// -
 	function ibso (user, constraint) { // constraint = [{JSON}... {JSON}] в ibso используется для ограничения по реквизиту
 		if (!constraint) return Promise.resolve('')
 		if (!(constraint instanceof Array)) constraint = [constraint];
@@ -86,8 +84,7 @@ module.exports = function (system) {
 	const ora = require('../ds-oracle')(system.config.ibs)
 	const sqlite = require('../ds-sqlite')()
 
-	router.post('/dlookup', bodyParser.json(), function (req, res) {
-
+	this.post('/', bodyParser.json(), function (req, res) {
 		var query = req.body
 		//
 		//  query spec
@@ -155,5 +152,4 @@ module.exports = function (system) {
 			})
 			.catch(err => system.errorHandler(err, req, res))
 	})
-	return router
 }

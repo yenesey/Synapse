@@ -243,15 +243,18 @@ require('synapse/system').then(system => {
 			app.use(api('cards'))  // запрос инфы по картам для сайта
 		}
 
+		api.useNtlm() // отныне и вниз у нас есть userName из AD
+
 		app.use([
-			// todo: переписать через app.use(api(...)) ... см выше, насколько стало проще
-			require('synapse/api/access')(system), // -- с этого момента и далее вниз контролируется доступ через AD
-			require('synapse/api/dlookup')(system),
-			require('synapse/api/dbquery')(system),
+			api('access'),
+			api('dlookup'),
+			api('dbquery'),
+			// todo: переписать через app.use(api(...)) ... как сделано выше
 			require('synapse/api/tasks')(system),
 			require('synapse/api/forms')(system),
 			require('synapse/api/jobs')(system)
 		])
 	})
+
 })
 	.catch(console.error)

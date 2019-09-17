@@ -3,7 +3,7 @@
   стандартные функции файловой системы (fs)
   обернуто в промисы + некоторый доп. функционал
 */
-const	path = require('path')
+const path = require('path')
 const fs = require('fs')
 const promisify = require('util').promisify
 

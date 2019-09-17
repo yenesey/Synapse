@@ -4,15 +4,13 @@
 	Серверная часть компонента dbquery
 */
 
-const express = require('express')
-const router = express.Router({ strict: true })
 const bodyParser = require('body-parser')
 
 module.exports = function (system) {
 	// -
 	const ora = require('../ds-oracle')(system.config.ibs)
 
-	router.post('/dbquery', bodyParser.json({ limit: '5mb' }), function (req, res) {
+	this.post('/', bodyParser.json({ limit: '5mb' }), function (req, res) {
 		res.socket.setTimeout(Number(system.config.socket.timeout)) // ответ, возможно будет "долгим"
 
 		system.accessCheck(req.ntlm.UserName, system.ADMIN_SQLQUERY)
@@ -23,6 +21,4 @@ module.exports = function (system) {
 				res.json({ error: err.message })
 			})
 	})
-
-	return router
 }

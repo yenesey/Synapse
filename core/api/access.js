@@ -2,21 +2,17 @@
 
 /*
 	бывший uac (UAC - User Access Control) - работа с пользователями, контроль доступа,
+	- требуется NTLM, или ошибка гарантирована
 	- идентификация
-	- аутентификация (через Active Directory / express-ntlm basic auth)
 	- авторизация
 	- добавление / удаление пользователя
 */
 
-const express = require('express')
 const bodyParser = require('body-parser')
-const ntlm = require('express-ntlm')
-const combineMiddleware = require('../lib').combineMiddleware
-const access = express.Router({	strict: true })
 
 module.exports = function (system) {
 	// -
-	access.get('/access/map', function (req, res) {
+	this.get('/map', function (req, res) {
 		// выдача полной карты доступа заданного пользователя (req.query.user)
 		// если пользователь не задан - выдается собственная карта доступа
 		var opt = {}
@@ -40,7 +36,7 @@ module.exports = function (system) {
 			.catch(err => system.errorHandler(err, req, res))
 	})
 
-	access.put('/access/map', bodyParser.json(), function (req, res) {
+	this.put('/map', bodyParser.json(), function (req, res) {
 		// операция выдачи/прекращения доступа к заданному объекту
 		// req.body = {userId:Number, objectId: Number, granted: Number(1|0)}
 		return system.accessCheck(req.ntlm.UserName, system.ADMIN_USERS)
@@ -57,7 +53,7 @@ module.exports = function (system) {
 			.catch(err => system.errorHandler(err, req, res))
 	})
 
-	access.put('/access/user', bodyParser.json(), function (req, res) {
+	this.put('/user', bodyParser.json(), function (req, res) {
 		// операция добавления(создания) пользователя
 		return system.accessCheck(req.ntlm.UserName, system.ADMIN_USERS)
 			.then(() => {
@@ -72,39 +68,11 @@ module.exports = function (system) {
 			.catch(err => system.errorHandler(err, req, res))
 	})
 
-	access.get('/access/members', function (req, res) {
+	this.get('/members', function (req, res) {
 		system.users(parseInt(req.query.object, 10) || 0).then(result => res.json(result))
 	})
 
-	access.get('/access/tasks', function (req, res) {
+	this.get('/tasks', function (req, res) {
 		system.tasks(parseInt(req.query.object, 10) || 0).then(result => res.json(result))
 	})
-
-	return combineMiddleware([
-		function (req, res, next) {
-			// console.log(req.headers)
-			next()
-		},
-		ntlm({ // basic-auth через Active Directory (ntlm)
-			badrequest: function (req, res, next) {
-				res.sendStatus(400)
-			},
-			forbidden: function (req, res, next) {
-				res.statusCode = 401 // !!!!
-				res.setHeader('WWW-Authenticate', 'NTLM')
-				next()
-			},
-			internalservererror: function (req, res, next) {
-				res.status(500).send('NTLM auth error')
-				// res.sendStatus(500)
-			},
-
-			// debug: function() { var args = Array.prototype.slice.apply(arguments); console.log.apply(null, args)},
-			domain: system.config.ntlm.domain,
-			domaincontroller: system.config.ntlm.dc
-		}),
-
-		// function(req, res, next){ req.ntlm = {UserName :'bogachev_di'};next()}	//заглушка имени, если нет ntlm
-		access // access management endpoints
-	])
 }
