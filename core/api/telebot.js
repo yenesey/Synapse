@@ -4,20 +4,12 @@
 	API для телеграмм-бота
 */
 
-const express = require('express')
-const	router = express.Router({ strict: true })
 const ora = require('../ds-oracle')
-
-function errorHandler (err, req, res) {
-	console.log(err.message + ' while ' + req.url)
-	console.log('remote:' + req.connection.remoteAddress)
-	res.json({ success: false, error: err.message })
-}
 
 module.exports = function (system) {
 	//
 	// авторизация
-	router.get('/telebot/auth', function (req, res) { // /telebot/auth?phone_num=XXXXXXXXXX
+	this.get('/auth', function (req, res) { // /telebot/auth?phone_num=XXXXXXXXXX
 		const query = req.query
 		const ibso = ora(system.config.ibs)
 
@@ -49,7 +41,7 @@ module.exports = function (system) {
 			where 
 				C_3 like :phone_num
 			`
-			/*, 
+			/*,
 			выбор телефона из карточки клиента отключен по предложению разработчика бота
 			`
 			select 
@@ -60,7 +52,7 @@ module.exports = function (system) {
 			where 
 				CT.COLLECTION_ID = CL.REF8 and
 				CT.C_4 like :phone_num
-			`*/
+			` */
 		]
 
 		queryClientByPhone.reduce((result, queryItem) =>
@@ -112,11 +104,11 @@ module.exports = function (system) {
 					data: data
 				})
 			})
-		}).catch(err => errorHandler(err, req, res))
+		}).catch(err => system.errorHandler(err, req, res))
 	})
 
 	//	баланс по карте из ПЦ
-	router.get('/telebot/balance_pc', function (req, res) { //  /telebot/balance_pc?account_id_pc=NNNNNNNN
+	this.get('/balance_pc', function (req, res) { //  /telebot/balance_pc?account_id_pc=NNNNNNNN
 		const query = req.query
 		const t2000 = ora(system.config.t)
 		return t2000(`select sysadm.pcardstandard.F_OnlineBalance_CSbyACCID(:acc_id) "balance" from dual`, { acc_id: query.account_id_pc })
@@ -125,11 +117,11 @@ module.exports = function (system) {
 					success: true,
 					balance_pc: balance
 				})
-			).catch(err => errorHandler(err, req, res))
+			).catch(err => system.errorHandler(err, req, res))
 	})
 
 	//	баланс по карте из ПЦ
-	router.get('/telebot/limitauth', function (req, res) { //  /telebot/limitauth?acc_id=NNNNNNNN
+	this.get('/limitauth', function (req, res) { //  /telebot/limitauth?acc_id=NNNNNNNN
 		const query = req.query
 		const ibso = ora(system.config.ibs)
 		const t2000 = ora(system.config.t)
@@ -165,11 +157,11 @@ module.exports = function (system) {
 				})
 			})
 			//
-		}).catch(err => errorHandler(err, req, res))
+		}).catch(err => system.errorHandler(err, req, res))
 	})
 
 	// выписка
-	router.get('/telebot/receipt', function (req, res) { // /telebot/receipt?acc_id=NNNNNNN&date=dd.mm.yyyy hh:mm:ss
+	this.get('/receipt', function (req, res) { // /telebot/receipt?acc_id=NNNNNNN&date=dd.mm.yyyy hh:mm:ss
 		const query = req.query
 		const ibso = ora(system.config.ibs)
 		ibso(`
@@ -249,8 +241,6 @@ module.exports = function (system) {
 						receipt: receipt
 					})
 				)
-		).catch(err => errorHandler(err, req, res))
+		).catch(err => system.errorHandler(err, req, res))
 	})
-
-	return router
 }

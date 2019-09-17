@@ -158,12 +158,17 @@ system.errorHandler = function (err, req, res) {
 		if (res) res.json({ error: err.message })
 		return true // с запланированной ошибкой расправляемся быстро
 	}
-	if (req) {
-		err.user = req.ntlm.UserName
-		err.userAddr = req.connection.remoteAddress
+	var msg = {
+		code: err.code,
+		message: err.message
 	}
-	console.log(err) // неизвестную ошибку пишем в журнал
-	if (res) res.json({ error: 'Ошибка!' })
+	if (req) {
+		if (req.ntlm) msg.user = req.ntlm.UserName
+		msg.remote = req.connection.remoteAddress
+		msg.url = req.url
+	}
+	console.log(msg)
+	if (res) res.json({ success: false, error: err.message })
 	return false
 }
 /// /////////////////////////////////////////////////////////////////////
@@ -211,14 +216,15 @@ module.exports = system.db('SELECT * FROM settings')
 		system.config = deepProxy(config, { // мега-фича :) автозапись установок в случае изменения
 			set (target, path, value, receiver) {
 				var vars = { $group: path[0], $key: path[1], $value: value }
+				if (vars.$group in target) {
+					var sql = Reflect.has(target[vars.$group], vars.$key)
+						? `UPDATE settings SET value = $value WHERE [group] = $group AND [key] = $key`
+						: `INSERT INTO settings ([group], [key], value, description) VALUES ($group, $key, $value, '')`
 
-				var sql = Reflect.has(target[vars.$group], vars.$key)
-					? `UPDATE settings SET value = $value WHERE [group] = $group AND [key] = $key`
-					: `INSERT INTO settings ([group], [key], value, description) VALUES ($group, $key, $value, '')`
-				console.log(vars)
-				system.db(sql, vars)
-					.then(() => console.log('[system]: config updated for ' + path.join('.')))
-					.catch(console.log)
+					system.db(sql, vars)
+						.then(() => console.log('[system]: config updated for ' + path.join('.')))
+						.catch(console.log)
+				}
 			},
 			deleteProperty (target, path) {
 				system.db(`DELETE FROM settings WHERE [group] = $group AND [key] = $key`, { $group: path[0], $key: path[1] })

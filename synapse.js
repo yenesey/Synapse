@@ -8,7 +8,7 @@
      параметры:
       --development  - запуск в режиме разработки, аналог переменной окружения NODE_ENV=development,
       --dev-server   - только фронт (сборка клиента webpack + hot)
-      --base-url     - дает знать клиенту, куда бросать AJAX запросы (по умолчанию - http://localhost)
+      --base-url     - дает знать клиенту, куда бросать AJAX запросы (по умолчанию совпадает с <server>)
       --port=N       - задать прослушиваемый порт, аналог переменной окружения PORT
       --ssl          - запуск в режиме https, нужны сертификаты в конфигурации (не рекомендуется для --development)
       --service      - запустить как службу (влияет на обработку сигналов прерывания и закрытия процесса)
@@ -179,7 +179,7 @@ require('synapse/system').then(system => {
 
 	server.listen(process.env.PORT, function () {
 		var format = (obj, color) => Object.keys(obj).reduce((all, key) =>
-			all + key + ':' + ((typeof color === 'function') ? color(obj[key]):obj[key]) + ' | ', '| '
+			all + key + ':' + ((typeof color === 'function') ? color(obj[key]) : obj[key]) + ' | ', '| '
 		)
 
 		var args = {
@@ -233,14 +233,18 @@ require('synapse/system').then(system => {
 			app.use(morgan('tiny', { stream: { write: msg => console.log(msg) } }))
 		}
 
+		const api = require('synapse/api.js')(system)
+		app.use(api('cft-web-proxy'))
+
 		if (system.config.telebot && boolAffinity(system.config.telebot.on)) {
-			app.use(require('synapse/api/telebot')(system)) // telegram bot
+			app.use(api('telebot'))
 		}
 		if (system.config.cards && boolAffinity(system.config.cards.on)) {
-			app.use(require('synapse/api/cards')(system))  // запрос инфы по картам для сайта
+			app.use(api('cards'))  // запрос инфы по картам для сайта
 		}
 
 		app.use([
+			// todo: переписать через app.use(api(...)) ... см выше, насколько стало проще
 			require('synapse/api/access')(system), // -- с этого момента и далее вниз контролируется доступ через AD
 			require('synapse/api/dlookup')(system),
 			require('synapse/api/dbquery')(system),

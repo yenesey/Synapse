@@ -4,8 +4,6 @@
 	(Переработано по SZ-2491)
 */
 
-const express = require('express')
-const router = express.Router({ strict: true })
 const ora = require('../ds-oracle')
 const soap = require('soap')
 
@@ -153,7 +151,7 @@ module.exports = function (system) {
 	}
 
 	// комплексная выписка по карте
-	router.get('/cards/receipt',	function (req, res) {
+	this.get('/receipt',	function (req, res) {
 		const ibso = ora(system.config.ibs,  { keepAlive: true })
 		card(req.query.ednumber, req.query.edpassword).then(card => {
 			if ('error' in card) {
@@ -335,7 +333,7 @@ module.exports = function (system) {
 	})
 
 	// баланс по карте из ПЦ
-	router.get('/cards/balance',	function (req, res) {
+	this.get('/balance',	function (req, res) {
 		const t2000 = ora(system.config.t)
 		return card(req.query.ednumber, req.query.edpassword)
 			.then(card => {
@@ -354,7 +352,7 @@ module.exports = function (system) {
 			}).catch(err => errorHandler(err, req, res))
 	})
 
-	router.get('/cards/sms-code',	function (req, res) {
+	this.get('/sms-code',	function (req, res) {
 		const t2000 = ora(system.config.t)
 		var code = ''
 		var possible = '0123456789'
@@ -378,5 +376,5 @@ module.exports = function (system) {
 		}).catch(err => errorHandler(err, req, res))
 	})
 
-	return router
+	return this
 }

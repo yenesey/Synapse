@@ -20,6 +20,17 @@
       "port": 9229,
       "cwd": "${workspaceFolder}",
       "program": "${workspaceFolder}/synapse.js"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Server (launch)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run-script",
+        "dev:api"
+      ],
+      "port": 9229
     }
   ]
 }
