@@ -175,6 +175,7 @@ module.exports = function (system) {
 				REC.C_3 "in",
 				REC.C_6 "sum",
 				REC.C_8 "out",
+				DOC.C_11 "purpose",
 				NVL(	-- тут берем 1 из 2х: либо из РЦ (по цепочке) если есть, либо из самого документа...
 					(
 					select 
