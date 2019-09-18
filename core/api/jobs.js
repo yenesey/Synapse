@@ -5,8 +5,6 @@
   TODO: проверка прав админа
 */
 
-const express = require('express')
-const router = express.Router({ strict: true })
 const bodyParser = require('body-parser')
 const cronJob = require('cron').CronJob
 const email = require('emailjs/email')
@@ -69,8 +67,8 @@ module.exports = function (system) {
 						.then(files => {
 							if (files) {
 								return mail.sendp({
-									from:    `Synapse <synapse@${os.hostname().toLowerCase()}`,
-									to:      to,
+									from: `Synapse <synapse@${os.hostname().toLowerCase()}`,
+									to: to,
 									subject: job.description || job.name,
 									//  text:    stdout || ' ',
 									attachment: files.map(name => ({
@@ -80,7 +78,7 @@ module.exports = function (system) {
 									})
 									).concat([{ data: '<html><pre>' + stdout + '</pre></html>', alternative: true }])
 								})
-							}	
+							}
 						})
 						.catch(err =>
 							console.log('[jobs] error trying email job results: ' + err.message + ' ' + util.inspect({ id: job.id, task: job.task, name: job.name }))
@@ -91,8 +89,8 @@ module.exports = function (system) {
 
 		function error (stdout) {
 			system.users('Администраторы')
-				.then(data=>data.map((el)=>el.email))
-				.then(emails=>
+				.then(data => data.map((el) => el.email))
+				.then(emails =>
 					mail.sendp({
 						from: `Synapse <synapse@${os.hostname().toLowerCase()}`,
 						to: emails.join(','),
@@ -141,164 +139,152 @@ module.exports = function (system) {
 		}// scheduled function
 	} // task(job)
 
-function schedule(job){
-//повесить job на расписание
-	try {
-		//handle инициализируется в объект с методами .start() .stop()
-		var handle = new cronJob(job.schedule, task(job),	function(){},	Boolean(job.enabled) );
-		crons[job.id] = handle; //--ассоциируем handle с id
-	} catch (err){
-		console.log('job.schedule: ' + err.message);
-		job.error = err.message; //улетит клиенту с ответом
+	function schedule (job) {
+		// повесить job на расписание
+		try {
+			// handle инициализируется в объект с методами .start() .stop()
+			var handle = new cronJob(job.schedule, task(job), function () {}, Boolean(job.enabled))
+			crons[job.id] = handle // ассоциируем handle с id
+		} catch (err) {
+			console.log('job.schedule: ' + err.message)
+			job.error = err.message // улетит клиенту с ответом
+		}
 	}
-}
 
-function updateStatement(tableName, obj, _key = 'id'){
-//построить конструкцию SQL UPDATE на основании пар ключ-значений объекта <obj>
-	if (!(_key in obj)) return null;
-	var keys = Object.keys(obj);
-	keys.splice(keys.indexOf(_key), 1);
-	if (keys.length===0) return null;
+	function updateStatement (tableName, obj, _key = 'id') {
+		// построить конструкцию SQL UPDATE на основании пар ключ-значений объекта <obj>
+		if (!(_key in obj)) return null
+		var keys = Object.keys(obj)
+		keys.splice(keys.indexOf(_key), 1)
+		if (keys.length === 0) return null
 
-	return {
-		sql: 'update ' + tableName + ' set ' + keys.join('=?,')+'=? where ' + _key + '=?', 
-		params: keys.concat([_key]).map(function(el){return obj[el]})
+		return {
+			sql: 'update ' + tableName + ' set ' + keys.join('=?,') + '=? where ' + _key + '=?',
+			params: keys.concat([_key]).map((el) => obj[el])
+		}
 	}
-}
 
-function dbop(job, type){
-// весь набор необходимых операций с базой в одной функции
-// передаем job и что с ним делать (type)
-// на выходе - промис
-var stt = '';
-var _job = Object.assign({}, job);
-if ('params' in _job) 
-  _job.params = JSON.stringify(_job.params);
-else
-  if (!_job.id)
-    _job.params = '{"argv":{},"pp":{"email":[""],"print":""}}';
+	function dbop (job, type) {
+		// весь набор необходимых операций с базой в одной функции
+		// передаем job и что с ним делать (type)
+		// на выходе - промис
+		var stt = ''
+		var _job = Object.assign({}, job)
+		if ('params' in _job)  _job.params = JSON.stringify(_job.params)
+		if (!_job.id) _job.params = '{"argv":{},"pp":{"email":[""],"print":""}}'
 
-	switch (type) {
-		case 'sel': //загрузить все jobs=[{job},{job}..] или.. загрузить указанный job по id
-			stt = (job.id?'and j.id=?':'')
+		switch (type) {
+		case 'sel': // загрузить все jobs=[{job},{job}..] или.. загрузить указанный job по id
+			stt = (job.id ? 'and j.id=?' : '')
 			return system.db(
 				'SELECT j.id, j.task, o.name, o.class, j.params, j.code, j.last, j.schedule, j.description, j.enabled ' +
 				'FROM jobs j, objects o ' +
-				'WHERE j.task = o.id ' + stt, 
+				'WHERE j.task = o.id ' + stt,
 				[job.id]
 			)
-			.then(select=>{
-				select.forEach(job=>{
-					try {
-            var interval = parser.parseExpression(job.schedule);
-            if(job.enabled)
-              job.next = moment(new Date(interval.next().toString())).format('YYYY-MM-DD HH:mm');
-						job.params = JSON.parse(job.params)
-					} catch(err){
-						console.log('error while parsing job.params at job.id=' + job.id)
-					} 
+				.then(select => {
+					select.forEach(job => {
+						try {
+							var interval = parser.parseExpression(job.schedule)
+							if (job.enabled) job.next = moment(new Date(interval.next().toString())).format('YYYY-MM-DD HH:mm')
+							job.params = JSON.parse(job.params)
+						} catch (err) {
+							console.log('error parsing job.params at job.id=' + job.id + ' ' + err.message)
+						}
+					})
+					if (job.id) return select[0] 
+					return select
 				})
-				if (job.id) return select[0] 
-				return select
-			})
-		case 'ins': 
+		case 'ins':
 			return system.db(
 				'INSERT INTO jobs VALUES (null, ?, ?, ?, 0, null, null, null)',
 				[_job.task, _job.params, _job.schedule]
 			)
 		case 'upd':
-			stt =	updateStatement('jobs', _job);
-			if (stt)
-				return system.db(stt.sql, stt.params).then(()=>dbop(job, 'sel'))
-			
+			stt = updateStatement('jobs', _job)
+			if (stt) return system.db(stt.sql, stt.params).then(() => dbop(job, 'sel'))
 			return dbop(job, 'sel')
 		case 'del':
 			return system.db('DELETE FROM jobs WHERE id=?',	[job.id])
-	}
-} //dbop
+		}
+	} // dbop
 
-/////////////////////////////////////////////////////////////////////////
-dbop({}, 'sel').then(jobs=> //грузим все задачи...
-	jobs.forEach(job=>
-		schedule(job)  //вешаем на расписание
-	)
-)
-.catch(err=>console.log(err.message))
-
-/////////////////////////////////////////////////////////////////////////
-//небольшой бэкенд ниже
-router.route('/jobs')
-
-.get(function(req, res){ 
-	dbop({},'sel')
-	.then(jobs=>{
-		jobs.forEach(job=>{
-			if (!(job.id in crons))
-				job.error = true
-		})
-		res.json(jobs)
-	})
-})
-
-.put( bodyParser.json(), function(req, res){ 
-	var job = req.body;
- 
-	if (!('id' in job)){ //job без id кандидат на добавление
-		dbop(job, 'ins')
-		.then(id=>
-				dbop({id:id}, 'sel')
-				.then(job=>{
-					schedule(job)
-					res.json(job)
-				})
+	//
+	dbop({}, 'sel').then(jobs => // грузим все задачи...
+		jobs.forEach(job =>
+			schedule(job)  // вешаем на расписание
 		)
-		.catch(err=>system.errorHandler(err, req, res))	
-		return;
-	} 
-
-	dbop(job, 'upd')
-	.then(job=>{
-//		console.log('upd:' + JSON.stringify(job))
-		destroy(job);	schedule(job);
-
-		if (job.enabled){
-			if (!job.error) start(job)
-		}else 
-			stop(job)
-		
-//			res.json(job)
-		res.json({id:job.id, error:Boolean(job.error)})
-	})	
-	.catch(err=>system.errorHandler(err, req, res))
-
-})
-
-.delete(bodyParser.json(), function(req, res){ 
-	var job = req.body;
-	dbop(job, 'del')
-	.then(()=>{
-		res.json({id : job.id});
-		destroy(job)
-	})
-	.catch(err => system.errorHandler(err, req, res))
-});
-
-router.route('/jobs/run')
-.get(function(req, res){ 
-	dbop({id : req.query.id}, 'sel')
-	.then(job=>//()<<-
-		task(job)().then(code=>{
-      job.last = moment().format('YYYY-MM-DD HH:mm');
-      system.db(
-				'UPDATE jobs SET last = ?, code = ? WHERE id = ?',
-				[job.last, code, job.id]
-      );
-      
-      res.json(job)
-    }) 
 	)
-	.catch(err => system.errorHandler(err, req, res))
-})
+		.catch(err => console.log(err.message))
 
-return router;
+	//
+	// небольшой бэкенд ниже
+	this.route('/')
+
+		.get(function (req, res) {
+			dbop({}, 'sel')
+				.then(jobs => {
+					jobs.forEach(job => {
+						if (!(job.id in crons)) job.error = true
+					})
+					res.json(jobs)
+				})
+		})
+
+		.put(bodyParser.json(), function (req, res) {
+			var job = req.body
+
+			if (!('id' in job)) { // job без id кандидат на добавление
+				dbop(job, 'ins')
+					.then(id =>
+						dbop({ id: id }, 'sel')
+							.then(job => {
+								schedule(job)
+								res.json(job)
+							})
+					)
+					.catch(err => system.errorHandler(err, req, res))
+				return
+			}
+
+			dbop(job, 'upd')
+				.then(job => {
+					// console.log('upd:' + JSON.stringify(job))
+					destroy(job)
+					schedule(job)
+
+					if (job.enabled) {
+						if (!job.error) start(job)
+					} else stop(job)
+
+					res.json({ id: job.id, error: Boolean(job.error) })
+				})
+				.catch(err => system.errorHandler(err, req, res))
+		})
+
+		.delete(bodyParser.json(), function (req, res) {
+			var job = req.body
+			dbop(job, 'del')
+				.then(() => {
+					res.json({ id: job.id })
+					destroy(job)
+				})
+				.catch(err => system.errorHandler(err, req, res))
+		})
+
+	this.route('/run')
+		.get(function (req, res) {
+			dbop({ id: req.query.id }, 'sel')
+				.then(job =>
+					task(job)().then(code => {
+						job.last = moment().format('YYYY-MM-DD HH:mm')
+						system.db(
+							'UPDATE jobs SET last = ?, code = ? WHERE id = ?',
+							[job.last, code, job.id]
+						)
+						res.json(job)
+					})
+				)
+				.catch(err => system.errorHandler(err, req, res))
+		})
 }

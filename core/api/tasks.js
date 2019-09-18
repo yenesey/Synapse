@@ -13,11 +13,9 @@
 	 - клиент обрабатывает получаемую информацию в рамках одного "долгого" ответа
 
 */
-const path = require('path')
-const express = require('express')
-const router = express.Router({ strict: true })
-const formidable = require('formidable')
 const promisify = require('util').promisify
+const path = require('path')
+const formidable = require('formidable')
 const fsp = require('../fsp')
 const bodyParser = require('body-parser')
 
@@ -82,7 +80,7 @@ module.exports = function (system) {
 
 	// ---------------------------------------------------------------
 
-	router.route('/tasks')
+	this.route('/')
 		.post(
 
 			// 1 - подготовка каталога / парсинг формы / прием файлов
@@ -210,7 +208,7 @@ module.exports = function (system) {
 					})
 			})
 
-	router.get('/tasks/meta', function (req, res) {
+	this.get('/meta', function (req, res) {
 		// выдача метаданных заданного объекта
 		return system.db(`
 			SELECT objects_meta.meta
@@ -222,7 +220,7 @@ module.exports = function (system) {
 			.catch(err => system.errorHandler(err, req, res))
 	})
 
-	router.put('/tasks/meta', bodyParser.json(), function (req, res) {
+	this.put('/meta', bodyParser.json(), function (req, res) {
 		// операция редактирования/удаления метаданных заданного объекта
 		// req.body = {objectId: Number, meta: string}
 		return system.accessCheck(req.ntlm.UserName, system.ADMIN_USERS)
@@ -236,5 +234,4 @@ module.exports = function (system) {
 			.then(result => res.json({ result }))
 			.catch(err => system.errorHandler(err, req, res))
 	})
-	return router
 }

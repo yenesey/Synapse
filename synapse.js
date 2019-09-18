@@ -47,15 +47,6 @@ console.log = function () {
 	)
 }
 
-function boolAffinity (value) {
-	if (typeof value === 'undefined') return false
-	switch (value.toString().toLowerCase().trim()) {
-	case 'true': case 'yes': case '1': return true
-	case 'false': case 'no': case '0': case null: return false
-	default: return Boolean(value)
-	}
-}
-
 function errorHandler (err, req, res, next) {
 	if (res.headersSent) return next(err)
 	console.log(err.stack)
@@ -164,10 +155,11 @@ if (!process.env.SERVICE) { // если не служба,
 */
 require('synapse/system').then(system => {
 	const app = express()
+	const config = system.config
 
 	if (process.env.SSL) {
 		let ssl = system.ssl
-		server = https.Server({ passphrase: String(system.config.ssl.password), pfx: ssl.certData }, app)
+		server = https.Server({ passphrase: String(config.ssl.password), pfx: ssl.certData }, app)
 	} else server = http.Server(app)
 
 	server.on('error', err => {
@@ -213,7 +205,7 @@ require('synapse/system').then(system => {
 		app.use([
 			errorHandler,
 			compression({ threshold: 0 }),
-			express.static(system.config.path.users, { // каталог с пользовательскими папками
+			express.static(config.path.users, { // каталог с пользовательскими папками
 				setHeaders: function (res, path) {
 					res.attachment(path) // добавляем в каджый заголовок инфу о том, что у нас вложение
 				}
@@ -236,12 +228,9 @@ require('synapse/system').then(system => {
 		const api = require('synapse/api.js')(system)
 		app.use(api('cft-web-proxy'))
 
-		if (system.config.telebot && boolAffinity(system.config.telebot.on)) {
-			app.use(api('telebot'))
-		}
-		if (system.config.cards && boolAffinity(system.config.cards.on)) {
-			app.use(api('cards'))  // запрос инфы по картам для сайта
-		}
+		if (config.getBool('telebot.on')) app.use(api('telebot'))
+
+		if (config.getBool('cards.on')) app.use(api('cards'))  // запрос инфы по картам для сайта
 
 		api.useNtlm() // отныне и вниз у нас есть userName из AD
 
@@ -249,12 +238,9 @@ require('synapse/system').then(system => {
 			api('access'),
 			api('dlookup'),
 			api('dbquery'),
-			// todo: переписать через app.use(api(...)) ... как сделано выше
-			require('synapse/api/tasks')(system),
-			require('synapse/api/forms')(system),
-			require('synapse/api/jobs')(system)
+			api('tasks'),
+			// api('forms'),
+			api('jobs')
 		])
 	})
-
-})
-	.catch(console.error)
+}).catch(console.error)

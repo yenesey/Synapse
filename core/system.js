@@ -194,6 +194,8 @@ system.accessCheck = function (_user, object) {
 		})
 }
 
+// проверка прав доступа пользователя к заданному объекту (блокировка тоже проверяется)
+
 module.exports = system.db('SELECT * FROM settings')
 	.then(select => {
 		var config = select.reduce((all, item) => {
@@ -232,6 +234,19 @@ module.exports = system.db('SELECT * FROM settings')
 					.catch(console.log)
 			}
 		})
+
+		system.config.getBool = function (path) {
+			var value = system.config
+			for (let key of path.split('.')) {
+				if ((typeof value === 'object') && (key in value)) value = value[key]; else return null
+			}
+			if (typeof value === 'undefined') return false
+			switch (value.toString().toLowerCase().trim()) {
+			case 'true': case 'yes': case '1': return true
+			case 'false': case 'no': case '0': case null: return false
+			default: return Boolean(value)
+			}
+		}
 
 		if (system.config.ssl.cert)	{
 			return promisify(fs.readFile)(path.join(ROOT_DIR, 'sslcert', system.config.ssl.cert))
