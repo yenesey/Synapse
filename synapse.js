@@ -157,10 +157,9 @@ require('synapse/system').then(system => {
 	const app = express()
 	const config = system.config
 
-	if (process.env.SSL) {
-		let ssl = system.ssl
-		server = https.Server({ passphrase: String(config.ssl.password), pfx: ssl.certData }, app)
-	} else server = http.Server(app)
+	server = process.env.SSL
+		? server = https.Server({ passphrase: String(config.ssl.password), pfx: config.ssl.certData }, app)
+		: server = http.Server(app)
 
 	server.on('error', err => {
 		console.log(chalk.red.bold('[error]:') + JSON.stringify(err, null, ''))
