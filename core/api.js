@@ -15,11 +15,17 @@ const path = require('path')
 const ntlm = require('express-ntlm')
 
 module.exports = function (system) {
-	function api (moduleName) {
+	function load (moduleName) {
 		const apiModule = require(path.join(__dirname, 'api', moduleName))
 		const apiRouter = express.Router({ strict: true })
 		apiModule.call(apiRouter, system)
 		router.use('/' + moduleName, apiRouter)
+		return router
+	}
+
+	function api (moduleName) {
+		if (typeof moduleName === 'string') return load(moduleName)
+		if (typeof moduleName === 'object') for (let el of moduleName) load(el)
 		return router
 	}
 

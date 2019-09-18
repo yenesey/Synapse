@@ -225,21 +225,11 @@ require('synapse/system').then(system => {
 		}
 
 		const api = require('synapse/api.js')(system)
-		app.use(api('cft-web-proxy'))
-
+		if (config.getBool('cft-web-proxy.on')) app.use(api('cft-web-proxy'))
 		if (config.getBool('telebot.on')) app.use(api('telebot'))
+		if (config.getBool('cards.on')) app.use(api('cards'))
 
-		if (config.getBool('cards.on')) app.use(api('cards'))  // запрос инфы по картам для сайта
-
-		api.useNtlm() // отныне и вниз у нас есть userName из AD
-
-		app.use([
-			api('access'),
-			api('dlookup'),
-			api('dbquery'),
-			api('tasks'),
-			// api('forms'),
-			api('jobs')
-		])
+		api.useNtlm() // отныне и далее у нас есть userName из AD
+		app.use(api(['access', 'dlookup', 'dbquery', 'tasks', 'jobs'])) /* 'forms' */
 	})
 }).catch(console.error)
