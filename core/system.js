@@ -140,7 +140,7 @@ system.access = function (user, options) {
 				} catch (err) {
 					console.log('[error]:'  + err.message.replace('\n', '') + '   object.id=' + access[index].id)
 				}
-				return {...obj, ...meta}
+				return { ...obj, ...meta }
 			})
 			return cast(access)
 		})

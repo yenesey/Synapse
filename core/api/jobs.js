@@ -6,7 +6,7 @@
 */
 
 const bodyParser = require('body-parser')
-const cronJob = require('cron').CronJob
+const CronJob = require('cron').CronJob
 const email = require('emailjs/email')
 const util = require('util')
 const path = require('path')
@@ -48,7 +48,7 @@ module.exports = function (system) {
 			// печать на указанный принтер (пока Windows-only)
 			if (job.params.pp.print) {
 				launcher.exec('cscript',
-					['/nologo', './core/winprint.js', taskPath, job.params.pp.print], 
+					['/nologo', './core/winprint.js', taskPath, job.params.pp.print],
 					{
 						log: false, // не логируем процесс стандартным методом
 						cp866: true
@@ -107,7 +107,7 @@ module.exports = function (system) {
 			var _eval = ''
 			for (var key in argv) {
 				try	{
-					_eval = eval(argv[key])
+					_eval = eval(argv[key]) // eslint-disable-line
 					argv[key] = _eval
 				} catch (err) {
 					// console.log(err)
@@ -143,7 +143,7 @@ module.exports = function (system) {
 		// повесить job на расписание
 		try {
 			// handle инициализируется в объект с методами .start() .stop()
-			var handle = new cronJob(job.schedule, task(job), function () {}, Boolean(job.enabled))
+			var handle = new CronJob(job.schedule, task(job), function () {}, Boolean(job.enabled))
 			crons[job.id] = handle // ассоциируем handle с id
 		} catch (err) {
 			console.log('job.schedule: ' + err.message)
@@ -192,7 +192,7 @@ module.exports = function (system) {
 							console.log('error parsing job.params at job.id=' + job.id + ' ' + err.message)
 						}
 					})
-					if (job.id) return select[0] 
+					if (job.id) return select[0]
 					return select
 				})
 		case 'ins':

@@ -44,12 +44,12 @@ module.exports = function (system) {
 			/*,
 			выбор телефона из карточки клиента отключен по предложению разработчика бота
 			`
-			select 
+			select
 				distinct CL.ID as "client_id"
-			from 
+			from
 				VW_CRIT_CL_PRIV CL,
 				VW_CRIT_CONTACTS CT
-			where 
+			where
 				CT.COLLECTION_ID = CL.REF8 and
 				CT.C_4 like :phone_num
 			` */
@@ -60,8 +60,8 @@ module.exports = function (system) {
 				if (!(data && data.length > 0)) return ibso(queryItem, { phone_num: '%' + query.phone_num + '%' })
 				return data
 			}),	Promise.resolve()
-		).then(([{ client_id }]) => {
-			if (!client_id) {
+		).then(([{ client_id }]) => { // eslint-disable-line
+			if (!client_id) { // eslint-disable-line
 				res.json({ success: false })
 				return
 			}

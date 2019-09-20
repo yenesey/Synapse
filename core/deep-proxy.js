@@ -1,6 +1,6 @@
 'use strict'
 // тырнуто отсюда (c) https://stackoverflow.com/questions/43177855/how-to-create-a-deep-proxy
-// бо в npm-модулях какой то sh..
+// ибо в npm-модулях по этой теме было какой то трэш
 
 function deepProxy (target, handler) {
 	if (typeof handler === 'undefined') throw new Error('Handler undefined')

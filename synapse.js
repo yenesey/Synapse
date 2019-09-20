@@ -230,6 +230,6 @@ require('synapse/system').then(system => {
 		if (config.getBool('cards.on')) app.use(api('cards'))
 
 		api.useNtlm() // отныне и далее у нас есть userName из AD
-		app.use(api(['access', 'dlookup', 'dbquery', 'tasks', 'jobs'])) /* 'forms' */
+		app.use(api(['access', 'dlookup', 'dbquery', 'tasks', 'jobs', 'config'])) /* 'forms' */
 	})
 }).catch(console.error)
