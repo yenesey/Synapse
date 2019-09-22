@@ -39,14 +39,16 @@ require('moment-precise-range-plugin')
 var server = null
 
 // вывод в консоль в своем формате
+
 console._log = console.log
+/*
 console.log = function () {
 	var args = Array.prototype.slice.apply(arguments)
 	console._log(chalk.reset.cyan.bold(moment().format('HH:mm:ss ')) +
 		args.reduce((all, arg) => all + ((typeof arg === 'object') ? util.inspect(arg) : arg), '')
 	)
 }
-
+*/
 function errorHandler (err, req, res, next) {
 	if (res.headersSent) return next(err)
 	console.log(err.stack)
@@ -229,7 +231,7 @@ require('synapse/system').then(system => {
 		if (config.getBool('telebot.on')) app.use(api('telebot'))
 		if (config.getBool('cards.on')) app.use(api('cards'))
 
-		api.useNtlm() // отныне и далее у нас есть userName из AD
+		// api.useNtlm() // отныне и далее у нас есть userName из AD
 		app.use(api(['access', 'dlookup', 'dbquery', 'tasks', 'jobs', 'config'])) /* 'forms' */
 	})
 }).catch(console.error)

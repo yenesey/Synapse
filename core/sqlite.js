@@ -22,6 +22,7 @@ module.exports = function (dbFile) {
 				} else resolve(db)
 				// db.loadExtension(path.join( __dirname, 'sqlite3_unicode.sqlext') , err=>{if (err) console.log('db.loadExtension:' + err)})
 			})
+			db.run('PRAGMA foreign_keys=ON')
 	})
 
 	return function (sql, params) {
