@@ -1,5 +1,5 @@
 --
--- File generated with SQLiteStudio v3.2.1 on Вт сен 24 16:31:55 2019
+-- File generated with SQLiteStudio v3.2.1 on Вт сен 24 17:19:29 2019
 --
 -- Text encoding used: UTF-8
 --
@@ -150,7 +150,7 @@ WITH RECURSIVE Node (
     AS (
         SELECT id,
                0,
-               ''
+               [key]
           FROM config
          WHERE idp = -1 AND 
                id != -1
