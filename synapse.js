@@ -157,7 +157,7 @@ if (!process.env.SERVICE) { // если не служба,
 */
 require('synapse/system').then(system => {
 	const app = express()
-	const config = system.config
+	const config = system.config.system
 
 	server = process.env.SSL
 		? server = https.Server({ passphrase: String(config.ssl.password), pfx: config.ssl.certData }, app)
@@ -227,11 +227,11 @@ require('synapse/system').then(system => {
 		}
 
 		const api = require('synapse/api.js')(system)
-		if (config.getBool('cft-web-proxy.on')) app.use(api('cft-web-proxy'))
-		if (config.getBool('telebot.on')) app.use(api('telebot'))
-		if (config.getBool('cards.on')) app.use(api('cards'))
+		if (system.boolCast('system.cft-web-proxy.on')) app.use(api('cft-web-proxy'))
+		if (system.boolCast('system.telebot.on')) app.use(api('telebot'))
+		if (system.boolCast('system.telebot.on')) app.use(api('cards'))
 
-		// api.useNtlm() // отныне и далее у нас есть userName из AD
+		api.useNtlm() // отныне и далее у нас есть userName из AD
 		app.use(api(['access', 'dlookup', 'dbquery', 'tasks', 'jobs', 'config'])) /* 'forms' */
 	})
 }).catch(console.error)

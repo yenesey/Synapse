@@ -15,6 +15,7 @@ const path = require('path')
 const ntlm = require('express-ntlm')
 
 module.exports = function (system) {
+	const config = system.config.system
 	function load (moduleName) {
 		const apiModule = require(path.join(__dirname, 'api', moduleName))
 		const apiRouter = express.Router({ strict: true })
@@ -45,8 +46,8 @@ module.exports = function (system) {
 					res.status(500).send('NTLM auth error')
 				},
 				// debug: function () { var args = Array.prototype.slice.apply(arguments); console.log.apply(null, args) },
-				domain: system.config.ntlm.domain,
-				domaincontroller: system.config.ntlm.dc
+				domain: config.ntlm.domain,
+				domaincontroller: config.ntlm.dc
 			})
 		)
 	}

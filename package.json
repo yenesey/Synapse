@@ -45,7 +45,7 @@
     "request": "2.88.0",
     "sleep": "5.2.3",
     "soap": "0.25.0",
-    "sqlite3": "^4.0.6",
+    "sqlite3": "^4.1.0",
     "winax": "1.12.0",
     "xlsx-template": "0.4.0",
     "xmlbuilder": "10.0.0"

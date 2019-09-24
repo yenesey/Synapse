@@ -60,9 +60,10 @@ function _ldap (query) {
 
 module.exports = function (system) {
 	// -
+	const config = system.config.system
 	function ibso (user, constraint) { // constraint = [{JSON}... {JSON}] в ibso используется для ограничения по реквизиту
 		if (!constraint) return Promise.resolve('')
-		if (!(constraint instanceof Array)) constraint = [constraint];
+		if (!(constraint instanceof Array)) constraint = [constraint]
 
 		return constraint.reduce((p, obj) =>
 			p.then(clause => {
@@ -80,8 +81,8 @@ module.exports = function (system) {
 		)
 	}
 
-	const ldap = require('../ds-ldap')(system.config.ntlm)
-	const ora = require('../ds-oracle')(system.config.ibs)
+	const ldap = require('../ds-ldap')(config.ntlm)
+	const ora = require('../ds-oracle')(config.ibs)
 	const sqlite = require('../ds-sqlite')()
 
 	this.post('/', bodyParser.json(), function (req, res) {

@@ -19,8 +19,9 @@ var crons = {} // ассоциативный массив (ключ-значен
 
 module.exports = function (system) {
 // -
-	const launcher = require('../launcher.js')(system.config)
-	const folder = require('../user-folders.js')(system.config.path.users, system.config.tasks.history)
+	let config = system.config.system
+	const launcher = require('../launcher.js')(config)
+	const folder = require('../user-folders.js')(config.path.users, config.tasks.history)
 	const mail = email.server.connect(system.config.mail)
 
 	mail.sendp = util.promisify(mail.send)

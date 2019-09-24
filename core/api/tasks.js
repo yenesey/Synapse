@@ -30,13 +30,14 @@ function tryBoolean (string) {
 }
 
 module.exports = function (system) {
-	var folder = require('../user-folders.js')(system.config.path.users, system.config.tasks.history)
-	var launcher = require('../launcher.js')(system.config)
+	const config = system.config.system
+	const folder = require('../user-folders.js')(config.path.users, config.tasks.history)
+	const launcher = require('../launcher.js')(config)
 
 	function launch (params, req, res) {
 		//	req.connection.on('close', function(){}); //закрытие соединения
 
-		res.socket.setTimeout(Number(system.config.socket.timeout)) // ответ, возможно будет "долгим"
+		res.socket.setTimeout(Number(config.socket.timeout)) // ответ, возможно будет "долгим"
 		res.writeHead(200, {
 			'Connection': 'keep-alive',
 			'Content-Type': 'application/octet-stream; charset=utf-8',
@@ -64,7 +65,7 @@ module.exports = function (system) {
 							JSON.stringify({
 								status: 'done',
 								message: 'Выполнено',
-								path: path.relative(system.config.path.users, req.task.path),
+								path: path.relative(config.path.users, req.task.path),
 								files: files
 							})
 								)

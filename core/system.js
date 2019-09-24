@@ -2,16 +2,17 @@
 /*
 	 - системная база данных system.db = function(<SQL>, [<params>])
 	 - системные функции и константы
-	 - конфигурация системы  system.config = {}
+	 - конфигурация системы  config = { system: {..}, .. }
 */
 
 const path = require('path')
 const promisify = require('util').promisify
 const fs = require('fs')
 const ROOT_DIR = path.join(__dirname, '..')
-const deepProxy = require('./deep-proxy')
+const db = require('./sqlite')(path.join(ROOT_DIR, 'db/synapse.db')) // основная БД приложения
+const config = require('./sqlite-tree-mapper')(db, 'config')
 
-const system = {}
+const system = { db: db }
 
 Object.defineProperties(
 	system,
@@ -45,8 +46,6 @@ function equals (number, string, _var) {
 	if (typeof _var === 'string')	return string + '=' + '\'' + _var + '\''
 }
 
-system.db = require('./sqlite')(path.join(ROOT_DIR, 'db/synapse.db')) // основная БД приложения
-// -------------------------------------------------------------------------------
 system.user = function (user) { // данные пользователя по login или id
 	return system.db(`SELECT id, login, name, email, disabled FROM users WHERE ${equals('id', 'login', user)} COLLATE NOCASE`)
 		.then(select => select.length ? select[0] : null)
@@ -194,67 +193,45 @@ system.accessCheck = function (_user, object) {
 		})
 }
 
-// проверка прав доступа пользователя к заданному объекту (блокировка тоже проверяется)
+system.boolCast = function (path) {
+	let value = system.configGetNode(path)
+	if (typeof value === 'undefined') return false
+	switch (value.toString().toLowerCase().trim()) {
+	case 'true': case 'yes': case '1': return true
+	case 'false': case 'no': case '0': case null: return false
+	default: return Boolean(value)
+	}
+}
 
-module.exports = system.db('SELECT * FROM settings')
-	.then(select => {
-		var config = select.reduce((all, item) => {
-			if (!(item.group in all))	{
-				all[item.group] = {}
-			}
-			all[item.group][item.key] = String(item.value)
-			return all
-		}, {}
-		)
+system.configGetNode = function (path, sep = '.') {
+	let _node = this.config
+	let _path = path.split(sep)
+	if (_path.length === 1 && _path[0] === '') return _node
+	for (let key of _path) {
+		if ((typeof _node === 'object') && (key in _node)) _node = _node[key]; else return null
+	}
+	return _node
+}
 
-		for (var key in config.path) {
-			if (!path.isAbsolute(config.path[key])) { // достраиваем относительные пути до полных
-				config.path[key] = path.join(ROOT_DIR, config.path[key])
-			}
+module.exports = config.then(cfg => {
+	system.config = cfg
+	let syscfg = cfg.system
+
+	// eslint-disable-all
+	for (var key in syscfg.path) {
+		if (!path.isAbsolute(syscfg.path[key])) { // достраиваем относительные пути до полных
+			syscfg.path[key] = path.join(ROOT_DIR, syscfg.path[key])
 		}
+	}
+	syscfg.path.root = ROOT_DIR
 
-		config.path.root = ROOT_DIR
+	if (syscfg.ssl.cert) {
+		return promisify(fs.readFile)(path.join(ROOT_DIR, 'sslcert', syscfg.ssl.cert))
+			.then(cert => {
+				syscfg.ssl.certData = cert.toString()
+				return system
+			})
+	}
 
-		system.config = deepProxy(config, { // мега-фича :) автозапись установок в случае изменения
-			set (target, path, value, receiver) {
-				var vars = { $group: path[0], $key: path[1], $value: value }
-				if (vars.$group in target) {
-					var sql = Reflect.has(target[vars.$group], vars.$key)
-						? `UPDATE settings SET value = $value WHERE [group] = $group AND [key] = $key`
-						: `INSERT INTO settings ([group], [key], value, description) VALUES ($group, $key, $value, '')`
-
-					system.db(sql, vars)
-						.then(() => console.log('[system]: config updated for ' + path.join('.')))
-						.catch(console.log)
-				}
-			},
-			deleteProperty (target, path) {
-				system.db(`DELETE FROM settings WHERE [group] = $group AND [key] = $key`, { $group: path[0], $key: path[1] })
-					.then(() => console.log('[system]: delete ' + path.join('.')))
-					.catch(console.log)
-			}
-		})
-
-		system.config.getBool = function (path) {
-			var value = system.config
-			for (let key of path.split('.')) {
-				if ((typeof value === 'object') && (key in value)) value = value[key]; else return null
-			}
-			if (typeof value === 'undefined') return false
-			switch (value.toString().toLowerCase().trim()) {
-			case 'true': case 'yes': case '1': return true
-			case 'false': case 'no': case '0': case null: return false
-			default: return Boolean(value)
-			}
-		}
-
-		if (system.config.ssl.cert)	{
-			return promisify(fs.readFile)(path.join(ROOT_DIR, 'sslcert', system.config.ssl.cert))
-				.then(cert => {
-					system.ssl = {}
-					system.ssl.certData = cert
-					return system
-				})
-		}
-		return system
-	})
+	return system
+})
