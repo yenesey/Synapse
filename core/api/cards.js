@@ -7,12 +7,6 @@
 const ora = require('../ds-oracle')
 const soap = require('soap')
 
-function errorHandler (err, req, res) {
-	console.log(err)
-	console.log('remote:' + req.connection.remoteAddress)
-	res.json({ success: false, error: err.message })
-}
-
 module.exports = function (system) {
 	const url = 'http://172.16.8.3:8962/solar-loyalty/loyaltyApi.wsdl'
 
@@ -137,11 +131,9 @@ module.exports = function (system) {
 
 		// нужен еще один шаг вперед чтобы зафиксировать сальдо исходящее на последнюю дату в выписке
 		if (strToDate(dateOut) >= datePrev)	forward(sa,  datePrev, new Date(datePrev.valueOf() + 60 * 60 * 1000 * 24 - 1), state)
-		// console.log(sa)
 		var avg0 = _avg(sa) // средний для версии что до конца периода сальдо - 0
 
 		forward(sa, datePrev, strToDate(dateOut), state)
-		// console.log(sa)
 		var avg = _avg(sa)  // средний для версии, что до конца периода сальдо = сальдо исходящее
 
 		return {
@@ -329,7 +321,7 @@ module.exports = function (system) {
 					})
 				})
 			})
-		}).catch(err => errorHandler(err, req, res))
+		}).catch(err => system.errorHandler(err, req, res))
 	})
 
 	// баланс по карте из ПЦ
@@ -349,7 +341,7 @@ module.exports = function (system) {
 							balance: (balance.length ? balance[0].BALANCE : 'pcardstandard данные недоступны')
 						})
 					)
-			}).catch(err => errorHandler(err, req, res))
+			}).catch(err => system.errorHandler(err, req, res))
 	})
 
 	this.get('/sms-code',	function (req, res) {
@@ -373,7 +365,7 @@ module.exports = function (system) {
 			} else {
 				res.json({ success: true,	code: code })
 			}
-		}).catch(err => errorHandler(err, req, res))
+		}).catch(err => system.errorHandler(err, req, res))
 	})
 
 	return this

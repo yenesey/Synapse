@@ -17,7 +17,7 @@ module.exports = function (system) {
 			xmlnsAttributes: []
 		}
 	}).then(_client => { client = _client })
-		.catch(console.log)
+		.catch(system.log)
 
 	this.get('/doc', function (req, res) {
 		// -

@@ -1,18 +1,80 @@
 'use strict'
 /*
-	 - системная база данных system.db = function(<SQL>, [<params>])
-	 - системные функции и константы
-	 - конфигурация системы  config = { system: {..}, .. }
+	- системные функции и константы
+    - системная база данных system.db = function(<SQL>, [<params>])
+	- конфигурация системы  config = { system: {..}, .. }
 */
 
 const path = require('path')
-const promisify = require('util').promisify
+const util = require('util')
+const chalk = require('chalk')
 const fs = require('fs')
 const ROOT_DIR = path.join(__dirname, '..')
+const promisify = util.promisify
 const db = require('./sqlite')(path.join(ROOT_DIR, 'db/synapse.db')) // основная БД приложения
 const config = require('./sqlite-tree-mapper')(db, 'config')
+const moment  = require('moment'); require('moment-precise-range-plugin')
 
+// ---------------------------------------------------------------------------
 const system = { db: db }
+
+system.log = function (...args) {
+	console.log(chalk.reset.cyan.bold(moment().format('HH:mm:ss ')) +
+		args.reduce((all, arg) => all + ((typeof arg === 'object') ? util.inspect(arg, { colors: true }) : arg), '')
+	)
+}
+
+system.info = function () {
+	let format = (obj, color) => {
+		let keys = Object.keys(obj)
+		let fmt =  keys.reduce((result, key, index) => {
+			let str = String(obj[key]).replace(/(\d)(?=(\d{3})+([^\d]|$))/g, '$1,')
+			let data = key + ':' + ((typeof color === 'function') ? color(str) : str)
+			// eslint-disable-next-line no-control-regex
+			let fill = '─'.repeat(data.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '').length)
+			result[0] += fill + '┬'
+			result[1] += data + '│'
+			result[2] += fill + '┴'
+			if (index === keys.length - 1) {
+				result[0] = result[0].substr(0, result[0].length - 1) + '┐'
+				result[2] = result[2].substr(0, result[2].length - 1) + '┘'
+			}
+			return result
+		}, ['┌', '│', '└']
+		)
+		return fmt.join('\n')
+	}
+	let mem = process.memoryUsage()
+	let addr = this.address()
+	let uptime = Math.round(process.uptime() / 3600) + ' hrs'
+	
+	let info = {
+		'arch': process,
+		'node': process.versions,
+		// 'v8': process.versions,
+		'port': addr,
+		// 'node_env': process.env,
+		'args': { args: process.argv.slice(2) },
+		'execArgv': process,
+		'uptime': { uptime: uptime },
+		'rss': mem,
+		'heapTotal': mem
+		// 'heapUsed': mem,
+		// 'external': mem
+	}
+	info = Object.keys(info).reduce((result, key) => {
+		if (key in info[key]) {
+			let value = String(info[key][key])
+			if (value.length) result[key] = value
+		}
+		return result
+	}, {})
+	return format(info, chalk.green.bold)
+}
+
+system.easterEgg = function () {
+	return '\n (.)(.)\n  ).(  \n ( v )\n  \\|/'
+}
 
 Object.defineProperties(
 	system,
@@ -137,7 +199,7 @@ system.access = function (user, options) {
 					meta = JSON.parse(obj.meta)
 					delete obj.meta
 				} catch (err) {
-					console.log('[error]:'  + err.message.replace('\n', '') + '   object.id=' + access[index].id)
+					system.log('[error]:'  + err.message.replace('\n', '') + '   object.id=' + access[index].id)
 				}
 				return { ...obj, ...meta }
 			})
@@ -152,7 +214,7 @@ system.error = function (message) {
 	return err
 }
 
-system.errorHandler = function (err, req, res) {
+system.errorHandler = function (err, req, res, next) {
 	if (err.code === system.ERROR) {
 		if (res) res.json({ error: err.message })
 		return true // с запланированной ошибкой расправляемся быстро
@@ -166,8 +228,11 @@ system.errorHandler = function (err, req, res) {
 		msg.remote = req.connection.remoteAddress
 		msg.url = req.url
 	}
-	console.log(msg)
-	if (res) res.json({ success: false, error: err.message })
+	system.log(msg)
+	if (res) {
+		if (res.headersSent && next) next()
+		res.json({ success: false, error: err.message })
+	}
 	return false
 }
 /// /////////////////////////////////////////////////////////////////////
@@ -216,7 +281,6 @@ system.configGetNode = function (path, sep = '.') {
 module.exports = config.then(cfg => {
 	system.config = cfg
 	let syscfg = cfg.system
-
 	// eslint-disable-all
 	for (var key in syscfg.path) {
 		if (!path.isAbsolute(syscfg.path[key])) { // достраиваем относительные пути до полных
