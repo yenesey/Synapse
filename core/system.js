@@ -13,13 +13,13 @@ const ROOT_DIR = path.join(__dirname, '..')
 const promisify = util.promisify
 const db = require('./sqlite')(path.join(ROOT_DIR, 'db/synapse.db')) // основная БД приложения
 const config = require('./sqlite-tree-mapper')(db, 'config')
-const moment  = require('moment'); require('moment-precise-range-plugin')
-
 // ---------------------------------------------------------------------------
 const system = { db: db }
 
 system.log = function (...args) {
-	console.log(chalk.reset.cyan.bold(moment().format('HH:mm:ss ')) +
+	var dt = new Date()
+	let stamp = dt.toLocaleDateString('ru', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + dt.toLocaleTimeString('ru', { hour12: false })
+	console.log(chalk.reset.cyan.bold(stamp) + ' ' +
 		args.reduce((all, arg) => all + ((typeof arg === 'object') ? util.inspect(arg, { colors: true }) : arg), '')
 	)
 }
@@ -27,27 +27,24 @@ system.log = function (...args) {
 system.info = function () {
 	let format = (obj, color) => {
 		let keys = Object.keys(obj)
+		let lengths = []
 		let fmt =  keys.reduce((result, key, index) => {
-			let str = String(obj[key]).replace(/(\d)(?=(\d{3})+([^\d]|$))/g, '$1,')
-			let data = key + ':' + ((typeof color === 'function') ? color(str) : str)
-			// eslint-disable-next-line no-control-regex
-			let fill = '─'.repeat(data.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '').length)
-			result[0] += fill + '┬'
-			result[1] += data + '│'
-			result[2] += fill + '┴'
-			if (index === keys.length - 1) {
-				result[0] = result[0].substr(0, result[0].length - 1) + '┐'
-				result[2] = result[2].substr(0, result[2].length - 1) + '┘'
-			}
-			return result
-		}, ['┌', '│', '└']
-		)
-		return fmt.join('\n')
+			let value = String(obj[key]).replace(/(\d)(?=(\d{3})+([^\d]|$))/g, '$1,')
+			value = key + ':' + ((typeof color === 'function') ? color(value) : value)
+			lengths.push(value.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '').length) // eslint-disable-line
+			return result + value + '│'
+		}, '│')
+
+		let head = (op, md, cl) =>	lengths.reduce((result, times, index, { length }) =>
+			result + '─'.repeat(times) + (index < length - 1 ? md : '')
+		, op) + cl
+
+		return head('┌', '┬', '┐') + '\n' + fmt + '\n' + head('└', '┴', '┘')
 	}
 	let mem = process.memoryUsage()
 	let addr = this.address()
-	let uptime = Math.round(process.uptime() / 3600) + ' hrs'
-	
+	let uptime = Math.round(process.uptime() / 36) / 100 + ' hrs'
+
 	let info = {
 		'arch': process,
 		'node': process.versions,

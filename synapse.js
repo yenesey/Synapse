@@ -119,7 +119,7 @@ require('synapse/system').then(system => {
 		if (process.env.NODE_ENV === 'development') {
 			console.log('Backend api mode. Type "rs + [enter]" to restart manually')
 			app.use(cors)
-			app.use(morgan('tiny', { stream: { write: msg => console.log(msg) } }))
+			app.use(morgan('tiny', { stream: { write: msg => system.log(msg) } }))
 		}
 
 		const api = require('synapse/api.js')(system)
@@ -159,7 +159,7 @@ require('synapse/system').then(system => {
 				case 'u': console.log(system.info())
 					break
 				case '\u0003': close(); break  // Ctrl+C
-				default:  console.log(system.easterEgg())
+				default: console.log(system.easterEgg())
 				}
 			})
 		}
