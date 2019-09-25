@@ -79,7 +79,6 @@ process.argv.forEach(arg => {
 require('synapse/system').then(system => {
 	const app = express()
 	const config = system.config.system
-	console.log(config.ssl)
 
 	server = process.env.SSL
 		? server = https.Server({ passphrase: String(config.ssl.password), pfx: config.ssl.certData }, app)
@@ -128,7 +127,7 @@ require('synapse/system').then(system => {
 		if (system.configGetBool('system.telebot.on')) app.use(api('telebot'))
 		if (system.configGetBool('system.telebot.on')) app.use(api('cards'))
 
-		api.useNtlm() // отныне и далее у нас есть userName из AD
+		//api.useNtlm() // отныне и далее у нас есть userName из AD
 		app.use(api(['access', 'dlookup', 'dbquery', 'tasks', 'jobs', 'config'])) /* 'forms' */
 	})
 

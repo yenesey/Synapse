@@ -11,7 +11,7 @@ const config = require('synapse/sqlite-tree-mapper')(db, 'config')
 
 // -------------------------------------------
 let sql = `
-DROP TABLE IF EXISTS config;
+DROP TABLE config;
 CREATE TABLE config (
     id    INTEGER PRIMARY KEY ASC AUTOINCREMENT,
     idp   INTEGER REFERENCES config (id) ON DELETE CASCADE
@@ -29,9 +29,10 @@ CREATE UNIQUE INDEX idp_and_key ON config (idp, "key");`
 if (process.argv[2] === '--import') {
 	Promise.all([
 		config,
-		db('SELECT * FROM settings')
+		db('SELECT * FROM settings'),
+		db('SELECT objects.*, (select meta from objects_meta where object = objects.id) as meta	FROM objects')
 	])
-		.then(([config, settings]) => {
+		.then(([config, settings, objects]) => {
 			var oldConfig = settings.reduce((all, item) => {
 				if (!(item.group in all))	{
 					all[item.group] = {}
@@ -40,12 +41,29 @@ if (process.argv[2] === '--import') {
 				return all
 			}, {})
 			config.system = oldConfig // -- вот такая магия. просто присваиваем старый конфиг и данные льются в таблицу [config]
-			console.log(config)
-			console.log('Успешно выполнено!!!')
+
 			setTimeout(() => {
 				db('update config set value = "+u" where idp = 1 and key = "ssl" ')
 				db('update config set value = "+u" where idp = 1 and key = "path" ')
 			}, 1000)
+
+			var oldObjects = objects.reduce((all, item) => {
+				if (!(item.class in all))	{
+					all[item.class] = {}
+				}
+				all[item.class][item.name] = {}
+				if (item.description) all[item.class][item.name]['description'] = item.description
+				if (item.meta) {
+					let meta = JSON.parse(item.meta)
+					for (let key in meta)
+						all[item.class][item.name][key] = meta[key]
+				}
+				return all
+			}, {})
+
+			config.objects = oldObjects 
+
+			console.log('Успешно выполнено!!!')
 		}).catch(console.log)
 } else {
 	db.serialize(function () {

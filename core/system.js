@@ -30,10 +30,10 @@ system.info = function () {
 		let lengths = []
 		let fmt =  keys.reduce((result, key, index) => {
 			let value = String(obj[key]).replace(/(\d)(?=(\d{3})+([^\d]|$))/g, '$1,')
-			value = key + ':' + ((typeof color === 'function') ? color(value) : value) + ' │ '
-			lengths.push(value.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '').length - 1) // eslint-disable-line
+			value = key + ':' + ((typeof color === 'function') ? color(value) : value) + '│'
+			lengths.push(value.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '').length-1) // eslint-disable-line
 			return result + value
-		}, '│ ')
+		}, '│')
 
 		let head = (op, md, cl) =>	lengths.reduce((result, times, index, { length }) =>
 			result + '─'.repeat(times) + (index < length - 1 ? md : '')
