@@ -2,11 +2,11 @@
 
 /*
 	конвертация settings в config
-	1. положить в каталог с synapse.db, или прописать путь.
+	положить в каталог с synapse.db, или прописать путь.
 	\> node cvt
 	\> node cvt --import
 */
-const db = require('synapse/sqlite')('synapse.db')
+const db = require('synapse/sqlite')('../db/synapse.db')
 const config = require('synapse/sqlite-tree-mapper')(db, 'config')
 
 // -------------------------------------------

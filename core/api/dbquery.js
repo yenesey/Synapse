@@ -8,7 +8,7 @@ const bodyParser = require('body-parser')
 
 module.exports = function (system) {
 	// -
-	let config = system.config.system
+	const config = system.config.system
 	const ora = require('../ds-oracle')(config.ibs)
 
 	this.post('/', bodyParser.json({ limit: '5mb' }), function (req, res) {

@@ -79,6 +79,7 @@ process.argv.forEach(arg => {
 require('synapse/system').then(system => {
 	const app = express()
 	const config = system.config.system
+	console.log(config.ssl)
 
 	server = process.env.SSL
 		? server = https.Server({ passphrase: String(config.ssl.password), pfx: config.ssl.certData }, app)
@@ -117,15 +118,15 @@ require('synapse/system').then(system => {
 		}
 
 		if (process.env.NODE_ENV === 'development') {
-			console.log('Backend api mode. Type "rs + [enter]" to restart manually')
+			// console.log('Backend api mode. Type "rs + [enter]" to restart manually')
 			app.use(cors)
 			app.use(morgan('tiny', { stream: { write: msg => system.log(msg) } }))
 		}
 
 		const api = require('synapse/api.js')(system)
-		if (system.boolCast('system.cft-web-proxy.on')) app.use(api('cft-web-proxy'))
-		if (system.boolCast('system.telebot.on')) app.use(api('telebot'))
-		if (system.boolCast('system.telebot.on')) app.use(api('cards'))
+		if (system.configGetBool('system.cft-web-proxy.on')) app.use(api('cft-web-proxy'))
+		if (system.configGetBool('system.telebot.on')) app.use(api('telebot'))
+		if (system.configGetBool('system.telebot.on')) app.use(api('cards'))
 
 		api.useNtlm() // отныне и далее у нас есть userName из AD
 		app.use(api(['access', 'dlookup', 'dbquery', 'tasks', 'jobs', 'config'])) /* 'forms' */

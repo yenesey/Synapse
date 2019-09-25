@@ -8,10 +8,11 @@ const ora = require('../ds-oracle')
 
 module.exports = function (system) {
 	//
+	const config = system.config.system
 	// авторизация
 	this.get('/auth', function (req, res) { // /telebot/auth?phone_num=XXXXXXXXXX
 		const query = req.query
-		const ibso = ora(system.config.ibs)
+		const ibso = ora(config.ibs)
 
 		if (!query.phone_num || query.phone_num.length < 10) { // phone_num must be 10 signs at least
 			res.json({ success: false })
@@ -110,7 +111,7 @@ module.exports = function (system) {
 	//	баланс по карте из ПЦ
 	this.get('/balance_pc', function (req, res) { //  /telebot/balance_pc?account_id_pc=NNNNNNNN
 		const query = req.query
-		const t2000 = ora(system.config.t)
+		const t2000 = ora(config.t)
 		return t2000(`select sysadm.pcardstandard.F_OnlineBalance_CSbyACCID(:acc_id) "balance" from dual`, { acc_id: query.account_id_pc })
 			.then(([{ balance }]) =>
 				res.json({
@@ -123,8 +124,8 @@ module.exports = function (system) {
 	//	баланс по карте из ПЦ
 	this.get('/limitauth', function (req, res) { //  /telebot/limitauth?acc_id=NNNNNNNN
 		const query = req.query
-		const ibso = ora(system.config.ibs)
-		const t2000 = ora(system.config.t)
+		const ibso = ora(config.ibs)
+		const t2000 = ora(config.t)
 		return ibso(`
 			select
 				acc.C_6 "balance",
@@ -163,7 +164,7 @@ module.exports = function (system) {
 	// выписка
 	this.get('/receipt', function (req, res) { // /telebot/receipt?acc_id=NNNNNNN&date=dd.mm.yyyy hh:mm:ss
 		const query = req.query
-		const ibso = ora(system.config.ibs)
+		const ibso = ora(config.ibs)
 		ibso(`
 			select 
 				CASE REC.C_5

@@ -30,10 +30,10 @@ system.info = function () {
 		let lengths = []
 		let fmt =  keys.reduce((result, key, index) => {
 			let value = String(obj[key]).replace(/(\d)(?=(\d{3})+([^\d]|$))/g, '$1,')
-			value = key + ':' + ((typeof color === 'function') ? color(value) : value)
-			lengths.push(value.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '').length) // eslint-disable-line
-			return result + value + '│'
-		}, '│')
+			value = key + ':' + ((typeof color === 'function') ? color(value) : value) + ' │ '
+			lengths.push(value.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '').length - 1) // eslint-disable-line
+			return result + value
+		}, '│ ')
 
 		let head = (op, md, cl) =>	lengths.reduce((result, times, index, { length }) =>
 			result + '─'.repeat(times) + (index < length - 1 ? md : '')
@@ -255,9 +255,9 @@ system.accessCheck = function (_user, object) {
 		})
 }
 
-system.boolCast = function (path) {
+system.configGetBool = function (path) {
 	let value = system.configGetNode(path)
-	if (typeof value === 'undefined') return false
+	if (typeof value === 'undefined' || value === null) return false
 	switch (value.toString().toLowerCase().trim()) {
 	case 'true': case 'yes': case '1': return true
 	case 'false': case 'no': case '0': case null: return false
@@ -289,7 +289,7 @@ module.exports = config.then(cfg => {
 	if (syscfg.ssl.cert) {
 		return promisify(fs.readFile)(path.join(ROOT_DIR, 'sslcert', syscfg.ssl.cert))
 			.then(cert => {
-				syscfg.ssl.certData = cert.toString()
+				syscfg.ssl.certData = cert
 				return system
 			})
 	}
