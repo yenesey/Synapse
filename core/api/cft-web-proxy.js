@@ -7,7 +7,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
 
 module.exports = function (system) {
 	// -
-	const url = system.config.system['cft-web-proxy'].document
+	const url = system.config['cft-web-proxy'].document
 	var	client = null
 	soap.createClientAsync(url, {
 		envelopeKey: 'soapenv',

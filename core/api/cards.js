@@ -8,7 +8,7 @@ const ora = require('../ds-oracle')
 const soap = require('soap')
 
 module.exports = function (system) {
-	const config = system.config.system
+	const config = system.config
 	const url = 'http://172.16.8.3:8962/solar-loyalty/loyaltyApi.wsdl'
 
 	// ibso("alter session set NLS_DATE_FORMAT='dd.mm.yyyy hh24:mi:ss'")

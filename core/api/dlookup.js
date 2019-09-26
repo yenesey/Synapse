@@ -60,7 +60,7 @@ function _ldap (query) {
 
 module.exports = function (system) {
 	// -
-	const config = system.config.system
+	const config = system.config
 	function ibso (user, constraint) { // constraint = [{JSON}... {JSON}] в ibso используется для ограничения по реквизиту
 		if (!constraint) return Promise.resolve('')
 		if (!(constraint instanceof Array)) constraint = [constraint]

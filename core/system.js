@@ -7,12 +7,13 @@
 
 const path = require('path')
 const util = require('util')
+const assert = require('assert')
 const chalk = require('chalk')
 const fs = require('fs')
 const ROOT_DIR = path.join(__dirname, '..')
 const promisify = util.promisify
 const db = require('./sqlite')(path.join(ROOT_DIR, 'db/synapse.db')) // основная БД приложения
-const config = require('./sqlite-tree-mapper')(db, 'config')
+const treeMapper = require('./sqlite-tree-mapper')(db, 'system')
 // ---------------------------------------------------------------------------
 const system = { db: db }
 
@@ -76,6 +77,10 @@ system.easterEgg = function () {
 Object.defineProperties(
 	system,
 	{
+		CONFIG: {
+			value: 1,
+			enumerable: true
+		},
 		ADMIN_USERS: {
 			value: 1,
 			enumerable: true
@@ -90,10 +95,6 @@ Object.defineProperties(
 		},
 		ADMIN_TASKS: {
 			value: 4,
-			enumerable: true
-		},
-		ERROR: {
-			value: 'SYNAPSE_SYSTEM',
 			enumerable: true
 		}
 	}
@@ -205,20 +206,15 @@ system.access = function (user, options) {
 }
 
 /// /////////////////////////////////////////////////////////////////////
-system.error = function (message) {
-	var err = new Error(message)
-	err.code = system.ERROR
-	return err
-}
 
 system.errorHandler = function (err, req, res, next) {
-	if (err.code === system.ERROR) {
-		if (res) res.json({ error: err.message })
-		return true // с запланированной ошибкой расправляемся быстро
-	}
 	var msg = {
 		code: err.code,
 		message: err.message
+	}
+	if (err.code === 'ERR_ASSERTION') {
+		var at = err.stack.substr(err.stack.indexOf('at '))
+		msg.at = at.substr(0, at.indexOf('\n'))
 	}
 	if (req) {
 		if (req.ntlm) msg.user = req.ntlm.UserName
@@ -237,8 +233,8 @@ system.errorHandler = function (err, req, res, next) {
 system.userCheck = function (_user) {
 	return system.user(_user)
 		.then(user => {
-			if (user) return user
-			throw system.error('Пользователь ' + _user + ' не зарегистрирован')
+			assert(user, 'Пользователь ' + _user + ' не зарегистрирован')
+			return user
 		})
 }
 
@@ -246,11 +242,11 @@ system.userCheck = function (_user) {
 system.accessCheck = function (_user, object) {
 	return system.userCheck(_user)
 		.then(user => {
-			if (user.disabled) throw system.error('Пользователь ' + _user + ' заблокирован')
+			assert(!user.disabled, 'Пользователь ' + _user + ' заблокирован')
 			return system.access(_user, { object: object })
 				.then(access => {
-					if (access && access.granted)	return access
-					throw system.error('Не разрешен доступ к операции')
+					assert(access && access.granted, 'Не разрешен доступ к операции')
+					return access
 				})
 		})
 }
@@ -275,21 +271,21 @@ system.configGetNode = function (path, sep = '.') {
 	return _node
 }
 
-module.exports = config.then(cfg => {
-	system.config = cfg
-	let syscfg = cfg.system
+module.exports = treeMapper(system.CONFIG).then(config => {
+	system.config = config
+	// console.log(tree.objects.tasks['Переоценка']._id)
 	// eslint-disable-all
-	for (var key in syscfg.path) {
-		if (!path.isAbsolute(syscfg.path[key])) { // достраиваем относительные пути до полных
-			syscfg.path[key] = path.join(ROOT_DIR, syscfg.path[key])
+	for (var key in config.path) {
+		if (!path.isAbsolute(config.path[key])) { // достраиваем относительные пути до полных
+			config.path[key] = path.join(ROOT_DIR, config.path[key])
 		}
 	}
-	syscfg.path.root = ROOT_DIR
+	config.path.root = ROOT_DIR
 
-	if (syscfg.ssl.cert) {
-		return promisify(fs.readFile)(path.join(ROOT_DIR, 'sslcert', syscfg.ssl.cert))
+	if (config.ssl.cert) {
+		return promisify(fs.readFile)(path.join(ROOT_DIR, 'sslcert', config.ssl.cert))
 			.then(cert => {
-				syscfg.ssl.certData = cert
+				config.ssl.certData = cert
 				return system
 			})
 	}

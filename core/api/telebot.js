@@ -8,7 +8,7 @@ const ora = require('../ds-oracle')
 
 module.exports = function (system) {
 	//
-	const config = system.config.system
+	const config = system.config
 	// авторизация
 	this.get('/auth', function (req, res) { // /telebot/auth?phone_num=XXXXXXXXXX
 		const query = req.query

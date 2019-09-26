@@ -78,7 +78,7 @@ process.argv.forEach(arg => {
 */
 require('synapse/system').then(system => {
 	const app = express()
-	const config = system.config.system
+	const config = system.config
 
 	server = process.env.SSL
 		? server = https.Server({ passphrase: String(config.ssl.password), pfx: config.ssl.certData }, app)
@@ -92,7 +92,7 @@ require('synapse/system').then(system => {
 	process.env.PORT = process.env.PORT || (process.env.SSL ? '443' : '80')
 
 	server.listen(process.env.PORT, function () {
-		system.info = system.info.bind(this)
+		system.info = system.info.bind(this) // for this.address
 
 		// eslint-disable-next-line no-new
 		new CronJob('00 00 * * *',  function () {
@@ -100,7 +100,6 @@ require('synapse/system').then(system => {
 		}, null, true, null, null, true)
 
 		app.use([
-			system.errorHandler,
 			compression({ threshold: 0 }),
 			express.static(config.path.users, { // каталог с пользовательскими папками
 				setHeaders: function (res, path) {
@@ -127,8 +126,9 @@ require('synapse/system').then(system => {
 		if (system.configGetBool('system.telebot.on')) app.use(api('telebot'))
 		if (system.configGetBool('system.telebot.on')) app.use(api('cards'))
 
-		//api.useNtlm() // отныне и далее у нас есть userName из AD
+		api.useNtlm() // отныне и далее у нас есть userName из AD
 		app.use(api(['access', 'dlookup', 'dbquery', 'tasks', 'jobs', 'config'])) /* 'forms' */
+		app.use(system.errorHandler)
 	})
 
 	function close () {

@@ -7,24 +7,23 @@
 	\> node cvt --import
 */
 const db = require('synapse/sqlite')('../db/synapse.db')
-const config = require('synapse/sqlite-tree-mapper')(db, 'config')
+const treeMap = require('synapse/sqlite-tree-mapper')(db, 'system')
 
 // -------------------------------------------
 let sql = `
-DROP TABLE config;
-CREATE TABLE config (
+DROP TABLE system;
+CREATE TABLE system (
     id    INTEGER PRIMARY KEY ASC AUTOINCREMENT,
-    idp   INTEGER REFERENCES config (id) ON DELETE CASCADE
-                  NOT NULL,
+    idp   INTEGER REFERENCES system (id) ON DELETE CASCADE  NOT NULL,
     [key] STRING  NOT NULL,
     value STRING
 );
-INSERT INTO config (id, idp, [key], value ) VALUES (-1, -1, '_root_', NULL);
-CREATE INDEX "" ON config (idp ASC);
-CREATE UNIQUE INDEX idp_and_key ON config (idp, "key");
+INSERT INTO system (id, idp, [key], value ) VALUES (-1, -1, 'root', NULL);
+CREATE INDEX "" ON system (idp ASC);
+CREATE UNIQUE INDEX idp_and_key ON system (idp, "key");
 
-DROP VIEW vw_config_recursive;
-CREATE VIEW vw_config_recursive AS
+DROP VIEW vw_system_recursive;
+CREATE VIEW vw_system_recursive AS
 WITH RECURSIVE Node (
         id,
         level,
@@ -34,38 +33,38 @@ WITH RECURSIVE Node (
         SELECT id,
                0,
                [key]
-          FROM config
+          FROM system
          WHERE idp = -1 AND 
                id != -1
         UNION
-        SELECT config.id,
+        SELECT system.id,
                Node.level + 1,
                Node.path || '/' || [key]
-          FROM config,
+          FROM system,
                Node
-         WHERE config.idp = Node.id
+         WHERE system.idp = Node.id
     )
     SELECT Node.path,
-           config.id,
+           system.id,
            substr('                       ', 1, level * 6) || "key" AS [key],
-           config.value
+           system.value
       FROM Node,
-           config
-     WHERE config.id = Node.id
+           system
+     WHERE system.id = Node.id
      ORDER BY Node.path;
 `.split(';')
 // -------------------------------------------
 
 if (process.argv[2] === '--import') {
 	Promise.all([
-		config,
-
-		db('SELECT * FROM settings'),
-		db('SELECT objects.*, (select meta from objects_meta where object = objects.id) as meta	FROM objects'),
-		db('SELECT * FROM users')
+		treeMap(-1),
+			db('SELECT * FROM settings'),
+			db('SELECT *, (select meta from objects_meta where object = objects.id) as meta	FROM objects'),
+			db('SELECT * FROM users')
 	])
-		.then(([config, settings, objects, users]) => {
-
+		.then(([tree, settings, objects, users]) => {
+			
+			// Мапим конфиг в объект
 			var oldConfig = settings.reduce((all, item) => {
 				if (!(item.group in all))	{
 					all[item.group] = {}
@@ -73,19 +72,24 @@ if (process.argv[2] === '--import') {
 				all[item.group][item.key] = item.value
 				return all
 			}, {})
-			config.system = oldConfig // -- вот такая магия. просто присваиваем старый конфиг и данные льются в таблицу [config]
+			
+			// сохраняем конфиг (по идее system.id=1)
+			tree.system = oldConfig // -- вот такая магия. просто присваиваем старый конфиг и данные льются в таблицу [config]
 
 			setTimeout(() => {
-				db('update config set value = "+u" where idp = 1 and key = "ssl" ')
-				db('update config set value = "+u" where idp = 1 and key = "path" ')
+				db('update system set value = "+u" where idp = 1 and key = "ssl" ')
+				db('update system set value = "+u" where idp = 1 and key = "path" ')
 			}, 1000)
 
+			// Мапим объекты
 			var oldObjects = objects.reduce((all, item) => {
 				if (!(item.class in all))	{
 					all[item.class] = {}
 				}
 				all[item.class][item.name] = {}
-				if (item.description) all[item.class][item.name]['description'] = item.description
+				if (item.description) {
+					all[item.class][item.name]['description'] = item.description
+				}	
 				if (item.meta) {
 					let meta = JSON.parse(item.meta)
 					for (let key in meta)
@@ -94,8 +98,9 @@ if (process.argv[2] === '--import') {
 				return all
 			}, {})
 
-			config.objects = oldObjects
+			tree.objects = oldObjects // Сохраняем объекты (objects.id=2)
 
+			// Мапим пользователей
 			var oldUsers = users.reduce((all, user) => {
 				if (!(user.login in all))	{
 					all[user.login] = {}
@@ -106,7 +111,12 @@ if (process.argv[2] === '--import') {
 				return all
 			}, {})
 
-			config.users = oldUsers
+			tree.users = oldUsers // Сохраняем пользователей (users.id=3)
+			/*
+				!!!Поскольку все 3 присвоения tree. = {}  в реале стартуют практически одновременно,
+			то в теории сначала будут созданы корневые разделы {config : {id: 1}, objects: {id: 2}, users: {id: 3}}
+			но лучше это дело проверить!!!!
+			*/
 
 			console.log('Успешно выполнено!!!')
 		}).catch(console.log)
@@ -117,7 +127,10 @@ if (process.argv[2] === '--import') {
 			db(q).then(() => {
 				counter++
 				if (counter === 5) {
-					console.log('Структура создана')
+					console.log('[system] - структура создана')
+				}
+				if (counter === 7) {
+					console.log('[vw_system_recursive] - вьюха создана')
 				}
 			})
 		}

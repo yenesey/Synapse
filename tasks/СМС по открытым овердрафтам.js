@@ -11,7 +11,7 @@ module.exports = async function (param, system) {
 	// -
 	const ora = require('synapse/ds-oracle')(Object.assign({
 		keepAlive: true
-	}, system.config.system.ibs))
+	}, system.config.ibs))
 
 	let rec = await ora(`
 SELECT

@@ -43,6 +43,13 @@ module.exports = function (db, table) {
 				return addNode(idp, target, key, value)
 			},
 
+			get (target, property, receiver) {
+				if (property === '_id') {
+					return idp
+				}
+				return target[property]
+			},
+
 			deleteProperty (target, key) {
 				return deleteNode(idp, target, key)
 			}
@@ -67,8 +74,13 @@ module.exports = function (db, table) {
 						: proxify(node, _id)
 					)
 				} else { // no children means we're at the 'leaf'
-					return db(`select * from ${table} where id = ?`, [_id])
-						.then(select => select[0].value)
+					return db(`select value from ${table} where id = ?`, [_id])
+						.then(([ { value } ]) => {
+							if (typeof value === 'string' && value === '{}') {
+								return proxify(node, _id)
+							}
+							return value
+						})
 				}
 			})
 	}
@@ -84,5 +96,5 @@ module.exports = function (db, table) {
 		return db(`delete from ${table} where idp = $idp and key = $key`, { $idp: idp, $key: key })
 	}
 
-	return buildNode()
+	return (_id) => buildNode(_id)
 }

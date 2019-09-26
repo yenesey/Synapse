@@ -15,7 +15,9 @@ const path = require('path')
 const ntlm = require('express-ntlm')
 
 module.exports = function (system) {
-	const config = system.config.system
+	const config = system.config
+	//console.log(config)
+
 	function load (moduleName) {
 		const apiModule = require(path.join(__dirname, 'api', moduleName))
 		const apiRouter = express.Router({ strict: true })
