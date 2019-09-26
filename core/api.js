@@ -45,7 +45,7 @@ module.exports = function (system) {
 					next()
 				},
 				internalservererror: function (req, res, next) {
-					res.status(500).send('NTLM auth error')
+					system.errorHandler(new Error('NTLM auth error'), req, res, next)
 				},
 				// debug: function () { var args = Array.prototype.slice.apply(arguments); console.log.apply(null, args) },
 				domain: config.ntlm.domain,

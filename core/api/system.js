@@ -1,13 +1,13 @@
 'use strict'
 
 /*
-	простой api для просмотра/редактирования config
+	api для просмотра и редактирования дерева системы
 
-	/config - выводит всю конфигурацию
-	/config/system  - выводит системную
-	/config/objects={} - создает ветку
-	/config/counter=100 - создает простое значение
-	/config/objects! - удаляет ветку или значение
+	/system - выводит все системное дерево
+	/system/config  - выводит конфигуру
+	/system/objects/newNode={} - создает новую ветку
+	/system/counter=100 - создает простое значение
+	/system/objects! - удаляет ветку или значение
 */
 
 module.exports = function (system) {

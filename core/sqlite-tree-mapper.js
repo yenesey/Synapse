@@ -56,7 +56,7 @@ module.exports = function (db, table) {
 		})
 	}
 
-	function buildNode (_id = -1, flags = null) { // well... brainfu..ng, but works :)
+	function buildNode (_id = -1, options = null) { // well... brainfu..ng, but works :)
 		let node = {}
 		return db(`select * from ${table} where idp = ? and id != idp`, [_id])
 			.then(children => {
@@ -69,15 +69,15 @@ module.exports = function (db, table) {
 								})
 						)
 					, Promise.resolve(null)
-					).then(() => flags && flags.indexOf('+u') !== -1
-						? node // (+u) - flag means (u)nproxified node
+					).then(() => options && options.indexOf('{-}') !== -1
+						? node //  - force unproxify
 						: proxify(node, _id)
 					)
-				} else { // no children means we're at the 'leaf'
+				} else { // no children means we're at the 'leaf' (single value) 
 					return db(`select value from ${table} where id = ?`, [_id])
 						.then(([ { value } ]) => {
-							if (typeof value === 'string' && value === '{}') {
-								return proxify(node, _id)
+							if (typeof value === 'string' && value === '{+}') {
+								return proxify(node, _id) // single value force proxified
 							}
 							return value
 						})

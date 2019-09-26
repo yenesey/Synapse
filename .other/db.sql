@@ -1,22 +1,10 @@
 --
--- File generated with SQLiteStudio v3.2.1 on Вт сен 24 17:19:29 2019
+-- File generated with SQLiteStudio v3.2.1 on Чт сен 26 21:50:36 2019
 --
 -- Text encoding used: UTF-8
 --
 PRAGMA foreign_keys = off;
 BEGIN TRANSACTION;
-
--- Table: config
-DROP TABLE IF EXISTS config;
-
-CREATE TABLE config (
-    id    INTEGER PRIMARY KEY ASC AUTOINCREMENT,
-    idp   INTEGER REFERENCES config (id) ON DELETE CASCADE
-                  NOT NULL,
-    [key] STRING  NOT NULL,
-    value STRING
-);
-
 
 -- Table: jobs
 DROP TABLE IF EXISTS jobs;
@@ -38,9 +26,10 @@ CREATE TABLE jobs (
 DROP TABLE IF EXISTS objects;
 
 CREATE TABLE objects (
-    id    INTEGER PRIMARY KEY ASC AUTOINCREMENT,
-    class TEXT,
-    name  TEXT,
+    id          INTEGER PRIMARY KEY ASC AUTOINCREMENT,
+    class       TEXT,
+    name        TEXT,
+    description TEXT,
     UNIQUE (
         class,
         name
@@ -52,8 +41,7 @@ CREATE TABLE objects (
 DROP TABLE IF EXISTS objects_meta;
 
 CREATE TABLE objects_meta (
-    object      REFERENCES objects (id) ON DELETE CASCADE
-                UNIQUE,
+    object      REFERENCES objects (id) ON DELETE CASCADE,
     meta   TEXT
 );
 
@@ -70,6 +58,28 @@ CREATE TABLE settings (
         [group] ASC,
         [key] ASC
     )
+);
+
+
+-- Table: system
+DROP TABLE IF EXISTS system;
+
+CREATE TABLE system (
+    id    INTEGER PRIMARY KEY ASC AUTOINCREMENT,
+    idp   INTEGER REFERENCES system (id) ON DELETE CASCADE
+                  NOT NULL,
+    [key] STRING  NOT NULL,
+    value STRING
+);
+
+
+-- Table: system_loops
+DROP TABLE IF EXISTS system_loops;
+
+CREATE TABLE system_loops (
+    id1  INTEGER   REFERENCES system (id) ON DELETE CASCADE ON UPDATE CASCADE,
+    id2  INTEGER   REFERENCES system (id) ON DELETE CASCADE ON UPDATE CASCADE,
+    attr CHAR (16) 
 );
 
 
@@ -100,7 +110,7 @@ CREATE TABLE users (
 -- Index: 
 DROP INDEX IF EXISTS "";
 
-CREATE INDEX "" ON config (
+CREATE INDEX "" ON system (
     idp ASC
 );
 
@@ -108,7 +118,7 @@ CREATE INDEX "" ON config (
 -- Index: idp_and_key
 DROP INDEX IF EXISTS idp_and_key;
 
-CREATE UNIQUE INDEX idp_and_key ON config (
+CREATE UNIQUE INDEX idp_and_key ON system (
     idp,
     "key"
 );
@@ -130,6 +140,15 @@ CREATE INDEX name ON objects (
 );
 
 
+-- Index: one_to_one
+DROP INDEX IF EXISTS one_to_one;
+
+CREATE UNIQUE INDEX one_to_one ON system_loops (
+    id1,
+    id2
+);
+
+
 -- Index: user_object
 DROP INDEX IF EXISTS user_object;
 
@@ -139,9 +158,9 @@ CREATE UNIQUE INDEX user_object ON user_access (
 );
 
 
--- View: vw_config_recursive
-DROP VIEW IF EXISTS vw_config_recursive;
-CREATE VIEW vw_config_recursive AS
+-- View: vw_system_recursive
+DROP VIEW IF EXISTS vw_system_recursive;
+CREATE VIEW vw_system_recursive AS
 WITH RECURSIVE Node (
         id,
         level,
@@ -151,35 +170,25 @@ WITH RECURSIVE Node (
         SELECT id,
                0,
                [key]
-          FROM config
+          FROM system
          WHERE idp = -1 AND 
                id != -1
         UNION
-        SELECT config.id,
+        SELECT system.id,
                Node.level + 1,
                Node.path || '/' || [key]
-          FROM config,
+          FROM system,
                Node
-         WHERE config.idp = Node.id
+         WHERE system.idp = Node.id
     )
     SELECT Node.path,
-           config.id,
+           system.id,
            substr('                       ', 1, level * 6) || "key" AS [key],
-           config.value
+           system.value
       FROM Node,
-           config
-     WHERE config.id = Node.id
+           system
+     WHERE system.id = Node.id
      ORDER BY Node.path;
-
-
--- View: vw_objects_meta
-DROP VIEW IF EXISTS vw_objects_meta;
-CREATE VIEW vw_objects_meta AS
-    SELECT objects.*,
-           objects_meta.meta
-      FROM objects
-           LEFT JOIN
-           objects_meta ON objects.id = objects_meta.object;
 
 
 COMMIT TRANSACTION;

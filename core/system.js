@@ -17,6 +17,32 @@ const treeMapper = require('./sqlite-tree-mapper')(db, 'system')
 // ---------------------------------------------------------------------------
 const system = { db: db }
 
+Object.defineProperties(
+	system,
+	{
+		CONFIG: {
+			value: 1,
+			enumerable: true
+		},
+		ADMIN_USERS: {
+			value: 1,
+			enumerable: true
+		},
+		ADMIN_SCHEDULER: {
+			value: 2,
+			enumerable: true
+		},
+		ADMIN_SQLQUERY: {
+			value: 3,
+			enumerable: true
+		},
+		ADMIN_TASKS: {
+			value: 4,
+			enumerable: true
+		}
+	}
+)
+
 system.log = function (...args) {
 	var dt = new Date()
 	let stamp = dt.toLocaleDateString('ru', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + dt.toLocaleTimeString('ru', { hour12: false })
@@ -73,32 +99,6 @@ system.info = function () {
 system.easterEgg = function () {
 	return '\n (.)(.)\n  ).(  \n ( v )\n  \\|/'
 }
-
-Object.defineProperties(
-	system,
-	{
-		CONFIG: {
-			value: 1,
-			enumerable: true
-		},
-		ADMIN_USERS: {
-			value: 1,
-			enumerable: true
-		},
-		ADMIN_SCHEDULER: {
-			value: 2,
-			enumerable: true
-		},
-		ADMIN_SQLQUERY: {
-			value: 3,
-			enumerable: true
-		},
-		ADMIN_TASKS: {
-			value: 4,
-			enumerable: true
-		}
-	}
-)
 
 // -------------------------------------------------------------------------------
 function equals (number, string, _var) {
@@ -209,13 +209,12 @@ system.access = function (user, options) {
 
 system.errorHandler = function (err, req, res, next) {
 	var msg = {
-		code: err.code,
-		message: err.message
+		code: err.code || null,
+		message: err.message,
+		at: err.stack.substr(err.stack.indexOf('at ') + 3)
 	}
-	if (err.code === 'ERR_ASSERTION') {
-		var at = err.stack.substr(err.stack.indexOf('at '))
-		msg.at = at.substr(0, at.indexOf('\n'))
-	}
+	msg.at = msg.at.substr(0, msg.at.indexOf('\n'))
+
 	if (req) {
 		if (req.ntlm) msg.user = req.ntlm.UserName
 		msg.remote = req.connection.remoteAddress
@@ -262,7 +261,7 @@ system.configGetBool = function (path) {
 }
 
 system.configGetNode = function (path, sep = '.') {
-	let _node = this.config
+	let _node = this.system
 	let _path = path.split(sep)
 	if (_path.length === 1 && _path[0] === '') return _node
 	for (let key of _path) {
@@ -271,9 +270,11 @@ system.configGetNode = function (path, sep = '.') {
 	return _node
 }
 
-module.exports = treeMapper(system.CONFIG).then(config => {
+module.exports = treeMapper(-1).then(_system => {
+	const config = _system.config
+	system.system = _system
 	system.config = config
-	// console.log(tree.objects.tasks['Переоценка']._id)
+	
 	// eslint-disable-all
 	for (var key in config.path) {
 		if (!path.isAbsolute(config.path[key])) { // достраиваем относительные пути до полных

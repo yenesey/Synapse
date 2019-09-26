@@ -11,6 +11,15 @@ const treeMap = require('synapse/sqlite-tree-mapper')(db, 'system')
 
 // -------------------------------------------
 let sql = `
+	 
+DROP TABLE system_loops;
+
+CREATE TABLE system_loops (
+	id1  INTEGER   REFERENCES system (id) ON DELETE CASCADE ON UPDATE CASCADE,
+	id2  INTEGER   REFERENCES system (id) ON DELETE CASCADE ON UPDATE CASCADE,
+	attr CHAR (16) 
+);
+
 DROP TABLE system;
 CREATE TABLE system (
     id    INTEGER PRIMARY KEY ASC AUTOINCREMENT,
@@ -51,7 +60,8 @@ WITH RECURSIVE Node (
       FROM Node,
            system
      WHERE system.id = Node.id
-     ORDER BY Node.path;
+	 ORDER BY Node.path;
+
 `.split(';')
 // -------------------------------------------
 
@@ -60,9 +70,10 @@ if (process.argv[2] === '--import') {
 		treeMap(-1),
 			db('SELECT * FROM settings'),
 			db('SELECT *, (select meta from objects_meta where object = objects.id) as meta	FROM objects'),
-			db('SELECT * FROM users')
+			db('SELECT * FROM users'),
+			db('SELECT * FROM jobs')
 	])
-		.then(([tree, settings, objects, users]) => {
+		.then(([tree, settings, objects, users, jobs]) => {
 			
 			// Мапим конфиг в объект
 			var oldConfig = settings.reduce((all, item) => {
@@ -74,11 +85,11 @@ if (process.argv[2] === '--import') {
 			}, {})
 			
 			// сохраняем конфиг (по идее system.id=1)
-			tree.system = oldConfig // -- вот такая магия. просто присваиваем старый конфиг и данные льются в таблицу [config]
+			tree.config = oldConfig // -- вот такая магия. просто присваиваем старый конфиг и данные льются в таблицу [config]
 
 			setTimeout(() => {
-				db('update system set value = "+u" where idp = 1 and key = "ssl" ')
-				db('update system set value = "+u" where idp = 1 and key = "path" ')
+				db('update system set value = "{-}" where idp = 1 and key = "ssl" ')
+				db('update system set value = "{-}" where idp = 1 and key = "path" ')
 			}, 1000)
 
 			// Мапим объекты
@@ -86,15 +97,18 @@ if (process.argv[2] === '--import') {
 				if (!(item.class in all))	{
 					all[item.class] = {}
 				}
-				all[item.class][item.name] = {}
+				var base = all[item.class]
+				base[item.name] = {}
+				
 				if (item.description) {
-					all[item.class][item.name]['description'] = item.description
+					base[item.name]['description'] = item.description
 				}	
 				if (item.meta) {
 					let meta = JSON.parse(item.meta)
 					for (let key in meta)
-						all[item.class][item.name][key] = meta[key]
+						base[item.name][key] = meta[key]
 				}
+				if (Object.keys(base[item.name]).length === 0) base[item.name] = '{+}'
 				return all
 			}, {})
 
@@ -112,10 +126,26 @@ if (process.argv[2] === '--import') {
 			}, {})
 
 			tree.users = oldUsers // Сохраняем пользователей (users.id=3)
+
+			// Мапим jobs
+			var oldJobs = jobs.reduce((all, job) => {
+				all[job.id] = {}
+				for (let key in job) {
+					all[job.id][key] = job[key]
+				}
+				let params = JSON.parse(job.params)
+				all[job.id]['params'] = {}
+				for (let key in params) {
+					all[job.id]['params'][key] = params[key]
+				}
+				return all
+			}, {})
+
+			tree.jobs = oldJobs // (jobs.id=4)
 			/*
-				!!!Поскольку все 3 присвоения tree. = {}  в реале стартуют практически одновременно,
+				!!!Поскольку все присвоения tree. = {}  в реале стартуют практически одновременно,
 			то в теории сначала будут созданы корневые разделы {config : {id: 1}, objects: {id: 2}, users: {id: 3}}
-			но лучше это дело проверить!!!!
+			а затем уже вложения с бОльшими id, но лучше это дело проверить!!!!
 			*/
 
 			console.log('Успешно выполнено!!!')
@@ -126,12 +156,16 @@ if (process.argv[2] === '--import') {
 		for (let q of sql) {
 			db(q).then(() => {
 				counter++
-				if (counter === 5) {
-					console.log('[system] - структура создана')
+				if (counter === 2) {
+					console.log('[system_loops] - таблица создана')
 				}
 				if (counter === 7) {
+					console.log('[system] - таблица создана')
+				}
+				if (counter === 9) {
 					console.log('[vw_system_recursive] - вьюха создана')
 				}
+
 			})
 		}
 	})

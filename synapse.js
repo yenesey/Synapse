@@ -126,8 +126,8 @@ require('synapse/system').then(system => {
 		if (system.configGetBool('system.telebot.on')) app.use(api('telebot'))
 		if (system.configGetBool('system.telebot.on')) app.use(api('cards'))
 
-		api.useNtlm() // отныне и далее у нас есть userName из AD
-		app.use(api(['access', 'dlookup', 'dbquery', 'tasks', 'jobs', 'config'])) /* 'forms' */
+		// api.useNtlm() // отныне и далее у нас есть userName из AD
+		app.use(api(['access', 'dlookup', 'dbquery', 'tasks', 'jobs', 'system'])) /* 'forms' */
 		app.use(system.errorHandler)
 	})
 
