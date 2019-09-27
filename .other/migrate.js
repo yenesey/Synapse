@@ -3,8 +3,8 @@
 /*
 	конвертация settings, objects, objects_meta, users -> в config
 	положить в каталог с synapse.db, или прописать путь.
-	\> node cvt
-	\> node cvt --import
+	\> node migrate
+	\> node migrate --import
 */
 const db = require('synapse/sqlite')('../db/synapse.db')
 const treeMap = require('synapse/sqlite-tree-mapper')(db, 'system')
@@ -12,7 +12,7 @@ const treeMap = require('synapse/sqlite-tree-mapper')(db, 'system')
 // -------------------------------------------
 let sql = `
 	 
-DROP TABLE system_loops;
+DROP TABLE IF EXISTS system_loops;
 
 CREATE TABLE system_loops (
 	id1  INTEGER   REFERENCES system (id) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -20,7 +20,7 @@ CREATE TABLE system_loops (
 	attr CHAR (16) 
 );
 
-DROP TABLE system;
+DROP TABLE IF EXISTS system;
 CREATE TABLE system (
     id    INTEGER PRIMARY KEY ASC AUTOINCREMENT,
     idp   INTEGER REFERENCES system (id) ON DELETE CASCADE  NOT NULL,

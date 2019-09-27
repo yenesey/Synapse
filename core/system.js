@@ -274,7 +274,7 @@ module.exports = treeMapper(-1).then(_system => {
 	const config = _system.config
 	system.system = _system
 	system.config = config
-	
+
 	// eslint-disable-all
 	for (var key in config.path) {
 		if (!path.isAbsolute(config.path[key])) { // достраиваем относительные пути до полных
