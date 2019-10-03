@@ -26,7 +26,7 @@ module.exports = function (system) {
 		let user = system.checkUser(queryUser)
 
 		if ('user' in req.query) { // запрос по другому пользователю? тогда нужны привилегии!
-			system.checkAccess(req.ntlm.UserName, system.tree.objects.admin['Пользователи']._id)
+			system.checkAccess(req.ntlm.UserName, system.tree.objects.admin._id('Пользователи'))
 		}
 
 		let access = system.access(user, options)
