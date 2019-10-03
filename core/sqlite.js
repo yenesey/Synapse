@@ -32,10 +32,10 @@ module.exports = function (fileName) {
 					resolve(this.lastID || this.changes || result)
 				}
 			}
-			if (sql.trim().substring(0, 6).toLowerCase() === 'select') {
-				db.all(sql, params,	_dbcb)
-			} else {
+			if (/update|replace/mig.test(sql)) {
 				db.run(sql, params,	_dbcb)
+			} else {
+				db.all(sql, params,	_dbcb)
 			}
 		})
 	}

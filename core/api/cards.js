@@ -8,7 +8,8 @@ const ora = require('../ds-oracle')
 const soap = require('soap')
 
 module.exports = function (system) {
-	const config = system.config
+
+	const config = system.config.system
 	const url = 'http://172.16.8.3:8962/solar-loyalty/loyaltyApi.wsdl'
 
 	// ibso("alter session set NLS_DATE_FORMAT='dd.mm.yyyy hh24:mi:ss'")
@@ -354,7 +355,7 @@ module.exports = function (system) {
 		}
 		return t2000(
 			// SYSADM.EXCHANGE.F_CreateTaskInSMS(sPhone in varchar2, sSmsText in varchar2, sTypeDocument in varchar2 := 'NULL')
-			`begin :result := SYSADM.EXCHANGE.F_CreateTaskInSMS(:phone, :text, 'smsCode'); end;`,
+			`begin :result := SYSADM.EXCHANGE.F_CreateTaskInSMS(:phone, :text, 'smsCode', 1); end;`,
 			{
 				phone: req.query.phone,
 				text: 'Kod proverki nomera telefona: ' + code,

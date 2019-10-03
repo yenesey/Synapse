@@ -173,40 +173,34 @@ module.exports = function (system) {
 					params.files = req.files
 				}
 
-				system.accessCheck(params.task.user, Number(params.task.id))// проверили доступ к задаче
-					.then(access => {
-						delete access.meta
-						delete access.granted
-						delete access.description
-						params.task = Object.assign(access, params.task)
-						if (!params.deps) {
-							return launch(params, req, res)
-						}	// подразделения не указаны? запускаем без контроля подразделений
+				let access = system.checkAccess(params.task.user, Number(params.task.id)) // проверили доступ к задаче
+				try {
+					delete access.granted
+					delete access.description
+					params.task = Object.assign(access, params.task)
+					if (!params.deps) {
+						return launch(params, req, res)
+					}	// подразделения не указаны? запускаем без контроля подразделений
+					let deps = system.access(params.task.user, { class: 'deps' })
+						.filter(el => el.granted).map(el => el.name)
 
-						return system.access(params.task.user, { class: 'deps' })
-							.then(access => access.filter(el => el.granted).map(el => el.name))
-							.then(deps => {
-								if (!deps) {
-									delete params.deps // нет доступа? - убираем параметр
-									return // .. и идем наружу к следующему .then
-								}
-								// конвертируем массив подразделений в массив альтернативных регЭкспов:
-								deps = deps.map(dep => new RegExp(dep.replace('%', '[\\W|\\w]*')))
-
-								if (typeof params.deps === 'string') {
-									params.deps = params.deps.split(',')
-								} // здесь params.deps становятся массивом, даже если и не были им!
-
-								params.deps = params.deps.filter(testDep => // фильтр только допустимых подразделений
-									deps.reduce((result, _dep) => result || _dep.test(testDep), false)
-								)
-								return launch(params, req, res)
-							})
-					})
-					.catch(err => {
-						system.errorHandler(err)
-						res.end('\n' + JSON.stringify({ status: 'error', message: err.message }))
-					})
+					if (!deps) {
+						delete params.deps // нет доступа? - убираем параметр
+					} else {
+						// конвертируем массив подразделений в массив альтернативных регЭкспов:
+						deps = deps.map(dep => new RegExp(dep.replace('%', '[\\W|\\w]*')))
+						if (typeof params.deps === 'string') {
+							params.deps = params.deps.split(',')
+						} // здесь params.deps становятся массивом, даже если и не были им!
+						params.deps = params.deps.filter(testDep => // фильтр только допустимых подразделений
+							deps.reduce((result, _dep) => result || _dep.test(testDep), false)
+						)
+					}
+					return launch(params, req, res)
+				} catch (err) {
+					system.errorHandler(err)
+					res.end('\n' + JSON.stringify({ status: 'error', message: err.message }))
+				}
 			})
 
 	this.get('/meta', function (req, res) {
@@ -224,7 +218,7 @@ module.exports = function (system) {
 	this.put('/meta', bodyParser.json(), function (req, res) {
 		// операция редактирования/удаления метаданных заданного объекта
 		// req.body = {objectId: Number, meta: string}
-		return system.accessCheck(req.ntlm.UserName, system.ADMIN_USERS)
+		return system.checkAccess(req.ntlm.UserName, system.ADMIN_USERS)
 			.then(() =>
 				system.db(
 					(req.body.meta === '{}')

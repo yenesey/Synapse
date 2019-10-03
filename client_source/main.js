@@ -79,8 +79,8 @@ _.pxhr({method: 'get', url: 'access/map'})
 			children: access.admin.map(el=>({
 					name: el.name,
 					path: String(el.id),
-					icon: admin[el.id].icon,
-					component: admin[el.id].component
+					icon: admin[el.name].icon,
+					component: admin[el.name].component
 				})
 			)
 		})

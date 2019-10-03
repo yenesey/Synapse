@@ -4,97 +4,86 @@
 	отображение древовидных структур в таблицу базы данных
 	 - поддерживается автоматический CRUD через операции с объектом
 */
+const ROOT_ID = -1
 
 module.exports = function (db, table) {
 	//
 	let insertPendings = []
 
-	function addNode (id, target, key, value) {
+	function addNode (idp, target, key, value) {
 		if (Reflect.set(target, key, value)) {
 			insertPendings.push(
-				saveKey(id, key, value).then(_id => {
-					if (value instanceof Object) { // typeof unusable due to null values
-						for (let k in value) {
-							addNode(_id, value, k, value[k])
+				db(`replace into ${table} (idp, name, value) values ($idp, $name, $value)`, { $idp: idp, $name: key, $value: value })
+					.then(_id => {
+						if (value instanceof Object) { // typeof unusable due to null values
+							for (let k in value) {
+								addNode(_id, value, k, value[k])
+							}
+							Reflect.set(target, key, proxify(value, _id))
 						}
-						Reflect.set(target, key, proxify(value, _id))
-					}
-				}).catch(console.log)
+					}).catch(console.log)
 			)
 			return true
 		}
 		return false
 	}
 
-	function deleteNode (id, target, key) {
+	function deleteNode (idp, target, key) {
 		if (Reflect.has(target, key) && Reflect.deleteProperty(target, key)) {
 			Promise.all(insertPendings).then(() => {
 				insertPendings = []
-				deleteKey(id, key)
+				db(`delete from ${table} where idp = $idp and name = $name`, { $idp: idp, $name: key })
 			})
 			return true
 		}
 		return false
 	}
 
-	function proxify (node, idp) {
+	function proxify (node, id, keystore) {
+		// -
 		return new Proxy(node, {
 			set (target, key, value, receiver) { // about to set target[key] = value
-				return addNode(idp, target, key, value)
+				return addNode(id, target, key, value)
 			},
 
 			get (target, property, receiver) {
 				if (property === '_id') {
-					return idp
+					return function (key) {
+						return keystore.get(key)
+					}
 				}
 				return target[property]
 			},
 
 			deleteProperty (target, key) {
-				return deleteNode(idp, target, key)
+				return deleteNode(id, target, key)
 			}
 		})
 	}
 
-	function buildNode (_id = -1, options = null) { // well... brainfu..ng, but works :)
+	function buildNode (id = ROOT_ID, options = {}) {
+		// well... brainf..ng, but works :)
 		let node = {}
-		return db(`select * from ${table} where idp = ? and id != idp`, [_id])
+		let keystore = new Map() // node && keystore works in parallel
+
+		return db(`select * from ${table} where idp = ? and id != idp`, [id])
 			.then(children => {
-				if (children.length > 0 || _id === -1) {
-					return children.reduce((p, child) =>
-						p.then(() =>
-							buildNode(child.id, child.value)
-								.then(childNode => {
-									node[child.key] = childNode
-								})
-						)
-					, Promise.resolve(null)
-					).then(() => options && options.indexOf('{-}') !== -1
-						? node //  - force unproxify
-						: proxify(node, _id)
-					)
-				} else { // no children means we're at the 'leaf' (single value) 
-					return db(`select value from ${table} where id = ?`, [_id])
-						.then(([ { value } ]) => {
-							if (typeof value === 'string' && value === '{+}') {
-								return proxify(node, _id) // single value force proxified
-							}
-							return value
-						})
+				if (children.length === 0 && id !== ROOT_ID) { // no children means we're at the 'leaf' or single value
+					return db(`select value from ${table} where id = ?`, [id]).then(([ { value } ]) => value)
 				}
+
+				return children.reduce((p, child) =>
+					p.then(() =>
+						buildNode(child.id, { unproxify: (typeof child.value === 'string' && child.value === '{-}') })
+							.then(childNode => {
+								keystore.set(child.name, child.id)
+								node[child.name] = childNode
+							})
+					)
+				, Promise.resolve(null)
+				).then(() => options.unproxify ? node : proxify(node, id, keystore))
 			})
 	}
 
-	// common rule for select thisNode - [idp] & [key]
-	// db(`select * from ${table} where idp = $idp and key = $key`, { $idp: idp, $key: key })
-
-	function saveKey (idp, key, value = null) {
-		return db(`replace into ${table} (idp, [key], value) values ($idp, $key, $value)`, { $idp: idp, $key: key, $value: value })
-	}
-
-	function deleteKey (idp, key) {
-		return db(`delete from ${table} where idp = $idp and key = $key`, { $idp: idp, $key: key })
-	}
-
-	return (_id) => buildNode(_id)
+	return (id) => buildNode(id)
 }

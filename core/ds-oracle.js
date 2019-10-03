@@ -54,7 +54,14 @@ module.exports = function (config, options = { keepAlive: false }) {
 				connection = null
 			})
 		}
-		return Promise.resolve()
+		return Promise.reject(new Error('there is no active connection'))
+	}
+
+	function commit () {
+		if (connection) {
+			return connection.commit()
+		}
+		return Promise.reject(new Error('there is no active connection'))
 	}
 
 	function execute (sql, binds, options) {
@@ -113,6 +120,11 @@ module.exports = function (config, options = { keepAlive: false }) {
 
 		close: {
 			value: closeConnection,
+			enumerable: false
+		},
+
+		commit: {
+			value: commit,
 			enumerable: false
 		}
 	})

@@ -43,6 +43,29 @@ Object.defineProperties(
 	}
 )
 
+system.errorHandler = function (err, req, res, next) {
+	var msg = {
+		code: err.code || null,
+		message: err.message,
+		at: err.stack.substr(err.stack.indexOf('at ') + 3)
+	}
+	msg.at = msg.at.substr(0, msg.at.indexOf('\n'))
+
+	if (req) {
+		if (req.ntlm) msg.user = req.ntlm.UserName
+		msg.remote = req.connection.remoteAddress
+		msg.url = req.url
+	}
+	system.log(msg)
+	if (res) {
+		if (res.headersSent && next) next()
+		res.json({ success: false, error: err.message })
+	}
+	return false
+}
+
+// ---------------------------------------------------------------------------------------------
+
 system.log = function (...args) {
 	var dt = new Date()
 	let stamp = dt.toLocaleDateString('ru', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + dt.toLocaleTimeString('ru', { hour12: false })
@@ -101,35 +124,30 @@ system.easterEgg = function () {
 }
 
 // -------------------------------------------------------------------------------
-function equals (number, string, _var) {
-	if (typeof _var === 'number')	return number + '=' + _var
-	if (typeof _var === 'string')	return string + '=' + '\'' + _var + '\''
-}
-
+/*
 system.user = function (user) { // данные пользователя по login или id
+	return this.system.users[user]
+
 	return system.db(`SELECT id, login, name, email, disabled FROM users WHERE ${equals('id', 'login', user)} COLLATE NOCASE`)
 		.then(select => select.length ? select[0] : null)
+
 }
+*/
 
 system.users = function (object) { // users of given <object>
-	return system.db(`
-		select
-			users.id, users.name, users.email
-		from
-			users, objects, user_access
-		where
-			user_access.user = users.id
-			and	(users.disabled = 0 or users.disabled is null)
-			and user_access.object = objects.id
-			and ${equals('id', 'name', object)}`
-	)
+	let _object = this.system.objects.groups[object]
+	return system.db(`select id1 id from [system_links] where id2 = $id2`, { $id2: _object._id })
+		.then(users => Promise.all(users.map(user => treeMapper(user.id))))
 }
 
 system.tasks = function (object) { // users of given <object>
+	let _object = this.system.objects.groups[object]
+	return system.db(`select id1 id from [system_links] where id2 = $id2`, { $id2: _object._id })
+		.then(users => Promise.all(users.map(user => treeMapper(user.id))))
+	/*
 	return system.db(`
 		select
-			users.id, users.name, users.email,
-			users.disabled,
+			users.id, users.name, users.email,	users.disabled,
 			case when 
 				(select 
 					users.id 
@@ -148,107 +166,51 @@ system.tasks = function (object) { // users of given <object>
 		order by
 			users.name`
 	)
+	*/
 }
 
-system.access = function (user, options) {
+system.access = function (user, options = {}) {
 // карта доступа
 // это главная функция, через нее почти весь доступ работает
-	var cast = (access) => access
-	var userCondition = 'users.' + equals('id', 'login', user)
+// options = { _class: _className || object: objectId }
 
-	var whereCondition = ''
-	if (typeof options !== 'undefined') {
-		if ('class' in options)	whereCondition += ' and objects.' + equals('', 'class', options.class)
+	let idList = String(user._acl).split(',').map(el => Number(el))
 
-		if ('object' in options) {
-			cast = (access) => access[0]
-			whereCondition += ' and objects.' + equals('id', 'name', options.object)
-		}
-	}
-
-	return system.db(`
-		SELECT
-			objects.*, 
-			(select meta from objects_meta where object = objects.id) as 'meta',
-			case when 
-				(select 
-					users.id 
-				from
-					users,
-					user_access
-				where
-					users.id = user_access.user 
-					and	objects.id = user_access.object 
-					and	${userCondition} 
-					collate nocase
-				)
-			is null then 0 else 1 end as granted 
-		FROM
-			objects
-		WHERE
-			1=1
-			${whereCondition}
-		ORDER BY objects.class, objects.name`
-	)
-		.then(access => {
-			access = access.map((obj, index) => {
-				let meta = null
-				try {
-					meta = JSON.parse(obj.meta)
-					delete obj.meta
-				} catch (err) {
-					system.log('[error]:'  + err.message.replace('\n', '') + '   object.id=' + access[index].id)
-				}
-				return { ...obj, ...meta }
-			})
-			return cast(access)
+	if (!('object' in options)) {
+		let map = []
+		this.acl.forEach(el => {
+			if (!('_class' in options) || el._class === options._class) {
+				map.push(Object.assign({ granted: idList.includes(el.id) }, el))
+			}
 		})
+		return map
+	}
+	let obj = system.checkObject(options.object)
+	return Object.assign({ granted: idList.includes(obj.id) }, obj)
 }
 
-/// /////////////////////////////////////////////////////////////////////
-
-system.errorHandler = function (err, req, res, next) {
-	var msg = {
-		code: err.code || null,
-		message: err.message,
-		at: err.stack.substr(err.stack.indexOf('at ') + 3)
-	}
-	msg.at = msg.at.substr(0, msg.at.indexOf('\n'))
-
-	if (req) {
-		if (req.ntlm) msg.user = req.ntlm.UserName
-		msg.remote = req.connection.remoteAddress
-		msg.url = req.url
-	}
-	system.log(msg)
-	if (res) {
-		if (res.headersSent && next) next()
-		res.json({ success: false, error: err.message })
-	}
-	return false
-}
-/// /////////////////////////////////////////////////////////////////////
 // проверка наличия пользователя
-system.userCheck = function (_user) {
-	return system.user(_user)
-		.then(user => {
-			assert(user, 'Пользователь ' + _user + ' не зарегистрирован')
-			return user
-		})
+system.checkUser = function (login) {
+	assert(login in this.tree.users, 'Пользователь ' + login + ' не зарегистрирован')
+	return this.tree.users[login]
+}
+
+// проверка наличия объекта доступа
+system.checkObject = function (id) {
+	assert(this.acl.has(id), 'Отсутствует объект доступа')
+	return this.acl.get(id)
 }
 
 // проверка прав доступа пользователя к заданному объекту (блокировка тоже проверяется)
-system.accessCheck = function (_user, object) {
-	return system.userCheck(_user)
-		.then(user => {
-			assert(!user.disabled, 'Пользователь ' + _user + ' заблокирован')
-			return system.access(_user, { object: object })
-				.then(access => {
-					assert(access && access.granted, 'Не разрешен доступ к операции')
-					return access
-				})
-		})
+system.checkAccess = function (_user, object) {
+	let user = system.checkUser(_user)
+	assert(!user.disabled, 'Пользователь ' + _user + ' заблокирован')
+	let access = system.access(user, { object: object })
+	assert(access && access.granted, 'Не разрешен доступ к операции')
+	return access
 }
+
+/// /////////////////////////////////////////////////////////////////////
 
 system.configGetBool = function (path) {
 	let value = system.configGetNode(path)
@@ -261,7 +223,7 @@ system.configGetBool = function (path) {
 }
 
 system.configGetNode = function (path, sep = '.') {
-	let _node = this.system
+	let _node = this.tree
 	let _path = path.split(sep)
 	if (_path.length === 1 && _path[0] === '') return _node
 	for (let key of _path) {
@@ -270,10 +232,19 @@ system.configGetNode = function (path, sep = '.') {
 	return _node
 }
 
-module.exports = treeMapper(-1).then(_system => {
-	const config = _system.config
-	system.system = _system
-	system.config = config
+module.exports = treeMapper(-1).then(systemTree => {
+	system.tree = systemTree
+	system.config = system.tree.config
+	const config = system.config
+
+	system.acl = new Map()
+
+	for (let _class in systemTree.objects) {
+		for (let object in systemTree.objects[_class]) {
+			let id = systemTree.objects[_class]._id(object)
+			system.acl.set(id,  { id: id, name: object, class: _class, ...systemTree.objects[_class][object] })
+		}
+	}
 
 	// eslint-disable-all
 	for (var key in config.path) {
