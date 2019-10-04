@@ -61,24 +61,18 @@ function _ldap (query) {
 module.exports = function (system) {
 	// -
 	const config = system.config
+
 	function ibso (user, constraint) { // constraint = [{JSON}... {JSON}] в ibso используется для ограничения по реквизиту
 		if (!constraint) return Promise.resolve('')
 		if (!(constraint instanceof Array)) constraint = [constraint]
 
-		return constraint.reduce((p, obj) =>
-			p.then(clause => {
-				if (!clause) clause = ''
-				return system.access(user, {
-					class: obj.class
-				})
-					.then(access => access.filter(el => el.granted).map(el => el.name))
-					.then(lst => clause + (clause ? ' AND ' : ' ') +
-						'(' +
-						lst.reduce((all, next) => all + (all ? ' OR ' : '') + obj.column + ' ' + obj.operator + ' \'' + next + '\'', obj.column + ' is null') +
-						')'
-					)
-			}), Promise.resolve('')
-		)
+		return constraint.reduce((clause, obj) => {
+			let access =  system.access(user, {	class: obj.class })
+			let lst = access.filter(el => el.granted).map(el => el.name)
+			return clause + (clause ? ' AND ' : ' ') +	'(' +
+					lst.reduce((all, next) => all + (all ? ' OR ' : '') + obj.column + ' ' + obj.operator + ' \'' + next + '\'', obj.column + ' is null') +
+			')'
+		}, '')
 	}
 
 	const ldap = require('../ds-ldap')(config.ntlm)
@@ -86,7 +80,6 @@ module.exports = function (system) {
 	const sqlite = require('../ds-sqlite')()
 
 	this.post('/', bodyParser.json(), function (req, res) {
-		var query = req.body
 		//
 		//  query spec
 		//  {	db: <имя базы|псевдоним :ldap>
@@ -97,60 +90,48 @@ module.exports = function (system) {
 		//    order: <конструкция sql order by>
 		//    fields: <колонки для результата через запятую>
 		//  }
+		//
+		let query = req.body
+		let user = req.user
 
-		system.user(req.ntlm.UserName)
-			.then(user => {
-				if (!user) {
-					res.json({
-						error: `Пользователь ${req.ntlm.UserName} не зарегистрирован`
-					})
-					return
-				}
+		if (/(select|update|replace|delete)\s/mig.test(JSON.stringify(query))) {
+			res.json({ error: 'Syntax error: SQL statements not allowed!' })
+			return
+		}
 
-				if (/(select|update|replace|delete)\s/mig.test(JSON.stringify(query))) {
-					res.json({ error: 'Syntax error: SQL statements not allowed!' })
-					return
-				}
+		if (query.where) query.where = query.where.replace(/%userId%/g, user.id)
 
-				if (query.where) query.where = query.where.replace(/%userId%/g, user.id)
-
-				if (query.db) {
-					if (query.db === 'ldap:') {
-						return ldap(_ldap(query))
-							.then(result => res.json(result))
-
-					} // если дан файл db, считаем что это локальный sqlite
-					return sqlite({
-						sql: _sql(query),
-						db: query.db
-					})
-						.then(result => res.json(result))
-				}
-				// файл|ldap не указан? значит это запрос в ibso
-				return system.access(user.id, {
-					object: query.table,
-					class: 'ibs'
-				})
-					.then(access => {
-						if (!access.granted) {
-							res.json({ error: 'Access denied!' })
-							return
-						}
-
-						return ibso(user.id, access.constraint)
-							.then(clause => {
-								if (clause) {
-									if ('where' in query) {
-										query.where += ' AND ' + clause
-									} else {
-										query.where = clause
-									}
-								}
-								return ora(_sql(query))
-							})
-							.then(data => res.json(data))
-					})
+		if (query.db) {
+			if (query.db === 'ldap:') {
+				return ldap(_ldap(query))
+					.then(result => res.json(result))
+			} // если дан файл db, считаем что это локальный sqlite
+			return sqlite({
+				sql: _sql(query),
+				db: query.db
 			})
+				.then(result => res.json(result))
+		}
+
+		// файл|ldap не указан? значит это запрос в ibso
+
+		// todo: проверка доступа по реквизиту - слишком навороченная и мало понятная штука. переосмыслить!!!
+		let access = system.access(user, { object: system.tree.objects.ibs._id(query.table) })
+		if (!access.granted) {
+			res.json({ error: 'Access denied!' })
+			return
+		}
+
+		let clause = ibso(user, access.constraint)
+		if (clause) {
+			if ('where' in query) {
+				query.where += ' AND ' + clause
+			} else {
+				query.where = clause
+			}
+		}
+		return ora(_sql(query))
+			.then(data => res.json(data))
 			.catch(err => system.errorHandler(err, req, res))
 	})
 }

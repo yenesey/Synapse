@@ -122,9 +122,9 @@ require('synapse/system').then(system => {
 		}
 
 		const api = require('synapse/api.js')(system)
-		if (system.configGetBool('system.cft-web-proxy.on')) app.use(api('cft-web-proxy'))
-		if (system.configGetBool('system.telebot.on')) app.use(api('telebot'))
-		if (system.configGetBool('system.telebot.on')) app.use(api('cards'))
+		if (config._bool('cft-web-proxy.on')) app.use(api('cft-web-proxy'))
+		if (config._bool('telebot.on')) app.use(api('telebot'))
+		if (config._bool('cards.on')) app.use(api('cards'))
 
 		api.useNtlm() // отныне и далее у нас есть userName из AD
 		app.use(api(['access', 'dlookup', 'dbquery', 'tasks', 'jobs', 'system'])) /* 'forms' */

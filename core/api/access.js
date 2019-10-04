@@ -19,27 +19,25 @@ module.exports = function (system) {
 
 		var options = {}
 		var queryUser = req.ntlm.UserName
-
-		if ('class' in req.query) options.class = req.query.class
-		if ('user' in req.query) queryUser = Number(req.query.user) || req.query.user
-
-		let user = system.checkUser(queryUser)
-
 		if ('user' in req.query) { // запрос по другому пользователю? тогда нужны привилегии!
-			system.checkAccess(req.ntlm.UserName, system.tree.objects.admin._id('Пользователи'))
+			queryUser = Number(req.query.user) || req.query.user
+			system.checkAccess(req.user, system.tree.objects.admin._id('Пользователи'))
 		}
 
-		let access = system.access(user, options)
-		res.json({ login: queryUser, ...user, access: access })
+		if ('class' in req.query) options.class = req.query.class
 
-		//	.catch(err => system.errorHandler(err, req, res))
+		let user = system.getUser(queryUser)
+		let access = system.access(user, options)
+		delete user.id
+		delete user._acl
+		res.json({ login: queryUser, ...user, access: access })
 	})
 
 	this.put('/map', bodyParser.json(), function (req, res) {
 		// операция выдачи/прекращения доступа к заданному объекту
 		// req.body = {userId:Number, objectId: Number, granted: Number(1|0)}
 		assert(req.ntlm, 'В запросе отсутствуют необходимые поля ntlm. Подключите api.useNtlm')
-		return system.checkAccess(req.ntlm.UserName, system.ADMIN_USERS)
+		return system.checkAccess(req.user, system.ADMIN_USERS)
 			.then(() =>
 				system.db(
 					(req.body.granted)
@@ -56,7 +54,7 @@ module.exports = function (system) {
 	this.put('/user', bodyParser.json(), function (req, res) {
 		// операция добавления(создания) пользователя
 		assert(req.ntlm, 'В запросе отсутствуют необходимые поля ntlm. Подключите api.useNtlm')
-		return system.checkAccess(req.ntlm.UserName, system.ADMIN_USERS)
+		return system.checkAccess(req.user, system.ADMIN_USERS)
 			.then(() => {
 				if ('id' in req.body) {
 					return system.db('UPDATE users SET disabled = :1, name = :2, login = :3, email = :4 WHERE id = :5',

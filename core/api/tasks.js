@@ -173,7 +173,7 @@ module.exports = function (system) {
 					params.files = req.files
 				}
 
-				let access = system.checkAccess(params.task.user, Number(params.task.id)) // проверили доступ к задаче
+				let access = system.checkAccess(req.user, Number(params.task.id)) // проверили доступ к задаче
 				try {
 					delete access.granted
 					delete access.description
@@ -181,7 +181,7 @@ module.exports = function (system) {
 					if (!params.deps) {
 						return launch(params, req, res)
 					}	// подразделения не указаны? запускаем без контроля подразделений
-					let deps = system.access(params.task.user, { class: 'deps' })
+					let deps = system.access(req.user, { class: 'deps' })
 						.filter(el => el.granted).map(el => el.name)
 
 					if (!deps) {
@@ -218,7 +218,7 @@ module.exports = function (system) {
 	this.put('/meta', bodyParser.json(), function (req, res) {
 		// операция редактирования/удаления метаданных заданного объекта
 		// req.body = {objectId: Number, meta: string}
-		return system.checkAccess(req.ntlm.UserName, system.ADMIN_USERS)
+		return system.checkAccess(req.user, system.ADMIN_USERS)
 			.then(() =>
 				system.db(
 					(req.body.meta === '{}')

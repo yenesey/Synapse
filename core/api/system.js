@@ -12,8 +12,6 @@
 
 module.exports = function (system) {
 	//
-	const getNode = system.configGetNode.bind(system)
-
 	this.get('*', function (req, res) {
 		let url = decodeURIComponent(req.url).substring(1)
 		let path = url.split('/')
@@ -23,16 +21,16 @@ module.exports = function (system) {
 		if (last.indexOf('=') !== -1) {
 			path.pop()
 			let [key, value] = last.split('=')
-			node = getNode(path.join('/'), '/')
+			node = system.tree._path(path.join('/'), '/')
 			value = JSON.parse(value)
 			node[key] = value
 		} else if (last.charAt(last.length - 1) === '!') {
 			path.pop()
 			let [key, _value] = last.split('!')
-			node = getNode(url, '/')
+			node = system.tree._path(url, '/')
 			delete node[key]
 		} else {
-			node = getNode(url, '/')
+			node = system.tree._path(url, '/')
 		}
 		res.json(node)
 	})

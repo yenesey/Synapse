@@ -6,65 +6,84 @@
 */
 const ROOT_ID = -1
 
-module.exports = function (db, table) {
-	//
-	let insertPendings = []
-
-	function addNode (idp, target, key, value) {
-		if (Reflect.set(target, key, value)) {
-			insertPendings.push(
-				db(`replace into ${table} (idp, name, value) values ($idp, $name, $value)`, { $idp: idp, $name: key, $value: value })
-					.then(_id => {
-						if (value instanceof Object) { // typeof unusable due to null values
-							for (let k in value) {
-								addNode(_id, value, k, value[k])
-							}
-							Reflect.set(target, key, proxify(value, _id))
-						}
-					}).catch(console.log)
-			)
-			return true
+function path (path, sep = '.') {
+	let node = this
+	let _path = path.split(sep)
+	if (_path.length === 1 && _path[0] === '') return node
+	for (let key of _path) {
+		if ((typeof node === 'object') && (key in node)) {
+			node = node[key]
+		} else {
+			return undefined
 		}
-		return false
+	}
+	return node
+}
+
+function bool (_path) {
+	let value = path.call(this, _path, '.')
+	if (typeof value === 'undefined' || value === null) return false
+	switch (value.toString().toLowerCase().trim()) {
+	case 'true': case 'yes': case '1': return true
+	case 'false': case 'no': case '0': case null: return false
+	default: return Boolean(value)
+	}
+}
+
+module.exports = function (db, table) {
+	// -
+	function addNode (idp, target, key, value) {
+		return db(`replace into ${table} (idp, name, value) values ($idp, $name, $value)`, { $idp: idp, $name: key, $value: value })
+			.then(_id => {
+				if (value instanceof Object) {
+					let node = proxify({}, _id, new Map()) // empty node & empty map
+					for (let subKey in value) {
+						node[subKey] = value[subKey] // assigns to proxified 'node' causes recursive call of 'addNode'
+					}
+					target[key] = node // replace already assigned by just created
+				}
+				// console.log('done', idp, key, value, _id)
+				return _id
+			})
 	}
 
 	function deleteNode (idp, target, key) {
 		if (Reflect.has(target, key) && Reflect.deleteProperty(target, key)) {
-			Promise.all(insertPendings).then(() => {
-				insertPendings = []
-				db(`delete from ${table} where idp = $idp and name = $name`, { $idp: idp, $name: key })
-			})
-			return true
+			return db(`delete from ${table} where idp = $idp and name = $name`, { $idp: idp, $name: key })
 		}
-		return false
+		return Promise.resolve(true)
 	}
 
 	function proxify (node, id, keystore) {
 		// -
 		return new Proxy(node, {
 			set (target, key, value, receiver) { // about to set target[key] = value
-				return addNode(id, target, key, value)
+				addNode(id, target, key, value)
+					.then(_id => keystore.set(key, _id))
+					.catch(err => console.log(err.message + ' when create', key, '=', value))
+				return Reflect.set(target, key, value)
 			},
 
-			get (target, property, receiver) {
-				if (property === '_id') {
-					return function (key) {
-						return keystore.get(key)
-					}
+			get (target, key, receiver) {
+				if (Reflect.has(target, key)) return target[key]
+				
+				switch (key) {
+				case '_id': return (key) => keystore.get(key)
+				case '_path': return path.bind(target)
+				case '_bool' : return bool.bind(receiver)
 				}
-				return target[property]
+				return undefined
 			},
 
 			deleteProperty (target, key) {
-				return deleteNode(id, target, key)
+				return deleteNode(id, target, key).then(_id => keystore.delete(key))
 			}
 		})
 	}
 
-	function buildNode (id = ROOT_ID, options = {}) {
-		// well... brainf..ng, but works :)
+	function buildNode (id = ROOT_ID, options = {}) { // well... brainf..ng, but works :)
 		let node = {}
-		let keystore = new Map() // node && keystore works in parallel
+		let keystore = new Map() // node && keystore works parallel
 
 		return db(`select * from ${table} where idp = ? and id != idp`, [id])
 			.then(children => {

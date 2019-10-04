@@ -17,32 +17,6 @@ const treeMapper = require('./sqlite-tree-mapper')(db, 'system')
 // ---------------------------------------------------------------------------
 const system = { db: db }
 
-Object.defineProperties(
-	system,
-	{
-		CONFIG: {
-			value: 1,
-			enumerable: true
-		},
-		ADMIN_USERS: {
-			value: 1,
-			enumerable: true
-		},
-		ADMIN_SCHEDULER: {
-			value: 2,
-			enumerable: true
-		},
-		ADMIN_SQLQUERY: {
-			value: 3,
-			enumerable: true
-		},
-		ADMIN_TASKS: {
-			value: 4,
-			enumerable: true
-		}
-	}
-)
-
 system.errorHandler = function (err, req, res, next) {
 	var msg = {
 		code: err.code || null,
@@ -125,15 +99,6 @@ system.easterEgg = function () {
 
 // -------------------------------------------------------------------------------
 /*
-system.user = function (user) { // данные пользователя по login или id
-	return this.system.users[user]
-
-	return system.db(`SELECT id, login, name, email, disabled FROM users WHERE ${equals('id', 'login', user)} COLLATE NOCASE`)
-		.then(select => select.length ? select[0] : null)
-
-}
-*/
-
 system.users = function (object) { // users of given <object>
 	let _object = this.system.objects.groups[object]
 	return system.db(`select id1 id from [system_links] where id2 = $id2`, { $id2: _object._id })
@@ -144,7 +109,7 @@ system.tasks = function (object) { // users of given <object>
 	let _object = this.system.objects.groups[object]
 	return system.db(`select id1 id from [system_links] where id2 = $id2`, { $id2: _object._id })
 		.then(users => Promise.all(users.map(user => treeMapper(user.id))))
-	/*
+	
 	return system.db(`
 		select
 			users.id, users.name, users.email,	users.disabled,
@@ -166,8 +131,9 @@ system.tasks = function (object) { // users of given <object>
 		order by
 			users.name`
 	)
-	*/
+	
 }
+*/
 
 system.access = function (user, options = {}) {
 // карта доступа
@@ -185,60 +151,31 @@ system.access = function (user, options = {}) {
 		})
 		return map
 	}
-	let obj = system.checkObject(options.object)
+	assert(this.acl.has(options.object), 'Отсутствует объект доступа')
+	let obj = this.acl.get(options.object)
 	return Object.assign({ granted: idList.includes(obj.id) }, obj)
 }
 
-// проверка наличия пользователя
-system.checkUser = function (login) {
+system.getUser = function (login) {
 	assert(login in this.tree.users, 'Пользователь ' + login + ' не зарегистрирован')
-	return this.tree.users[login]
-}
-
-// проверка наличия объекта доступа
-system.checkObject = function (id) {
-	assert(this.acl.has(id), 'Отсутствует объект доступа')
-	return this.acl.get(id)
+	return { id: this.tree.users._id(login), ...this.tree.users[login] }
 }
 
 // проверка прав доступа пользователя к заданному объекту (блокировка тоже проверяется)
-system.checkAccess = function (_user, object) {
-	let user = system.checkUser(_user)
-	assert(!user.disabled, 'Пользователь ' + _user + ' заблокирован')
-	let access = system.access(user, { object: object })
+system.checkAccess = function (user, object) {
+	assert(!user.disabled, 'Пользователь ' + user.login + ' заблокирован')
+	let access = this.access(user, { object: object })
 	assert(access && access.granted, 'Не разрешен доступ к операции')
 	return access
 }
 
 /// /////////////////////////////////////////////////////////////////////
-
-system.configGetBool = function (path) {
-	let value = system.configGetNode(path)
-	if (typeof value === 'undefined' || value === null) return false
-	switch (value.toString().toLowerCase().trim()) {
-	case 'true': case 'yes': case '1': return true
-	case 'false': case 'no': case '0': case null: return false
-	default: return Boolean(value)
-	}
-}
-
-system.configGetNode = function (path, sep = '.') {
-	let _node = this.tree
-	let _path = path.split(sep)
-	if (_path.length === 1 && _path[0] === '') return _node
-	for (let key of _path) {
-		if ((typeof _node === 'object') && (key in _node)) _node = _node[key]; else return null
-	}
-	return _node
-}
-
 module.exports = treeMapper(-1).then(systemTree => {
 	system.tree = systemTree
 	system.config = system.tree.config
 	const config = system.config
 
 	system.acl = new Map()
-
 	for (let _class in systemTree.objects) {
 		for (let object in systemTree.objects[_class]) {
 			let id = systemTree.objects[_class]._id(object)
