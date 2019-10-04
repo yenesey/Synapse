@@ -35,6 +35,7 @@ module.exports = function (system) {
 	api.useNtlm = function () {
 		// basic-auth через Active Directory (ntlm)
 		router.use([
+			/*
 			ntlm({
 				badrequest: function (req, res, next) {
 					res.sendStatus(400)
@@ -50,8 +51,10 @@ module.exports = function (system) {
 				// debug: function () { var args = Array.prototype.slice.apply(arguments); console.log.apply(null, args) },
 				domain: config.ntlm.domain,
 				domaincontroller: config.ntlm.dc
-			}),
+			}),*/
 			function (req, res, next) {
+				req.ntlm = {}
+				req.ntlm.UserName = 'bogachev'
 				req.user = system.getUser(req.ntlm.UserName)
 				next()
 			}

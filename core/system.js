@@ -170,16 +170,16 @@ system.checkAccess = function (user, object) {
 }
 
 /// /////////////////////////////////////////////////////////////////////
-module.exports = treeMapper(-1).then(systemTree => {
-	system.tree = systemTree
+module.exports = treeMapper(-1).then(tree => {
+	system.tree = tree
 	system.config = system.tree.config
 	const config = system.config
 
 	system.acl = new Map()
-	for (let _class in systemTree.objects) {
-		for (let object in systemTree.objects[_class]) {
-			let id = systemTree.objects[_class]._id(object)
-			system.acl.set(id,  { id: id, name: object, class: _class, ...systemTree.objects[_class][object] })
+	for (let _class in system.tree.objects) {
+		for (let object in system.tree.objects[_class]) {
+			let id = system.tree.objects[_class]._id(object)
+			system.acl.set(id,  { id: id, name: object, class: _class, ...system.tree.objects[_class][object] })
 		}
 	}
 
@@ -190,7 +190,7 @@ module.exports = treeMapper(-1).then(systemTree => {
 		}
 	}
 	config.path.root = ROOT_DIR
-
+/*
 	if (config.ssl.cert) {
 		return promisify(fs.readFile)(path.join(ROOT_DIR, 'sslcert', config.ssl.cert))
 			.then(cert => {
@@ -198,6 +198,6 @@ module.exports = treeMapper(-1).then(systemTree => {
 				return system
 			})
 	}
-
+*/
 	return system
 })

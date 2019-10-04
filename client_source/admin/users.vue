@@ -1,12 +1,29 @@
 <template>
 <div>
 	<div>
-    <v-switch 
-      v-model="showDisabled"
-      messages="показ. заблок."
-      style="display:inline-block"
-    /> 
-		<label for="select">Выбрать пользователя:</label>	
+	<v-switch 
+	  v-model="showDisabled"
+	  messages="показ. заблок."
+	  style="display:inline-block"
+	/> 
+		<input v-model="model.id"> </input>
+		<v-autocomplete
+			style="width:380px;display:inline-block"
+        	v-model="model"
+        	:items="items"
+        	:loading="isLoading"
+        	:search-input.sync="search"
+			@input="selectUser"
+        	hide-no-data
+        	hide-selected
+        	item-text="login"
+        	item-value="name"
+        	label="Выбрать пользователя"
+        	placeholder="Start typing to Search"
+        	prepend-icon="mdi-database-search"
+        	return-object
+      	></v-autocomplete>
+		<!--	
 		<dlookup
 			name="select" 
 			db="db/synapse.db" 
@@ -16,113 +33,114 @@
 			look-in="name%,login%" 
 			:where="showDisabled?'':'(disabled = 0 or disabled is null)'"
 			order="name"
-      :min-length=0
+	  		:min-length=0
 			style="width:300px;display:inline-block"
 			v-model="userName"
 			@select="selectUser"
-      :get-label="labelSelect"
+	  		:get-label="labelSelect"
 		>
-      <i slot-scope="{item, index}">
-        {{item.name}} <i style="color:teal"> {{(item.login) ? '(' + item.login + ')':''}} </i>
-      </i>
+		
+	  <i slot-scope="{item, index}">
+		{{item.name}} <i style="color:teal"> {{(item.login) ? '(' + item.login + ')':''}} </i>
+	  </i>
 		</dlookup>
-
-    <v-btn
-      fab
-      small
-      style="margin-left: 20px; background-color: #acdbff;"
-      @click.native.stop="dialog = !dialog"
-    >
-      <v-icon>add</v-icon>
-    </v-btn>
-      
-      <v-dialog v-model="dialog" max-width="550px" lazy>
-        <v-card>
-          <v-card-title>
-            <v-icon style="font-size: 36px; padding-right: 10px; ">group_add</v-icon>
-            <span class="headline">Добавить пользователя</span>
-        		<dlookup
-        			name="add"
-        			db="ldap:"
-        			fields="sAMAccountName,displayName,mail" 
-        			look-in="sAMAccountName%,displayName%,mail%"
-        	    style="width:350px"
-        			@select="selectUserAD"
-              :get-label="labelAdd"
-        		>
-              <i slot-scope="{item, index}">
-                {{item.displayName}} <i style="color:teal"> {{(item.sAMAccountName) ? '(' + item.sAMAccountName + ')':''}} </i>
-              </i>
-        		</dlookup>
-          </v-card-title>
-          <v-card-text>
-            <table width=100% class="synapse" >
-              <tr>
-                <v-text-field
-                  label="ФИО:"
-                  v-model="displayName"
-                  style="padding:15px"
-                  hide-details />
-              </tr>
-              <tr>
-                <v-text-field
-                  label="Login:"
-                  v-model="sAMAccountName"
-                  style="padding:15px"
-                  hide-details />
-              </tr>
-              <tr>
-                <v-text-field
-                  label="Email:"
-                  v-model="mail"
-                  style="padding:15px"
-                  hide-details />
-              </tr>
-            </table>
-            <br><br><br><br><br><br><br><br><br><br><br><br>
-          </v-card-text>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn v-show="canCreate" style="background-color:#acdbff;" @click.native="addUser">Добавить</v-btn>
-            <v-btn style="background-color:#acdbff;" @click.native="dialog = !dialog">Закрыть</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
+		-->
+	<v-btn
+	  fab
+	  small
+	  style="margin-left: 20px; background-color: #acdbff;"
+	  @click.native.stop="dialog = !dialog"
+	>
+	  <v-icon>add</v-icon>
+	</v-btn>
+	  
+	  <v-dialog v-model="dialog" max-width="550px" lazy>
+		<v-card>
+		  <v-card-title>
+			<v-icon style="font-size: 36px; padding-right: 10px; ">group_add</v-icon>
+			<span class="headline">Добавить пользователя</span>
+				<dlookup
+					name="add"
+					db="ldap:"
+					fields="sAMAccountName,displayName,mail" 
+					look-in="sAMAccountName%,displayName%,mail%"
+					style="width:350px"
+					@select="selectUserAD"
+			  		:get-label="labelAdd"
+				>
+			  <i slot-scope="{item, index}">
+				{{item.displayName}} <i style="color:teal"> {{(item.sAMAccountName) ? '(' + item.sAMAccountName + ')':''}} </i>
+			  </i>
+				</dlookup>
+		  </v-card-title>
+		  <v-card-text>
+			<table width=100% class="synapse" >
+			  <tr>
+				<v-text-field
+				  label="ФИО:"
+				  v-model="displayName"
+				  style="padding:15px"
+				  hide-details />
+			  </tr>
+			  <tr>
+				<v-text-field
+				  label="Login:"
+				  v-model="sAMAccountName"
+				  style="padding:15px"
+				  hide-details />
+			  </tr>
+			  <tr>
+				<v-text-field
+				  label="Email:"
+				  v-model="mail"
+				  style="padding:15px"
+				  hide-details />
+			  </tr>
+			</table>
+			<br><br><br><br><br><br><br><br><br><br><br><br>
+		  </v-card-text>
+		  <v-card-actions>
+			<v-spacer></v-spacer>
+			<v-btn v-show="canCreate" style="background-color:#acdbff;" @click.native="addUser">Добавить</v-btn>
+			<v-btn style="background-color:#acdbff;" @click.native="dialog = !dialog">Закрыть</v-btn>
+		  </v-card-actions>
+		</v-card>
+	  </v-dialog>
 	</div>
 
 	<div style="width:100%;height:2px;background:linear-gradient(to left, #CBE1F5, #74afd2); margin-top:1em; margin-bottom:1em;"></div>
 
 	<table width=100% class="synapse" v-if="userId && access">
-    <td>
-      <v-text-field v-if="userId && access"
-        label="ФИО:"
-        v-model="userName"
-        style="padding:10px"
-        @change="setUser"
-        hide-details />
-    </td>
-    <td>
-      <v-text-field v-if="userId && access"
-        label="Login:"
-        v-model="userLogin"
-        style="padding:10px"
-        @change="setUser"
-        hide-details />
-    </td>
-    <td>
-      <v-text-field v-if="userId && access"
-        label="Email:"
-        v-model="userEmail"
-        style="padding:10px"
-        @change="setUser"
-        hide-details />
-    </td>
+	<td>
+	  <v-text-field v-if="userId && access"
+		label="ФИО:"
+		v-model="userName"
+		style="padding:10px"
+		@change="setUser"
+		hide-details />
+	</td>
+	<td>
+	  <v-text-field v-if="userId && access"
+		label="Login:"
+		v-model="userLogin"
+		style="padding:10px"
+		@change="setUser"
+		hide-details />
+	</td>
+	<td>
+	  <v-text-field v-if="userId && access"
+		label="Email:"
+		v-model="userEmail"
+		style="padding:10px"
+		@change="setUser"
+		hide-details />
+	</td>
 		<td>
-      <v-switch 
-        label="Заблокировать"
-        v-model="userDisabled" 
-        @change="setUser" 
-        hide-details /> 
+	  <v-switch 
+		label="Заблокировать"
+		v-model="userDisabled" 
+		@change="setUser" 
+		hide-details /> 
 		</td>
 	</table>
 
@@ -130,13 +148,13 @@
 		<thead>
 			<tr>
 				<th v-for="_class in section" style="text-align:left; padding-left:0.15em; padding-right:30px" :key="_class">
-          <v-checkbox 
-            :label="_class" 
-            v-model="columnChecks[_class]" 
-            @change="setColumn(_class, $event)" 
-            style="margin:0;" 
-            hide-details> 
-          </v-checkbox> 
+		  <v-checkbox 
+			:label="_class" 
+			v-model="columnChecks[_class]" 
+			@change="setColumn(_class, $event)" 
+			style="margin:0;" 
+			hide-details> 
+		  </v-checkbox> 
 				</th>
 			</tr>
 		</thead>
@@ -145,20 +163,24 @@
 			<tr> 
 				<td style="padding-right:30px;vertical-align: baseline" v-for="_class in section"  :key="_class">
 					<template v-for="el in access[_class]">
-            <v-checkbox v-if="el.description"
-              :label="el.name" 
-              v-model="el.granted" 
-              @change="setItem(el.id, $event)" 
-              style="margin:0;" 
-              :messages="el.description"> 
-            </v-checkbox> 
-            <v-checkbox v-else
-              :label="el.name" 
-              v-model="el.granted" 
-              @change="setItem(el.id, $event)" 
-              style="margin:0;" 
-              hide-details> 
-            </v-checkbox> 
+						<v-checkbox 
+							:key="el.id"
+							v-if="el.description"
+							:label="el.name" 
+							v-model="el.granted" 
+							@change="setItem(el.id, $event)" 
+							style="margin:0;" 
+							:messages="el.description"> 
+						</v-checkbox> 
+						<v-checkbox v-else
+							:label="el.name" 
+							v-model="el.granted" 
+							@change="setItem(el.id, $event)" 
+							style="margin:0;" 
+							hide-details
+							:key="el.id"
+						> 
+						</v-checkbox> 
 					</template>
 				</td>
 			</tr>
@@ -171,126 +193,178 @@
 </template>
 
 <script>
-import {pxhr, keys} from 'lib';
+import {
+	pxhr,
+	keys
+} from 'lib';
 
 export default {
-	data: function(){
+	data: function () {
 		return {
-			canCreate: false, 
+			entries: [],
+			isLoading: false,
+     		model: {},
+      		search: null,
+
+			canCreate: false,
 			userId: null,
 			userLogin: '',
-			userName:'',
-			userEmail:'',
-      userDisabled: 0,
-			access: null,	// =={ tasks:[], admin:[], ibs:[], deps:[] }
+			userName: '',
+			userEmail: '',
+			userDisabled: 0,
+			access: null, // =={ tasks:[], admin:[], ibs:[], deps:[] }
 			message: '',
-      showDisabled: false,
-      dialog: false,
-      sAMAccountName: '',
-      displayName: '',
-      mail: ''
+			showDisabled: false,
+			dialog: false,
+			sAMAccountName: '',
+			displayName: '',
+			mail: ''
 		}
 	},
 
-	mounted : function(){ //при появлении в DOM
-
-	},
-
-	computed:{
-		columnChecks : function(){ //getter only
+	computed: {
+     	items () {
+       		return this.entries// .map(entry => entry.login  + ' ' + entry.name)
+		 },
+		 columnChecks: function () { //getter only
 			var self = this;
-			return Object.keys(self.access).reduce(function(obj, key){
+			return Object.keys(self.access).reduce(function (obj, key) {
 				if (self.access[key] instanceof Array)
-					obj[key] = self.access[key].reduce(function(result, item){
+					obj[key] = self.access[key].reduce(function (result, item) {
 						return result && item.granted
-					}, 1)	
+					}, 1)
 				return obj;
-			},{})
+			}, {})
 		}
+    },
+
+    watch: {
+     	search (val) {
+     	  	// Items have already been loaded
+     	  	if (this.items.length > 0) return
+
+     	  	// Items have already been requested
+     	  	if (this.isLoading) return
+
+     	  	this.isLoading = true
+
+     	  	// Lazily load input items
+     	  	pxhr({method:'GET', url: 'access/users'})
+     	  	   .then(res => {
+     	  	   		this.entries = res
+     	  	  	})
+     	  	 	.catch(err => {
+     	  	  	 	console.log(err)
+     	  	  	})
+     	  		.then(() => (this.isLoading = false))
+	 	}
 	},
 
 	methods: {
-		setUser : function(){
+		setUser: function () {
 			var self = this;
-			return pxhr({ method:'put', url: 'access/user', 
-				data:{
-					id:self.userId, 
-					login:self.userLogin,
-					name:self.userName,
-					email:self.userEmail,
-					disabled: self.userDisabled
-				} 
-			})
-			.catch(function(err) {console.log(err)})
+			return pxhr({
+					method: 'put',
+					url: 'access/user',
+					data: {
+						id: self.userId,
+						login: self.userLogin,
+						name: self.userName,
+						email: self.userEmail,
+						disabled: self.userDisabled
+					}
+				})
+				.catch(function (err) {
+					console.log(err)
+				})
 		},
 
-		setItem : function(objectId, checked){ //установить/снять галочку с элемента
+		setItem: function (objectId, checked) { //установить/снять галочку с элемента
 			var self = this;
-			return pxhr({ method:'put', url: 'access/map', 
-				data:{
-					userId : self.userId, 
-					objectId : objectId, 
-					granted : Number(checked)
-				} 
-			}).then(res=>{
-				if ((typeof res == 'object') && ('error' in res)){
-					self.message = res.error
-					self.alert = true
-				}
-			})	
-			.catch(function(err) {console.log(err)})
+			return pxhr({
+					method: 'put',
+					url: 'access/map',
+					data: {
+						userId: self.userId,
+						objectId: objectId,
+						granted: Number(checked)
+					}
+				}).then(res => {
+					if ((typeof res == 'object') && ('error' in res)) {
+						self.message = res.error
+						self.alert = true
+					}
+				})
+				.catch(function (err) {
+					console.log(err)
+				})
 		},
 
-		setColumn : function(_class, checked){ //установить/снять галочку с колонки элементов
+		setColumn: function (_class, checked) { //установить/снять галочку с колонки элементов
 			var self = this;
-			if (!(_class in self.access)) return; 
+			if (!(_class in self.access)) return;
 
-			self.access[_class].forEach(function(item){
+			self.access[_class].forEach(function (item) {
 				if (item.granted != Number(checked))
-					self.setItem(item.id, checked) 
-					.then(function(){
-							item.granted = Number(checked)
-					})  
+					self.setItem(item.id, checked)
+					.then(function () {
+						item.granted = Number(checked)
+					})
 			})
 		},
-		addUser : function(event){ //добавить пользователя
-      this.dialog = !this.dialog;
+		addUser: function (event) { //добавить пользователя
+			this.dialog = !this.dialog;
 			this.userId = null;
 			this.userLogin = this.sAMAccountName;
 			this.userName = this.displayName;
 			this.userEmail = this.mail;
 			var self = this;
 			self.canCreate = false;
-			pxhr({ method:'put', url: 'access/user', data:{login: self.userLogin, name : self.userName, email:self.userEmail } })
-			.then(function(res){
-				if (res.error) {
-					self.message = res.error
-					self.alert = true
-				}
-				if (res.id){
-					self.userId = res.id;
-					return pxhr({ method:'get', url: 'access/map?user=' + self.userId})
-						.then(function(res){//delete res.$user; 
+			pxhr({
+					method: 'put',
+					url: 'access/user',
+					data: {
+						login: self.userLogin,
+						name: self.userName,
+						email: self.userEmail
+					}
+				})
+				.then(function (res) {
+					if (res.error) {
+						self.message = res.error
+						self.alert = true
+					}
+					if (res.id) {
+						self.userId = res.id;
+						return pxhr({
+								method: 'get',
+								url: 'access/map?user=' + self.userId
+							})
+							.then(function (res) { //delete res.$user; 
 								self.access = keys(res.access, 'class');
-								self.access.$user = {disabled:self.access.disabled}
-						})
-				} else {
-					self.userId = null;
-					//self.message = res.message;
-				}
-			})
-			.catch(function(err){console.log(err)})
+								self.access.$user = {
+									disabled: self.access.disabled
+								}
+							})
+					} else {
+						self.userId = null;
+						//self.message = res.message;
+					}
+				})
+				.catch(function (err) {
+					console.log(err)
+				})
 		},
 
-		selectUserAD : function(event) {
+		selectUserAD: function (event) {
 			this.sAMAccountName = event.sAMAccountName;
 			this.displayName = event.displayName;
 			this.mail = event.mail;
 			//наличие всех реквизитов для создания пользователя обязательно:
-			(event.sAMAccountName && event.displayName && event.mail) ?	this.canCreate = true : this.canCreate = false;
+			(event.sAMAccountName && event.displayName && event.mail) ? this.canCreate = true: this.canCreate = false;
 		},
 
-		selectUser : function(event) {
+		selectUser: function (event) {
 			var self = this;
 			self.userId = event.id;
 			self.userLogin = event.login;
@@ -298,23 +372,30 @@ export default {
 			self.userEmail = event.email;
 			self.userDisabled = event.disabled;
 			self.canCreate = false;
-			pxhr({ method:'get', url: 'access/map?user=' + self.userId})
-			.then(function(res){
-				self.access = keys(res.access, 'class');
-				self.access.$user = {disabled:self.access.disabled}
-				if (res.error) {
-					self.message = res.error
-					self.alert = true
-				}
-			})
-			.catch(function(err){console.log(err)})
+			pxhr({
+					method: 'get',
+					url: 'access/map?user=' + self.userId
+				})
+				.then(function (res) {
+					self.access = keys(res.access, 'class');
+					self.access.$user = {
+						disabled: self.access.disabled
+					}
+					if (res.error) {
+						self.message = res.error
+						self.alert = true
+					}
+				})
+				.catch(function (err) {
+					console.log(err)
+				})
 		},
 
-		labelSelect : function(item){
+		labelSelect: function (item) {
 			return item.name
 		},
 
-		labelAdd : function(item){
+		labelAdd: function (item) {
 			return item.displayName
 		}
 	}

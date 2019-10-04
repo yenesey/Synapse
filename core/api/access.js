@@ -12,6 +12,8 @@ const assert = require('assert')
 
 module.exports = function (system) {
 	// -
+	const USERS = system.tree.objects.admin._id('Пользователи')
+
 	this.get('/map', function (req, res) {
 		// выдача полной карты доступа заданного пользователя (req.query.user)
 		// если пользователь не задан - выдается собственная карта доступа
@@ -21,7 +23,7 @@ module.exports = function (system) {
 		var queryUser = req.ntlm.UserName
 		if ('user' in req.query) { // запрос по другому пользователю? тогда нужны привилегии!
 			queryUser = Number(req.query.user) || req.query.user
-			system.checkAccess(req.user, system.tree.objects.admin._id('Пользователи'))
+			system.checkAccess(req.user, USERS)
 		}
 
 		if ('class' in req.query) options.class = req.query.class
@@ -37,7 +39,7 @@ module.exports = function (system) {
 		// операция выдачи/прекращения доступа к заданному объекту
 		// req.body = {userId:Number, objectId: Number, granted: Number(1|0)}
 		assert(req.ntlm, 'В запросе отсутствуют необходимые поля ntlm. Подключите api.useNtlm')
-		return system.checkAccess(req.user, system.ADMIN_USERS)
+		return system.checkAccess(req.user, USERS)
 			.then(() =>
 				system.db(
 					(req.body.granted)
@@ -54,7 +56,7 @@ module.exports = function (system) {
 	this.put('/user', bodyParser.json(), function (req, res) {
 		// операция добавления(создания) пользователя
 		assert(req.ntlm, 'В запросе отсутствуют необходимые поля ntlm. Подключите api.useNtlm')
-		return system.checkAccess(req.user, system.ADMIN_USERS)
+		return system.checkAccess(req.user, USERS)
 			.then(() => {
 				if ('id' in req.body) {
 					return system.db('UPDATE users SET disabled = :1, name = :2, login = :3, email = :4 WHERE id = :5',
@@ -67,6 +69,13 @@ module.exports = function (system) {
 			})
 			.then(result => res.json({ result }))
 			.catch(err => system.errorHandler(err, req, res))
+	})
+
+	this.get('/users', function (req, res) {
+		system.checkAccess(req.user, USERS)
+		let users = system.tree.users
+		let map = Object.keys(users).map(user => ({id: users._id(user), login: user, ...users[user] }))
+		res.json(map)
 	})
 
 	this.get('/members', function (req, res) {
