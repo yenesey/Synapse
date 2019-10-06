@@ -1,195 +1,38 @@
-<template>
-<div>
-	<div>
-	<v-switch 
-	  v-model="showDisabled"
-	  messages="показ. заблок."
-	  style="display:inline-block"
-	/> 
-		<input v-model="model.id"> </input>
-		<v-autocomplete
-			style="width:380px;display:inline-block"
-        	v-model="model"
-        	:items="items"
-        	:loading="isLoading"
-        	:search-input.sync="search"
-			@input="selectUser"
-        	hide-no-data
-        	hide-selected
-        	item-text="login"
-        	item-value="name"
-        	label="Выбрать пользователя"
-        	placeholder="Start typing to Search"
-        	prepend-icon="mdi-database-search"
-        	return-object
-      	></v-autocomplete>
-		<!--	
-		<dlookup
-			name="select" 
-			db="db/synapse.db" 
-			table="users"
-			fields="name,login,email,disabled" 
-			result="id"
-			look-in="name%,login%" 
-			:where="showDisabled?'':'(disabled = 0 or disabled is null)'"
-			order="name"
-	  		:min-length=0
-			style="width:300px;display:inline-block"
-			v-model="userName"
-			@select="selectUser"
-	  		:get-label="labelSelect"
-		>
-		
-	  <i slot-scope="{item, index}">
-		{{item.name}} <i style="color:teal"> {{(item.login) ? '(' + item.login + ')':''}} </i>
-	  </i>
-		</dlookup>
-		-->
-	<v-btn
-	  fab
-	  small
-	  style="margin-left: 20px; background-color: #acdbff;"
-	  @click.native.stop="dialog = !dialog"
-	>
-	  <v-icon>add</v-icon>
-	</v-btn>
-	  
-	  <v-dialog v-model="dialog" max-width="550px" lazy>
-		<v-card>
-		  <v-card-title>
-			<v-icon style="font-size: 36px; padding-right: 10px; ">group_add</v-icon>
-			<span class="headline">Добавить пользователя</span>
-				<dlookup
-					name="add"
-					db="ldap:"
-					fields="sAMAccountName,displayName,mail" 
-					look-in="sAMAccountName%,displayName%,mail%"
-					style="width:350px"
-					@select="selectUserAD"
-			  		:get-label="labelAdd"
-				>
-			  <i slot-scope="{item, index}">
-				{{item.displayName}} <i style="color:teal"> {{(item.sAMAccountName) ? '(' + item.sAMAccountName + ')':''}} </i>
-			  </i>
-				</dlookup>
-		  </v-card-title>
-		  <v-card-text>
-			<table width=100% class="synapse" >
-			  <tr>
-				<v-text-field
-				  label="ФИО:"
-				  v-model="displayName"
-				  style="padding:15px"
-				  hide-details />
-			  </tr>
-			  <tr>
-				<v-text-field
-				  label="Login:"
-				  v-model="sAMAccountName"
-				  style="padding:15px"
-				  hide-details />
-			  </tr>
-			  <tr>
-				<v-text-field
-				  label="Email:"
-				  v-model="mail"
-				  style="padding:15px"
-				  hide-details />
-			  </tr>
-			</table>
-			<br><br><br><br><br><br><br><br><br><br><br><br>
-		  </v-card-text>
-		  <v-card-actions>
-			<v-spacer></v-spacer>
-			<v-btn v-show="canCreate" style="background-color:#acdbff;" @click.native="addUser">Добавить</v-btn>
-			<v-btn style="background-color:#acdbff;" @click.native="dialog = !dialog">Закрыть</v-btn>
-		  </v-card-actions>
-		</v-card>
-	  </v-dialog>
-	</div>
+<template lang="pug">
+div
+	div
+		v-switch(v-model='showDisabled', messages='показ. заблок.', style='display:inline-block')
+		v-autocomplete(style='width:380px;display:inline-block', v-model='user', :items='users', :loading='isLoading', :search-input.sync='search', @input='selectUser', hide-no-data='', hide-selected='', item-text='login', item-value='name', label='Выбрать пользователя', placeholder='Введите часть логина', prepend-icon='mdi-database-search', return-object='')
+		v-btn(fab, small, style='margin-left: 20px; background-color: #acdbff;', @click.native.stop='dialog = !dialog')
+			v-icon add
+		v-dialog(v-model='dialog', max-width='550px')
+			v-card
+				v-card-title
+					v-icon(style='font-size: 36px; padding-right: 10px; ') group_add
+					span.headline Добавить пользователя
+					dlookup(name='add', db='ldap:', fields='sAMAccountName,displayName,mail', look-in='sAMAccountName%,displayName%,mail%', style='width:350px', @select='selectUserAD', :get-label='labelAdd')
+						i(slot-scope='{item, index}')
+							| {{item.displayName}} 
+							i(style='color:teal')  {{(item.sAMAccountName) ? '(' + item.sAMAccountName + ')':''}} 
+				v-card-text
+					v-text-field(label='ФИО:', v-model='displayName', style='padding:15px', hide-details='')
+					v-text-field(label='Login:', v-model='sAMAccountName', style='padding:15px', hide-details='')
+					v-text-field(label='Email:', v-model='mail', style='padding:15px', hide-details='')
+				v-card-actions
+					v-spacer
+					v-btn(v-show='canCreate', style='background-color:#acdbff;', @click.native='addUser') Добавить
+					v-btn(style='background-color:#acdbff;', @click.native='dialog = !dialog') Закрыть
+	div(style='width:100%;height:2px;background:linear-gradient(to left, #CBE1F5, #74afd2); margin-top:1em; margin-bottom:1em;')
+	
+	v-layout(v-if='userId && access')
+		v-text-field(label='ФИО:', v-model='userName', style='padding:10px', @change='setUser', hide-details='')
+		v-text-field(label='Login:', v-model='userLogin', style='padding:10px', @change='setUser', hide-details='')
+		v-text-field(label='Email:', v-model='userEmail', style='padding:10px', @change='setUser', hide-details='')
+		v-switch(label='Заблокировать', v-model='userDisabled', @change='setUser', hide-details='')
 
-	<div style="width:100%;height:2px;background:linear-gradient(to left, #CBE1F5, #74afd2); margin-top:1em; margin-bottom:1em;"></div>
+	v-treeview(dense, selectable, activatable, selection-type='leaf' :items='objects', v-model='objectsSelection' @input='treeCheck' v-if="objects.length")
+	pre(v-if='message', style='font-weight:bold') {{message}}
 
-	<table width=100% class="synapse" v-if="userId && access">
-	<td>
-	  <v-text-field v-if="userId && access"
-		label="ФИО:"
-		v-model="userName"
-		style="padding:10px"
-		@change="setUser"
-		hide-details />
-	</td>
-	<td>
-	  <v-text-field v-if="userId && access"
-		label="Login:"
-		v-model="userLogin"
-		style="padding:10px"
-		@change="setUser"
-		hide-details />
-	</td>
-	<td>
-	  <v-text-field v-if="userId && access"
-		label="Email:"
-		v-model="userEmail"
-		style="padding:10px"
-		@change="setUser"
-		hide-details />
-	</td>
-		<td>
-	  <v-switch 
-		label="Заблокировать"
-		v-model="userDisabled" 
-		@change="setUser" 
-		hide-details /> 
-		</td>
-	</table>
-
-	<table class="synapse" v-if="userId && access" v-for="section in [['tasks', 'todos', 'admin'],['ibs', 'deps', 'groups']]">
-		<thead>
-			<tr>
-				<th v-for="_class in section" style="text-align:left; padding-left:0.15em; padding-right:30px" :key="_class">
-		  <v-checkbox 
-			:label="_class" 
-			v-model="columnChecks[_class]" 
-			@change="setColumn(_class, $event)" 
-			style="margin:0;" 
-			hide-details> 
-		  </v-checkbox> 
-				</th>
-			</tr>
-		</thead>
-
-		<tbody>
-			<tr> 
-				<td style="padding-right:30px;vertical-align: baseline" v-for="_class in section"  :key="_class">
-					<template v-for="el in access[_class]">
-						<v-checkbox 
-							:key="el.id"
-							v-if="el.description"
-							:label="el.name" 
-							v-model="el.granted" 
-							@change="setItem(el.id, $event)" 
-							style="margin:0;" 
-							:messages="el.description"> 
-						</v-checkbox> 
-						<v-checkbox v-else
-							:label="el.name" 
-							v-model="el.granted" 
-							@change="setItem(el.id, $event)" 
-							style="margin:0;" 
-							hide-details
-							:key="el.id"
-						> 
-						</v-checkbox> 
-					</template>
-				</td>
-			</tr>
-		</tbody> 
-	</table>
-
-	<pre v-if="message" style="font-weight:bold">{{message}}</pre>
-
-</div>
 </template>
 
 <script>
@@ -201,9 +44,9 @@ import {
 export default {
 	data: function () {
 		return {
-			entries: [],
-			isLoading: false,
-     		model: {},
+			users: [],
+			user: {},
+			isLoading: false,	
       		search: null,
 
 			canCreate: false,
@@ -218,30 +61,31 @@ export default {
 			dialog: false,
 			sAMAccountName: '',
 			displayName: '',
-			mail: ''
+			mail: '',
+			objects: [],
+			objectsSelection: []
 		}
 	},
 
 	computed: {
-     	items () {
-       		return this.entries// .map(entry => entry.login  + ' ' + entry.name)
-		 },
-		 columnChecks: function () { //getter only
-			var self = this;
-			return Object.keys(self.access).reduce(function (obj, key) {
-				if (self.access[key] instanceof Array)
-					obj[key] = self.access[key].reduce(function (result, item) {
-						return result && item.granted
-					}, 1)
-				return obj;
-			}, {})
-		}
     },
-
+	mounted () {
+		pxhr({
+			method: 'get',
+			url: 'access/object-map',
+		}).then(res => {
+			this.objects = res
+		}).catch(function (err) {
+			console.log(err)
+		})
+	},
     watch: {
+		objectsSelection (val) {
+			console.log(val)
+		},
      	search (val) {
      	  	// Items have already been loaded
-     	  	if (this.items.length > 0) return
+     	  	if (this.users.length > 0) return
 
      	  	// Items have already been requested
      	  	if (this.isLoading) return
@@ -250,8 +94,8 @@ export default {
 
      	  	// Lazily load input items
      	  	pxhr({method:'GET', url: 'access/users'})
-     	  	   .then(res => {
-     	  	   		this.entries = res
+     	  	   .then(users => {
+     	  	   		this.users = users
      	  	  	})
      	  	 	.catch(err => {
      	  	  	 	console.log(err)
@@ -261,6 +105,9 @@ export default {
 	},
 
 	methods: {
+		treeCheck (e) {
+			// console.log(e)
+		},
 		setUser: function () {
 			var self = this;
 			return pxhr({
@@ -285,9 +132,9 @@ export default {
 					method: 'put',
 					url: 'access/map',
 					data: {
-						userId: self.userId,
+						user: self.userLogin,
 						objectId: objectId,
-						granted: Number(checked)
+						granted: checked
 					}
 				}).then(res => {
 					if ((typeof res == 'object') && ('error' in res)) {
@@ -300,18 +147,6 @@ export default {
 				})
 		},
 
-		setColumn: function (_class, checked) { //установить/снять галочку с колонки элементов
-			var self = this;
-			if (!(_class in self.access)) return;
-
-			self.access[_class].forEach(function (item) {
-				if (item.granted != Number(checked))
-					self.setItem(item.id, checked)
-					.then(function () {
-						item.granted = Number(checked)
-					})
-			})
-		},
 		addUser: function (event) { //добавить пользователя
 			this.dialog = !this.dialog;
 			this.userId = null;
@@ -374,7 +209,7 @@ export default {
 			self.canCreate = false;
 			pxhr({
 					method: 'get',
-					url: 'access/map?user=' + self.userId
+					url: 'access/map?user=' + self.userLogin
 				})
 				.then(function (res) {
 					self.access = keys(res.access, 'class');

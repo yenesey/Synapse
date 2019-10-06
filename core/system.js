@@ -97,63 +97,35 @@ system.easterEgg = function () {
 	return '\n (.)(.)\n  ).(  \n ( v )\n  \\|/'
 }
 
-// -------------------------------------------------------------------------------
-/*
-system.users = function (object) { // users of given <object>
-	let _object = this.system.objects.groups[object]
-	return system.db(`select id1 id from [system_links] where id2 = $id2`, { $id2: _object._id })
-		.then(users => Promise.all(users.map(user => treeMapper(user.id))))
-}
-
-system.tasks = function (object) { // users of given <object>
-	let _object = this.system.objects.groups[object]
-	return system.db(`select id1 id from [system_links] where id2 = $id2`, { $id2: _object._id })
-		.then(users => Promise.all(users.map(user => treeMapper(user.id))))
-	
-	return system.db(`
-		select
-			users.id, users.name, users.email,	users.disabled,
-			case when 
-				(select 
-					users.id 
-				from
-					objects,
-					user_access
-				where
-					user_access.user = users.id 
-					and user_access.object = objects.id
-					and ${equals('id', 'name', object)} 
-					collate nocase
-				) 
-			is null then 0 else 1 end as granted 
-		from
-			users
-		order by
-			users.name`
-	)
-	
-}
-*/
+// ---------------------------------------------------------------------------------------------
 
 system.access = function (user, options = {}) {
 // карта доступа
-// это главная функция, через нее почти весь доступ работает
-// options = { _class: _className || object: objectId }
+// это главная функция, весь доступ работает через нее
+// options = { 'class': className, object: objectId, granted: true|false }
 
-	let idList = String(user._acl).split(',').map(el => Number(el))
+	let userAcl = String(user._acl).split(',').map(el => Number(el))
 
 	if (!('object' in options)) {
 		let map = []
 		this.acl.forEach(el => {
-			if (!('_class' in options) || el._class === options._class) {
-				map.push(Object.assign({ granted: idList.includes(el.id) }, el))
+			let granted = userAcl.includes(el.id)
+			if (
+				(!('class' in options) || el['class'] === options['class']) && 
+				(!('granted' in options) || granted === options['granted'])
+			)  {
+				map.push({ ...el, granted: granted })
 			}
 		})
 		return map
 	}
 	assert(this.acl.has(options.object), 'Отсутствует объект доступа')
 	let obj = this.acl.get(options.object)
-	return Object.assign({ granted: idList.includes(obj.id) }, obj)
+	return Object.assign({ granted: userAcl.includes(obj.id) }, obj)
+}
+
+system.getUserById = function (id) {
+	return { id: id, ...this.users.get(id) }
 }
 
 system.getUser = function (login) {
@@ -179,11 +151,11 @@ module.exports = treeMapper(-1).then(tree => {
 	for (let _class in system.tree.objects) {
 		for (let object in system.tree.objects[_class]) {
 			let id = system.tree.objects[_class]._id(object)
-			system.acl.set(id,  { id: id, name: object, class: _class, ...system.tree.objects[_class][object] })
+			system.acl.set(id,  { id: id, name: object, 'class': _class, ...system.tree.objects[_class][object] })
 		}
 	}
 
-	// eslint-disable-all
+	// eslint-disable-all`
 	for (var key in config.path) {
 		if (!path.isAbsolute(config.path[key])) { // достраиваем относительные пути до полных
 			config.path[key] = path.join(ROOT_DIR, config.path[key])

@@ -10,53 +10,69 @@
 const bodyParser = require('body-parser')
 const assert = require('assert')
 
+function createNode(node, level = 0) {
+	return Object.keys(node).map(key => ({
+		id: node._id(key),
+		name: key,
+		children: (node[key] instanceof Object && level < 1) ? createNode(node[key], level + 1) : undefined
+	}))
+}
+
+
 module.exports = function (system) {
 	// -
-	const USERS = system.tree.objects.admin._id('Пользователи')
+	const ADMIN_USERS = system.tree.objects.admin._id('Пользователи')
+
+
+	this.get('/object-map', function (req, res) {
+		system.checkAccess(req.user, ADMIN_USERS)
+		res.json(createNode(system.tree.objects))
+	})
 
 	this.get('/map', function (req, res) {
 		// выдача полной карты доступа заданного пользователя (req.query.user)
 		// если пользователь не задан - выдается собственная карта доступа
-		assert(req.ntlm, 'В запросе отсутствуют необходимые поля ntlm. Подключите api.useNtlm')
+		assert(req.ntlm, 'Не удалось определить пользователя. NTLM?')
 
-		var options = {}
-		var queryUser = req.ntlm.UserName
+		var options = { 
+			// granted: true 
+		}
+		let user = null
 		if ('user' in req.query) { // запрос по другому пользователю? тогда нужны привилегии!
-			queryUser = Number(req.query.user) || req.query.user
-			system.checkAccess(req.user, USERS)
+			system.checkAccess(req.user, ADMIN_USERS)
+			user = system.getUser(req.query.user)
+		} else {
+			user = req.user
 		}
 
 		if ('class' in req.query) options.class = req.query.class
-
-		let user = system.getUser(queryUser)
+	
 		let access = system.access(user, options)
 		delete user.id
 		delete user._acl
-		res.json({ login: queryUser, ...user, access: access })
+		res.json({ login: user.login, ...user, access: access })
 	})
 
 	this.put('/map', bodyParser.json(), function (req, res) {
 		// операция выдачи/прекращения доступа к заданному объекту
 		// req.body = {userId:Number, objectId: Number, granted: Number(1|0)}
-		assert(req.ntlm, 'В запросе отсутствуют необходимые поля ntlm. Подключите api.useNtlm')
-		return system.checkAccess(req.user, USERS)
-			.then(() =>
-				system.db(
-					(req.body.granted)
-						? `REPLACE INTO user_access VALUES (${req.body.userId}, ${req.body.objectId}, null)`
-						: `DELETE FROM user_access WHERE user=${req.body.userId} AND object=${req.body.objectId}`
-				)
-			)
-			.then(result => res.json({
-				result
-			}))
-			.catch(err => system.errorHandler(err, req, res))
+		assert(req.ntlm, 'Не удалось определить пользователя. NTLM?')
+		system.checkAccess(req.user, ADMIN_USERS)
+		let user = system.getUser(req.body.user)
+		if (user._acl_ === null) user._acl_ = {}
+		if (req.body.granted) {
+			user._acl_[req.body.objectId] = null
+		} else {
+			delete user._acl_[req.body.objectId]
+		}
+		res.json({ id : req.body.objectId })
+
 	})
 
 	this.put('/user', bodyParser.json(), function (req, res) {
 		// операция добавления(создания) пользователя
-		assert(req.ntlm, 'В запросе отсутствуют необходимые поля ntlm. Подключите api.useNtlm')
-		return system.checkAccess(req.user, USERS)
+		assert(req.ntlm, 'Не удалось определить пользователя. NTLM?')
+		return system.checkAccess(req.user, ADMIN_USERS)
 			.then(() => {
 				if ('id' in req.body) {
 					return system.db('UPDATE users SET disabled = :1, name = :2, login = :3, email = :4 WHERE id = :5',
@@ -72,7 +88,7 @@ module.exports = function (system) {
 	})
 
 	this.get('/users', function (req, res) {
-		system.checkAccess(req.user, USERS)
+		system.checkAccess(req.user, ADMIN_USERS)
 		let users = system.tree.users
 		let map = Object.keys(users).map(user => ({id: users._id(user), login: user, ...users[user] }))
 		res.json(map)

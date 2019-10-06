@@ -5,26 +5,26 @@
 				:close-on-content-click="false"
 				v-model="menu"
 				:nudge-right="40"
-				lazy
 				transition="scale-transition"
 				offset-y
-				full-width
 				min-width="290px"
 			>
-				<v-text-field class="body-1"
-					slot="activator"
-					v-model="date"
-					:label="label || 'Дата:'"
-					:name="name"
-					prepend-icon="event"
-					readonly
-				></v-text-field>
+				<template v-slot:activator="{ on }">
+					<v-text-field class="body-1"
+						v-model="date"
+						:label="label || 'Дата:'"
+						:name="name"
+						prepend-icon="event"
+						readonly
+						v-on="on"
+					></v-text-field>
+				</template>
 
 				<v-date-picker v-model="date" class="body-1" scrollable @input="menu=false" :type="type" first-day-of-week=1 locale="ru-ru" >
 					<v-spacer></v-spacer>
-					<v-btn flat color="blue" @click="clear()">Очистить</v-btn>
-					<v-btn flat color="blue darken-2" @click="today()" v-if="!type">Сегодня</v-btn>
-					<v-btn flat color="primary" @click="menu = false">Отмена</v-btn>
+					<v-btn  @click="clear()">Очистить</v-btn>
+					<v-btn  @click="today()" v-if="!type">Сегодня</v-btn>
+					<v-btn  @click="menu = false">Отмена</v-btn>
 				</v-date-picker>
 		 </v-menu>
 	</div>

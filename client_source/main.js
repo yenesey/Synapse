@@ -11,31 +11,13 @@ import store from './store' // Vuex store
 
 import Vue from 'vue'
 import VueRouter from 'vue-router'
-import Vuetify from 'vuetify/dist/vuetify.min.js'
-import ru from 'vuetify/es5/locale/ru.js'
-import 'vuetify/dist/vuetify.min.css'
-
 Vue.use(VueRouter)
 
-Vue.use(Vuetify, {
-	lang: {
-		locales: {ru},
-		current: 'ru'
-	},
-	theme: {
-		primary: '#ACDBFF',
-		secondary: '#424242',
-		accent: '#82B1FF',
-		error: '#FF5252',
-		info: '#2196F3',
-		success: '#4CAF50',
-		warning: '#FFC107'
-	}
-});
+import vuetify from './vuetify'
 
 //////////////////////////////////////////////////////////
 // регистрация компонент - глобально
-(function reg(context){
+;(function reg(context){
 	context.keys().forEach(function(item){
 		Vue.component(
 			item.substring(2, item.lastIndexOf('.')), // -глобальное имя - по имени файла без расширения
@@ -118,7 +100,9 @@ _.pxhr({method: 'get', url: 'access/map'})
 	// запускаем приложение:
 	new Vue({ 
 		el: '#app', 
+		vuetify: vuetify,
 		store: store,
+		router: new VueRouter({routes: routes}),
 		render: (h) => h(App, { 
 				props: {
 					user: user.login, 
@@ -127,8 +111,7 @@ _.pxhr({method: 'get', url: 'access/map'})
 					menuGroups: menuGroups
 				} 
 			}
-		),
-		router: new VueRouter({routes: routes})
+		)
 	})
 
 })

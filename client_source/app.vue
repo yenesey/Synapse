@@ -1,32 +1,29 @@
 <template lang="pug"> 
 v-app
-	v-navigation-drawer.blue.lighten-4(:width='navWidth' :value='navVisible' :clipped='navClipped' fixed app style='z-index:10' ref='nav')
+	v-navigation-drawer.blue.lighten-4(fixed app :width='navWidth' :value='navVisible' :clipped='navClipped' style='z-index:10' ref='nav')
 		v-list.blue.lighten-4
-			v-list-tile(@click="navigate('/')")
-				v-list-tile-action
+			v-list-item(@click="navigate('/')")
+				v-list-item-icon
 					v-icon account_circle
-				v-list-tile-title.user {{user}}
+				v-list-item-title.title.user {{user}}
+			v-divider
 			template(v-for='(group, index) in menuGroups')
 				// перебор групп меню (default оформляем без группы)
-				v-list-tile(v-if="group.name==='default'", v-for='task in tasks[group.name]', :key='task.path', @click="navigate('/tasks/'+task.path)", ripple='')
-					v-list-tile-action
+				v-list-item(v-if="group.name==='default'", v-for='task in tasks[group.name]', :key='task.path', @click="navigate('/tasks/'+task.path)", ripple='')
+					v-list-item-icon
 						v-icon(v-text="task.icon || group.icon || 'chevron_right'")
-					v-list-tile-content
-						v-list-tile-title {{task.name || 'noname'}}
+					v-list-item-title {{task.name || 'noname'}}
+
 				// все прочие кроме default пихаем в группу (при наличии доступных элементов)
-				v-list-group(v-if="group.name!=='default' && tasks[group.name]")
-					v-list-tile(slot='activator', @click="navigate('/tasks')", ripple='')
-						v-list-tile-action
-							v-icon(v-text='group.icon')
-						v-list-tile-content
-							v-list-tile-title(v-text='group.description || group.name')
-					v-list-tile(v-for='task in tasks[group.name]', :key='task.path', @click="navigate('/tasks/'+task.path)", ripple='')
-						v-list-tile-action.ml-3
+				v-list-group( :prepend-icon='group.icon || "chevron_right"' v-if="group.name !== 'default'")
+					v-list-item-title(slot='activator', @click="navigate('/tasks')", ripple='') {{group.description || group.name}}
+					v-list-item(v-for='task in tasks[group.name]', :key='task.path', @click="navigate('/tasks/'+task.path)", ripple)
+						v-list-item-icon.ml-3
 							v-icon(v-text="task.icon || group.icon || 'chevron_right'")
-						v-list-tile-content
-							v-list-tile-title {{task.name || 'noname'}}
-	v-toolbar.blue.lighten-4(app='', :clipped-left='navClipped', height='48px', style='z-index:9'  ref='toolbar')
-		v-toolbar-side-icon(@click.stop="toggleNav('Visible')")
+						v-list-item-title {{task.name || 'noname'}}
+
+	v-app-bar.blue.lighten-4(app, :clipped-left='navClipped', height='48px', style='z-index:9'  ref='toolbar')
+		v-app-bar-nav-icon(@click.stop="toggleNav('Visible')")
 		v-btn(icon @click.stop="toggleNav('Clipped')" v-show='navVisible')
 			v-icon web
 		template(v-if='isDevMode')
@@ -35,16 +32,18 @@ v-app
 		v-spacer
 		v-toolbar-title Synapse
 		v-menu(offset-y='', v-if='admin')
-			v-btn(icon='', slot='activator')
-				v-icon(v-html='admin.icon')
+
+			template(v-slot:activator="{ on }")
+				v-btn(icon v-on="on")
+					v-icon(v-html='admin.icon')
 			v-list
-				v-list-tile(router='', :to="'/admin/'+item.path", v-for='(item, index) in admin.children', :key='index')
-					v-list-tile-action
+				v-list-item(router='', :to="'/admin/'+item.path", v-for='(item, index) in admin.children', :key='index')
+					v-list-item-icon
 						v-icon {{ item.icon }}
-					v-list-tile-title {{ item.name }}
+					v-list-item-title {{ item.name }}
 	v-content(ref='content')
 		div.dragbar(@mousedown='initDrag')
-		v-container.fluid
+		v-container(style='padding:1.3rem')
 			v-slide-y-transition(mode='out-in')
 				keep-alive
 					router-view(:key='$route.fullPath')
@@ -216,7 +215,7 @@ export default {
 	color: teal; 
 	font-size: 1.15em; 
 /*	font-style: italic;*/
-	margin: 0.6em 0.5em 1.6em 0.5em;
+	margin: 0.6em  0em 1.5em 0em;
 }
 
 .dragbar {
