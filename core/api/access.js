@@ -23,6 +23,18 @@ module.exports = function (system) {
 	// -
 	const ADMIN_USERS = system.tree.objects.admin._id('Пользователи')
 
+	this.get('/acl', function (req, res) {
+		system.checkAccess(req.user, ADMIN_USERS)
+		let acl = system.tree.users[req.query.user]._acl
+		assert(acl, 'Отсутствуют реквизиты доступа')
+		res.json(acl.split(',').map(Number))
+	})
+
+	this.put('/acl', bodyParser.json(), function (req, res) {
+		system.checkAccess(req.user, ADMIN_USERS)
+		system.tree.users[req.body.user]._acl = req.body.acl.join(',')
+		res.json({success: true})
+	})
 
 	this.get('/object-map', function (req, res) {
 		system.checkAccess(req.user, ADMIN_USERS)

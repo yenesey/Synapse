@@ -228,29 +228,6 @@ export default {
 }
 
 /*-----------------------*/
-.v-list__tile {
-	height : 42px;
-	transition: all .18s !important;
-}
-
-.v-list__tile:hover{
-	padding-left:+20px !important;	
-}
-
-
-.v-list__tile__action {
-	min-width : 32px;
-}
-
-.v-list__group__header--active {
-	background: #A2D1F5;
-}
-
-.v-list__group__header .v-list__tile__title { 
-	font-weight : bold;
-}
-
-
 
 .fade-enter-active, .fade-leave-active {
 	transition: all 0.08s cubic-bezier(1.0, 0.5, 0.8, 1.0)
