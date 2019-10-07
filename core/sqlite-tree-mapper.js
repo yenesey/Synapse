@@ -66,7 +66,7 @@ module.exports = function (db, table) {
 
 			get (target, key, receiver) {
 				if (Reflect.has(target, key)) return target[key]
-				
+
 				switch (key) {
 				case '_id': return (key) => keystore.get(key)
 				case '_path': return path.bind(target)

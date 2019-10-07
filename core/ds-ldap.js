@@ -2,7 +2,7 @@
 /*
   источник данных Active Directory
 */
-var ActiveDirectory = require('activedirectory');
+var ActiveDirectory = require('activedirectory')
 var promisify = require('util').promisify
 
 module.exports = function (config) {

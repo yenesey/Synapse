@@ -24,7 +24,7 @@ module.exports = function (system) {
 	this.get('/acl', function (req, res) {
 		system.checkAccess(req.user, ADMIN_USERS)
 		let acl = system.tree.users[req.query.user]._acl
-		assert(acl, 'Отсутствуют реквизиты доступа')
+		assert(acl, 'Нет установленных флагов доступа')
 		res.json(acl.split(',').map(Number))
 	})
 
@@ -56,7 +56,7 @@ module.exports = function (system) {
 		}
 
 		if ('class' in req.query) options.class = req.query.class
-	
+
 		let access = system.access(user, options)
 		delete user.id
 		delete user._acl

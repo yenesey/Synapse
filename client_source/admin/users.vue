@@ -1,10 +1,44 @@
 <template lang="pug">
 div
-	div
-		v-switch(v-model='showDisabled', messages='показ. заблок.', style='display:inline-block')
-		v-autocomplete(style='width:380px;display:inline-block', v-model='user', :items='users', :loading='isLoading', :search-input.sync='search', @input='selectUser', hide-no-data='', hide-selected='', item-text='login', item-value='name', label='Выбрать пользователя', placeholder='Начните вводить логин', prepend-icon='mdi-database-search', return-object='')
-		v-btn(fab, small, style='margin-left: 20px; background-color: #acdbff;', @click.native.stop='dialog = !dialog')
+	v-layout(style='margin-top:1.5em')
+		v-switch(v-model='showDisabled' messages='Показ. блок' style='margin-top: -0.425em;')
+		v-autocomplete(
+			hide-no-data,
+			hide-selected, 
+			return-object,
+			v-model='user',
+			:items='users',
+			:loading='isLoading',
+			:search-input.sync='search',
+			@input='selectUser',
+			item-text='login',
+			item-value='name',
+			label='Выбрать существующего пользователя',
+			placeholder='Начните вводить логин',
+			prepend-icon='mdi-database-search',
+			style='width:380px;margin-right:30px'
+		)
+		div(style='width:3px;height:auto;background:linear-gradient(to left, #CBE1F5, #74afd2);')
+
+		v-autocomplete(
+			hide-no-data,
+			hide-selected, 
+			return-object,
+			v-model='user',
+			:items='users',
+			:loading='isLoading',
+			:search-input.sync='search',
+			@input='selectUser',
+			item-text='login',
+			item-value='name',
+			label='Добавить нового пользователя из Active Directory',
+			placeholder='Начните вводить логин',
+			prepend-icon='mdi-database-search',
+			style='width:380px;'
+		)
+		v-btn(fab, small, style='margin-left:20px; background-color: #acdbff;', @click.native.stop='dialog = !dialog')
 			v-icon add
+
 		v-dialog(v-model='dialog', max-width='550px')
 			v-card
 				v-card-title
@@ -24,13 +58,14 @@ div
 					v-btn(style='background-color:#acdbff;', @click.native='dialog = !dialog') Закрыть
 	div(style='width:100%;height:2px;background:linear-gradient(to left, #CBE1F5, #74afd2); margin-top:1em; margin-bottom:1em;')
 	
-	template(v-if='userLogin')
-		v-layout(v-if='userLogin')
-			v-text-field(label='ФИО:', v-model='userName', style='padding:10px', @change='setUser', hide-details='')
-			v-text-field(label='Login:', v-model='userLogin', style='padding:10px', @change='setUser', hide-details='')
-			v-text-field(label='Email:', v-model='userEmail', style='padding:10px', @change='setUser', hide-details='')
-			v-switch(label='Заблокировать', v-model='userDisabled', @change='setUser', hide-details='')
-		v-treeview(dense, selectable, activatable, selection-type='leaf' :items='objects', v-model='objectsSelection' @input='treeCheck' v-if="objects.length")
+	v-slide-y-transition(mode='out-in')
+		div(v-if='userLogin')
+			v-layout(v-if='userLogin')
+				v-text-field(label='ФИО:', v-model='userName', style='padding:10px', @change='setUser', hide-details='')
+				v-text-field(label='Login:', v-model='userLogin', style='padding:10px', @change='setUser', hide-details='')
+				v-text-field(label='Email:', v-model='userEmail', style='padding:10px', @change='setUser', hide-details='')
+				v-switch(label='Заблокировать', v-model='userDisabled', @change='setUser', hide-details='')
+			v-treeview(dense, selectable, activatable, selection-type='leaf' :items='objects', v-model='objectsSelection' @input='treeCheck' v-if="objects.length")
 	pre(v-if='message', style='font-weight:bold') {{message}}
 
 </template>
@@ -80,7 +115,7 @@ export default {
     watch: {
 		objectsSelection (val) {
 			var self = this;
-			return pxhr({
+			pxhr({
 				method: 'put',
 				url: 'access/acl',
 				data: {
@@ -91,6 +126,9 @@ export default {
 				if ('error' in res) {
 					self.message = res.error
 					self.alert = true
+				} else {
+					self.message = ''
+					self.alert = false
 				}
 			}).catch(function (err) {
 				console.log(err)
@@ -213,7 +251,7 @@ export default {
 		},
 
 		selectUser: function (event) {
-			console.log(event)
+			// console.log(event)
 			var self = this;
 			self.userId = event.id;
 			self.userLogin = event.login;
@@ -228,6 +266,7 @@ export default {
 				if (!res.error) {
 					self.objectsSelection = res
 				} else {
+					self.objectsSelection = []
 					self.message = res.error
 					self.alert = true
 				}

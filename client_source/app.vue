@@ -9,12 +9,12 @@ v-app
 
 			v-divider
 
-			v-list-group(v-for='(group, index) in menuGroups' :prepend-icon='group.icon || "chevron_right"')
+			v-list-group(v-for='(group, index) in menuGroups' :key='index' :prepend-icon='group.icon || "chevron_right"')
 				v-list-item-title(
 					slot='activator',
 					@click="navigate('/tasks')",
-					ripple=''
-				) {{group.name === 'default' ? 'Прочее' : group.description || group.name}}
+					ripple
+				) {{group.name === 'default' ? 'Общее' : group.description || group.name}}
 				v-list-item.ml-4(
 					v-for='task in tasks[group.name]',
 					:key='task.path',
@@ -90,7 +90,7 @@ export default {
 	},
 	methods: {
 		navigate(to){
-			this.$root.$router.push(to)
+			if (to !== this.$root.$router.currentRoute.fullPath) this.$root.$router.push(to)
 		},
 
 		toggleNav (flag) {
