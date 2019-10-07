@@ -1,8 +1,7 @@
 'use strict'
 
 /*
-	Работа с пользователями, контроль доступа,
-	- требуется NTLM-middleware, иначе ошибка гарантирована
+	Работа с пользователями, контроль доступа (требуется NTLM-middleware см. ./api.js)
 	- идентификация / авторизация
 	- добавление / удаление пользователя
 */
@@ -10,14 +9,13 @@
 const bodyParser = require('body-parser')
 const assert = require('assert')
 
-function createNode(node, level = 0) {
+function createNode (node, level = 0) {
 	return Object.keys(node).map(key => ({
 		id: node._id(key),
 		name: key,
 		children: (node[key] instanceof Object && level < 1) ? createNode(node[key], level + 1) : undefined
 	}))
 }
-
 
 module.exports = function (system) {
 	// -
@@ -33,7 +31,7 @@ module.exports = function (system) {
 	this.put('/acl', bodyParser.json(), function (req, res) {
 		system.checkAccess(req.user, ADMIN_USERS)
 		system.tree.users[req.body.user]._acl = req.body.acl.join(',')
-		res.json({success: true})
+		res.json({ success: true })
 	})
 
 	this.get('/object-map', function (req, res) {
@@ -46,7 +44,7 @@ module.exports = function (system) {
 		// если пользователь не задан - выдается собственная карта доступа
 		assert(req.ntlm, 'Не удалось определить пользователя. NTLM?')
 
-		var options = { 
+		var options = {
 			// granted: true 
 		}
 		let user = null

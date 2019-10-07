@@ -84,9 +84,11 @@ system.info = function () {
 		// 'external': mem
 	}
 	info = Object.keys(info).reduce((result, key) => {
-		if (key in info[key]) {
-			let value = String(info[key][key])
-			if (value.length) result[key] = value
+		if (info[key]) {
+			if (key in info[key]) {
+				let value = String(info[key][key])
+				if (value.length) result[key] = value
+			}
 		}
 		return result
 	}, {})
