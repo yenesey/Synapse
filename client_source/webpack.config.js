@@ -5,8 +5,10 @@ const VueLoaderPlugin = require('vue-loader/lib/plugin')
 
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin
 const HtmlWebpackPlugin = require('html-webpack-plugin')
-//const HardSourceWebpackPlugin = require('hard-source-webpack-plugin')
 const WebpackBar = require('webpackbar')
+
+//const HardSourceWebpackPlugin = require('hard-source-webpack-plugin')
+// const VuetifyLoaderPlugin = require('vuetify-loader/lib/plugin')
 
 const resolve = (...dirs) => require('path').join(...[__dirname, '..', ...dirs]  )
 
@@ -24,11 +26,12 @@ var config = {
 
 	resolve : {
 		alias : {
-			'@' : resolve('client_source'),
-			'hmr$' : 'webpack-hot-middleware/client.js',
-			'lib$' : resolve('core/lib.js'),
-			'vue$' : 'vue/dist/vue.common.js',
-			'vue-router$' : 'vue-router/dist/vue-router.common.js'
+			'@': resolve('client_source'),
+			'hmr$': 'webpack-hot-middleware/client.js',
+			'lib$': resolve('core/lib.js'),
+			'vue$': 'vue/dist/vue.common.js',
+			'vue-router$': 'vue-router/dist/vue-router.common.js',
+			'vuetify$': 'vuetify/dist/vuetify.min.js',
 		}
 	},
 
@@ -47,7 +50,8 @@ var config = {
 				use: 'vue-loader'
 			},
 			{
-				exclude: /node_modules|core/,
+				exclude: /node_modules\/(?!(vuetify)\/)|node_modules\/(?!(brace)\/)|core/,
+				//exclude: /node_modules|core/,
 				test: /\.js$/,
 				use: {
 					loader: 'babel-loader',
@@ -61,26 +65,22 @@ var config = {
 									'useBuiltIns': 'entry'
 								}
 							]
-						],
-						/*	
-						// this is for vuetify-a-la-carte.js (saved for history)
-						plugins: [
-							[
-								'transform-imports',
-								{
-									vuetify: {
-										transform: 'vuetify/es5/components/${member}',
-										preventFullImport: true
-									}
-								}
-							],
-							'syntax-dynamic-import'
 						]
-						*/
 					}
 				}
 			},
 			/*
+			/* 
+			// Это для vuetify-loader. Чтобы грузить [только] используемые компоненты 
+			// automatic a-la-carte совместно с опцией 
+			//     import Vuetify from 'vuetify/lib'  (!lib!)
+			// Пробовал, экономия места незначительная, а настроек нужно дофига. 
+			// Сборка дольше т.к. вся либа компилится, и со шрифтами танцы. 
+			// На текущий момент (2019-10-06) не рекомендую...
+			{
+				test: /\.css$/,
+				use: 'css-loader'
+			},
 			{
 				test: /\.s(c|a)ss$/,
 				use: [
@@ -100,17 +100,10 @@ var config = {
 				]
 			},
 			*/
-			
 			{
 				test: /\.(sa|sc|c)ss$/,
 				use: ['vue-style-loader', 'css-loader', 'sass-loader']
 			},
-			
-			{
-				test: /\.styl$/,
-				use: ['vue-style-loader', 'css-loader', 'stylus-loader']
-			},
-	  		// devMode ? 'vue-style-loader' : MiniCssExtractPlugin.loader,
 			{
 				test: /\.(png|jpg|gif|svg|woff|woff2|eot|ttf)$/,
 				use: {
@@ -135,6 +128,7 @@ var config = {
 			template: resolve('client_source/assets', 'index.html')
 		}),
 		new VueLoaderPlugin(),
+		// new VuetifyLoaderPlugin(),
 		new webpack.DefinePlugin({
 			'baseUrl': JSON.stringify(process.env.BASE_URL || '')
 		}),
@@ -165,7 +159,7 @@ if (process.env.NODE_ENV === 'production') {
 
 } else { // dev mode by default
 	config.plugins.push(new webpack.HotModuleReplacementPlugin())
-	config.entry.synapse.unshift('@/hmr-iexplore') 
+	config.entry.synapse.unshift('@/hmr-iexplore')
 }
 
 module.exports = config

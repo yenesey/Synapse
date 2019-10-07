@@ -60,7 +60,7 @@ module.exports = function (system) {
 		let access = system.access(user, options)
 		delete user.id
 		delete user._acl
-		res.json({ login: user.login, ...user, access: access })
+		res.json({ ...user, access: access })
 	})
 
 	this.put('/map', bodyParser.json(), function (req, res) {

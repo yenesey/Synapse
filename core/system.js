@@ -132,7 +132,7 @@ system.getUserById = function (id) {
 
 system.getUser = function (login) {
 	assert(login in this.tree.users, 'Пользователь ' + login + ' не зарегистрирован')
-	return { id: this.tree.users._id(login), ...this.tree.users[login] }
+	return { id: this.tree.users._id(login), login: login, ...this.tree.users[login] }
 }
 
 // проверка прав доступа пользователя к заданному объекту (блокировка тоже проверяется)

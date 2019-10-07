@@ -1,3 +1,4 @@
+<script>
 /*
 	Компонент для элементов формы 
 ----------------------------------------
@@ -9,7 +10,6 @@
 
 */
 
-<script>
 import deepClone from './vue-deep-clone.js';
 
 export default {

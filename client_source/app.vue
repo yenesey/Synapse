@@ -5,22 +5,25 @@ v-app
 			v-list-item(@click="navigate('/')")
 				v-list-item-icon
 					v-icon account_circle
-				v-list-item-title.title.user {{user}}
-			v-divider
-			template(v-for='(group, index) in menuGroups')
-				// перебор групп меню (default оформляем без группы)
-				v-list-item(v-if="group.name==='default'", v-for='task in tasks[group.name]', :key='task.path', @click="navigate('/tasks/'+task.path)", ripple='')
-					v-list-item-icon
-						v-icon(v-text="task.icon || group.icon || 'chevron_right'")
-					v-list-item-title {{task.name || 'noname'}}
+				v-list-item-title.user {{user}}
 
-				// все прочие кроме default пихаем в группу (при наличии доступных элементов)
-				v-list-group( :prepend-icon='group.icon || "chevron_right"' v-if="group.name !== 'default'")
-					v-list-item-title(slot='activator', @click="navigate('/tasks')", ripple='') {{group.description || group.name}}
-					v-list-item(v-for='task in tasks[group.name]', :key='task.path', @click="navigate('/tasks/'+task.path)", ripple)
-						v-list-item-icon.ml-3
-							v-icon(v-text="task.icon || group.icon || 'chevron_right'")
-						v-list-item-title {{task.name || 'noname'}}
+			v-divider
+
+			v-list-group(v-for='(group, index) in menuGroups' :prepend-icon='group.icon || "chevron_right"')
+				v-list-item-title(
+					slot='activator',
+					@click="navigate('/tasks')",
+					ripple=''
+				) {{group.name === 'default' ? 'Прочее' : group.description || group.name}}
+				v-list-item.ml-4(
+					v-for='task in tasks[group.name]',
+					:key='task.path',
+					@click="navigate('/tasks/'+task.path)",
+					ripple
+				)
+					v-list-item-icon
+						v-icon(v-text="'chevron_right'") //task.icon || group.icon || 
+					v-list-item-title {{task.name || 'noname'}}
 
 	v-app-bar.blue.lighten-4(app, :clipped-left='navClipped', height='48px', style='z-index:9'  ref='toolbar')
 		v-app-bar-nav-icon(@click.stop="toggleNav('Visible')")
@@ -131,8 +134,8 @@ export default {
 <style>
 @font-face {
 	font-family: 'Sony_Sketch_EF';
-  font-style: normal;
-  font-weight: 400;
+	font-style: normal;
+	font-weight: 400;
 	src: url('./assets/Sony_Sketch_EF.woff') format('woff'); 
 }
 
@@ -148,7 +151,6 @@ export default {
   font-weight: normal;
   font-style: normal;
   font-size: 24px;
-  /* Preferred icon size */
   display: inline-block;
   line-height: 1;
   text-transform: none;
@@ -156,15 +158,12 @@ export default {
   word-wrap: normal;
   white-space: nowrap;
   direction: ltr;
-  /* Support for all WebKit browsers. */
   -webkit-font-smoothing: antialiased;
-  /* Support for Safari and Chrome. */
   text-rendering: optimizeLegibility;
-  /* Support for Firefox. */
   -moz-osx-font-smoothing: grayscale;
-  /* Support for IE. */
   font-feature-settings: 'liga'; 
 }
+
 
 .v-toolbar__title {
 	top: 50%;
@@ -183,9 +182,26 @@ export default {
 		0 3px 5px rgba(0,0,0,.2),
 		0 5px 10px rgba(0,0,0,.25); 
 }
+nav .v-list {
+	padding: 0;
+}
 
-.user{
+nav .v-list-item__icon {
+	align-self: center;
+}
+
+nav .v-list .v-list-item {
+	height: 22px;
+	color: #444;
+}
+
+nav .v-list .v-list-group--active {
+	background-color: #d1ecff;
+}
+
+.user {
 	height:28px;
+	margin-top: -0.125em; 
 	font-family: 'Sony_Sketch_EF'; 
 	font-size: 1.45em;
 	white-space: nowrap;
