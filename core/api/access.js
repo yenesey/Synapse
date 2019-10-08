@@ -7,6 +7,8 @@
 */
 
 const bodyParser = require('body-parser')
+const ActiveDirectory = require('activedirectory')
+const promisify = require('util').promisify
 const assert = require('assert')
 
 function createNode (node, level = 0) {
@@ -21,17 +23,37 @@ module.exports = function (system) {
 	// -
 	const ADMIN_USERS = system.tree.objects.admin._id('Пользователи')
 
-	this.get('/acl', function (req, res) {
+	function searchActiveDirectory (search) {
+		const config = system.config.ntlm
+		const fields = ['sAMAccountName', 'mail', 'displayName']
+		const ad = new ActiveDirectory({
+			url: config.dc,
+			baseDN: config.dn,
+			username: config.user + '@' + config.domain,
+			password: config.password,
+			attributes: { user: fields }
+		})
+		const find = promisify(ad.findUsers).bind(ad)
+		let query = fields.reduce((result, el) => result + '(' + el + '=*' + search + '*)', '|') // query = '|(field1=*search*)(field2=*search*)...
+		// console.log(query)
+		return find(query).then(result =>
+			(typeof result === 'undefined')
+				? []
+				: result
+		)
+	} // query
+
+	this.get('/ldap-users', function (req, res) {
 		system.checkAccess(req.user, ADMIN_USERS)
-		let acl = system.tree.users[req.query.user]._acl
-		assert(acl, 'Нет установленных флагов доступа')
-		res.json(acl.split(',').map(Number))
+		searchActiveDirectory(req.query.filter).then(result => res.json(result))
 	})
 
-	this.put('/acl', bodyParser.json(), function (req, res) {
+	this.get('/users', function (req, res) {
 		system.checkAccess(req.user, ADMIN_USERS)
-		system.tree.users[req.body.user]._acl = req.body.acl.join(',')
-		res.json({ success: true })
+		let users = system.tree.users
+		let map = Object.keys(users).map(user => ({ id: users._id(user), login: user, ...users[user] }))
+			.filter(el => (req.query['show-disabled'] === 'true' || !(el['disabled'])))
+		res.json(map)
 	})
 
 	this.get('/object-map', function (req, res) {
@@ -44,9 +66,7 @@ module.exports = function (system) {
 		// если пользователь не задан - выдается собственная карта доступа
 		assert(req.ntlm, 'Не удалось определить пользователя. NTLM?')
 
-		var options = {
-			// granted: true 
-		}
+		var options = { /* granted: true */ }
 		let user = null
 		if ('user' in req.query) { // запрос по другому пользователю? тогда нужны привилегии!
 			system.checkAccess(req.user, ADMIN_USERS)
@@ -63,9 +83,37 @@ module.exports = function (system) {
 		res.json({ ...user, access: access })
 	})
 
+	this.get('/user', function (req, res) {
+		assert(req.ntlm, 'Не удалось определить пользователя. NTLM?')
+		system.checkAccess(req.user, ADMIN_USERS)
+		let login = req.query.login
+		assert(login, 'В запросе отсутствует ключевой реквизит - login')
+		let users = system.tree.users
+		res.json({ id: users._id(login), ...users[login] })
+	})
+
+	this.put('/user', bodyParser.json(), function (req, res) {
+		// операция добавления/редактирования пользователя
+		assert(req.ntlm, 'Не удалось определить пользователя. NTLM?')
+		system.checkAccess(req.user, ADMIN_USERS)
+
+		let user = req.body
+		assert(user.login, 'В запросе отсутствует ключевой реквизит - login')
+		if (user.login in system.tree.users) {
+			// обновляем реквизиты
+			for (let key in user) {
+				system.tree.users[user.login][key] = user[key]
+			}
+		} else {
+			// создаем новую ветку в пользователях
+			system.tree.users[user.login] = user
+		}
+		res.json({ id: system.tree.users._id(user.login), ...user })
+	})
+
+	/*
 	this.put('/map', bodyParser.json(), function (req, res) {
 		// операция выдачи/прекращения доступа к заданному объекту
-		// req.body = {userId:Number, objectId: Number, granted: Number(1|0)}
 		assert(req.ntlm, 'Не удалось определить пользователя. NTLM?')
 		system.checkAccess(req.user, ADMIN_USERS)
 		let user = system.getUser(req.body.user)
@@ -75,35 +123,11 @@ module.exports = function (system) {
 		} else {
 			delete user._acl_[req.body.objectId]
 		}
-		res.json({ id : req.body.objectId })
-
+		res.json({ id: req.body.objectId })
 	})
+	*/
 
-	this.put('/user', bodyParser.json(), function (req, res) {
-		// операция добавления(создания) пользователя
-		assert(req.ntlm, 'Не удалось определить пользователя. NTLM?')
-		return system.checkAccess(req.user, ADMIN_USERS)
-			.then(() => {
-				if ('id' in req.body) {
-					return system.db('UPDATE users SET disabled = :1, name = :2, login = :3, email = :4 WHERE id = :5',
-						[Number(req.body.disabled), req.body.name, req.body.login, req.body.email, req.body.id]
-					)
-				}
-				if ('login' in req.body) {
-					return system.db(`INSERT INTO users VALUES (null, '${req.body.login.toLowerCase()}', null, '${req.body.name}', '${req.body.email}')`)
-				}
-			})
-			.then(result => res.json({ result }))
-			.catch(err => system.errorHandler(err, req, res))
-	})
-
-	this.get('/users', function (req, res) {
-		system.checkAccess(req.user, ADMIN_USERS)
-		let users = system.tree.users
-		let map = Object.keys(users).map(user => ({id: users._id(user), login: user, ...users[user] }))
-		res.json(map)
-	})
-
+	/*
 	this.get('/members', function (req, res) {
 		system.users(parseInt(req.query.object, 10) || 0).then(result => res.json(result))
 	})
@@ -111,4 +135,5 @@ module.exports = function (system) {
 	this.get('/tasks', function (req, res) {
 		system.tasks(parseInt(req.query.object, 10) || 0).then(result => res.json(result))
 	})
+	*/
 }

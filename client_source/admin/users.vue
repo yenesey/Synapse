@@ -2,102 +2,94 @@
 div
 	v-layout(style='margin-top:1.5em')
 		v-switch(v-model='showDisabled' messages='Показ. блок' style='margin-top: -0.425em;')
+		// select from system:
 		v-autocomplete(
+			autocomplete="off"
 			hide-no-data,
 			hide-selected, 
 			return-object,
 			v-model='user',
-			:items='users',
-			:loading='isLoading',
+			:items='usersCached',
+			:loading='ldapLoading',
 			:search-input.sync='search',
 			@input='selectUser',
 			item-text='login',
-			item-value='name',
+			item-value='login',
 			label='Выбрать существующего пользователя',
 			placeholder='Начните вводить логин',
-			prepend-icon='mdi-database-search',
-			style='width:380px;margin-right:30px'
 		)
-		div(style='width:3px;height:auto;background:linear-gradient(to left, #CBE1F5, #74afd2);')
+		div(style='width:30px;height:auto;')
 
+		// select from ActiveDirectory:
 		v-autocomplete(
+			autocomplete="off"
 			hide-no-data,
-			hide-selected, 
 			return-object,
-			v-model='user',
-			:items='users',
-			:loading='isLoading',
-			:search-input.sync='search',
-			@input='selectUser',
-			item-text='login',
-			item-value='name',
+			v-model='userLdap',
+			:items='usersCachedLdap',
+			:loading='ldapLoading',
+			:search-input.sync='searchLDAP',
+			@input='selectUserAD',
+			item-text='search',
+			item-value='login',
 			label='Добавить нового пользователя из Active Directory',
 			placeholder='Начните вводить логин',
-			prepend-icon='mdi-database-search',
-			style='width:380px;'
+			prepend-icon='search'
 		)
-		v-btn(fab, small, style='margin-left:20px; background-color: #acdbff;', @click.native.stop='dialog = !dialog')
-			v-icon add
+			template(v-slot:item='el')
+				v-list-item-content
+					v-list-item-title(v-html='el.item.login')
+					v-list-item-subtitle(v-html='el.item.name')
+					v-list-item-subtitle(v-html='el.item.email')
 
-		v-dialog(v-model='dialog', max-width='550px')
-			v-card
-				v-card-title
-					v-icon(style='font-size: 36px; padding-right: 10px; ') group_add
-					span.headline Добавить пользователя
-					dlookup(name='add', db='ldap:', fields='sAMAccountName,displayName,mail', look-in='sAMAccountName%,displayName%,mail%', style='width:350px', @select='selectUserAD', :get-label='labelAdd')
-						i(slot-scope='{item, index}')
-							| {{item.displayName}} 
-							i(style='color:teal')  {{(item.sAMAccountName) ? '(' + item.sAMAccountName + ')':''}} 
-				v-card-text
-					v-text-field(label='ФИО:', v-model='displayName', style='padding:15px', hide-details='')
-					v-text-field(label='Login:', v-model='sAMAccountName', style='padding:15px', hide-details='')
-					v-text-field(label='Email:', v-model='mail', style='padding:15px', hide-details='')
-				v-card-actions
-					v-spacer
-					v-btn(v-show='canCreate', style='background-color:#acdbff;', @click.native='addUser') Добавить
-					v-btn(style='background-color:#acdbff;', @click.native='dialog = !dialog') Закрыть
+
+		v-btn(fab, small, style='margin-left:20px; background-color: #acdbff;', :disabled='!enableAddUser' @click='addUser')
+			v-icon add
+	
 	div(style='width:100%;height:2px;background:linear-gradient(to left, #CBE1F5, #74afd2); margin-top:1em; margin-bottom:1em;')
 	
 	v-slide-y-transition(mode='out-in')
-		div(v-if='userLogin')
-			v-layout(v-if='userLogin')
-				v-text-field(label='ФИО:', v-model='userName', style='padding:10px', @change='setUser', hide-details='')
-				v-text-field(label='Login:', v-model='userLogin', style='padding:10px', @change='setUser', hide-details='')
-				v-text-field(label='Email:', v-model='userEmail', style='padding:10px', @change='setUser', hide-details='')
-				v-switch(label='Заблокировать', v-model='userDisabled', @change='setUser', hide-details='')
-			v-treeview(dense, selectable, activatable, selection-type='leaf' :items='objects', v-model='objectsSelection' @input='treeCheck' v-if="objects.length")
-	pre(v-if='message', style='font-weight:bold') {{message}}
+		div(v-if='user.login')
+			v-layout
+				v-text-field(label='ФИО:', v-model='user.name', @change='changeUser', style='padding:10px', hide-details autocomplete="off")
+				v-text-field(label='Login:', v-model='user.login', @change='changeUser' style='padding:10px', hide-details autocomplete="off")
+				v-text-field(label='Email:', v-model='user.email', @change='changeUser' style='padding:10px', hide-details autocomplete="off")
+				v-switch(label='Заблокировать', v-model='user.disabled', @change='changeUser' hide-details)
+				
+			v-treeview(
+				dense,
+				selectable,
+				activatable,
+				selection-type='leaf'
+				:items='objects',
+				v-model='objectsSelection'
+				@input='treeCheck'
+			)
+			v-alert(type='info' v-if='user._acl===""' dismissible border='left' elevation='2' colored-border) Атрибуты доступа пока не установлены
 
 </template>
 
 <script>
-import {
-	pxhr,
-	keys
-} from 'lib';
+import { pxhr, keys } from 'lib'
 
 export default {
 	data: function () {
 		return {
-			users: [],
 			user: {},
-			isLoading: false,	
-      		search: null,
+			usersCached: [],
+	  		search: null,
 
-			canCreate: false,
-			userId: null,
-			userLogin: '',
-			userName: '',
-			userEmail: '',
-			userDisabled: 0,
-			access: null, // =={ tasks:[], admin:[], ibs:[], deps:[] }
+			userLdap: {},
+			ldapCached: [],
+			searchLDAP: null,
+			ldapLoading: false,	
+
+			enableAddUser: false,
 			
 			message: '',
 			showDisabled: false,
-			dialog: false,
-			sAMAccountName: '',
-			displayName: '',
-			mail: '',
+			userLogin: '',
+
 			objects: [],
 			objectsSelection: []
 		}
@@ -112,176 +104,120 @@ export default {
 			console.log(err)
 		})
 	},
-    watch: {
-		objectsSelection (val) {
-			var self = this;
-			pxhr({
-				method: 'put',
-				url: 'access/acl',
-				data: {
-					user: self.userLogin,
-					acl: val
-				}
-			}).then(res => {
-				if ('error' in res) {
-					self.message = res.error
-					self.alert = true
-				} else {
-					self.message = ''
-					self.alert = false
-				}
-			}).catch(function (err) {
-				console.log(err)
-			})
+
+	computed: {
+		usersCachedLdap () {
+			return  this.ldapCached.map(el => ({
+				login: el.sAMAccountName,
+				email: el.mail,
+				name: el.displayName,
+				search: el.sAMAccountName + ' ' + el.mail + ' ' + el.displayName
+			}))
+		}
+	},
+
+	watch: {
+		showDisabled (val) {
+			this.usersCached = []
 		},
-     	search (val) {
-     	  	// Items have already been loaded
-     	  	if (this.users.length > 0) return
+	 	search (val) {
+			if (val.length === 0) this.usersCached = []
+	 	  	if (this.usersCached.length > 0) return
+	 	  	pxhr({method:'GET', url: 'access/users?show-disabled=' + this.showDisabled})
+	 	  	   .then(res => {
+	 	  	   		this.usersCached = res
+	 	  	  	})
+	 	  	 	.catch(err => {
+	 	  	  	 	console.log(err)
+	 	  	  	})
+		},
+	
+ 	 	searchLDAP (val) {
+	 	  	if (this.ldapCached.length > 0) return
+	 	  	if (this.ldapLoading) return
 
-     	  	// Items have already been requested
-     	  	if (this.isLoading) return
+	 	  	this.ldapLoading = true
 
-     	  	this.isLoading = true
+	 	  	pxhr({method:'GET', url: 'access/ldap-users?filter=' + val})
+	 	  	   .then(res => {
+					this.ldapCached = res
+	 	  	  	})
+	 	  	 	.catch(err => {
+	 	  	  	 	console.log(err)
+	 	  	  	})
+	 	  		.then(() => (this.ldapLoading = false))
+		 }
 
-     	  	// Lazily load input items
-     	  	pxhr({method:'GET', url: 'access/users'})
-     	  	   .then(users => {
-     	  	   		this.users = users
-     	  	  	})
-     	  	 	.catch(err => {
-     	  	  	 	console.log(err)
-     	  	  	})
-     	  		.then(() => (this.isLoading = false))
-	 	}
 	},
 
 	methods: {
+		handleResponse (res) {
+			if ('error' in res) {
+				this.message = res.error
+			} else {
+				this.message = ''
+			}
+		},
 		treeCheck (e) {
-			// console.log(e)
-		},
-		setUser: function () {
-			var self = this;
-			return pxhr({
-					method: 'put',
-					url: 'access/user',
-					data: {
-						id: self.userId,
-						login: self.userLogin,
-						name: self.userName,
-						email: self.userEmail,
-						disabled: self.userDisabled
-					}
-				})
-				.catch(function (err) {
-					console.log(err)
-				})
-		},
-		/*
-		setItem: function (objectId, checked) { //установить/снять галочку с элемента
-			var self = this;
-			return pxhr({
-					method: 'put',
-					url: 'access/map',
-					data: {
-						user: self.userLogin,
-						objectId: objectId,
-						granted: checked
-					}
-				}).then(res => {
-					if ((typeof res == 'object') && ('error' in res)) {
-						self.message = res.error
-						self.alert = true
-					}
-				})
-				.catch(function (err) {
-					console.log(err)
-				})
-		},
-		*/
-		addUser: function (event) { //добавить пользователя
-			this.dialog = !this.dialog;
-			this.userId = null;
-			this.userLogin = this.sAMAccountName;
-			this.userName = this.displayName;
-			this.userEmail = this.mail;
-			var self = this;
-			self.canCreate = false;
+			this.user._acl = e.join(',')
 			pxhr({
-					method: 'put',
-					url: 'access/user',
-					data: {
-						login: self.userLogin,
-						name: self.userName,
-						email: self.userEmail
-					}
+				method: 'put',
+				url: 'access/user',
+				data: this.user
+			})
+			.then(this.handleResponse)
+			.catch(function (err) {
+				console.log(err)
+			})
+		},
+	
+		addUser: function () { //добавить пользователя
+			let user = {...this.userLdap}
+			if ('search' in user) delete user.search
+			this.userLdap = {}
+			this.usersCached = []
+			this.user = user
+			pxhr({
+				method: 'put',
+				url: 'access/user',
+				data: this.user
+			})
+				.then(res => {
+					this.handleResponse(res)
+					this.selectUser(this.user)
 				})
-				.then(function (res) {
-					if (res.error) {
-						self.message = res.error
-						self.alert = true
-					}
-					if (res.id) {
-						self.userId = res.id;
-						return pxhr({
-								method: 'get',
-								url: 'access/map?user=' + self.userId
-							})
-							.then(function (res) { //delete res.$user; 
-								self.access = keys(res.access, 'class');
-								self.access.$user = {
-									disabled: self.access.disabled
-								}
-							})
-					} else {
-						self.userId = null;
-						//self.message = res.message;
-					}
-				})
-				.catch(function (err) {
-					console.log(err)
-				})
+				.catch(console.log)
 		},
 
-		selectUserAD: function (event) {
-			this.sAMAccountName = event.sAMAccountName;
-			this.displayName = event.displayName;
-			this.mail = event.mail;
-			//наличие всех реквизитов для создания пользователя обязательно:
-			(event.sAMAccountName && event.displayName && event.mail) ? this.canCreate = true: this.canCreate = false;
+		changeUser () {
+			pxhr({
+				method: 'put',
+				url: 'access/user',
+				data: this.user
+			})
+			.then(this.handleResponse)
 		},
 
-		selectUser: function (event) {
-			// console.log(event)
-			var self = this;
-			self.userId = event.id;
-			self.userLogin = event.login;
-			self.userName = event.name;
-			self.userEmail = event.email;
-			self.userDisabled = event.disabled;
-			self.canCreate = false;
-			pxhr({
+		selectUserAD: function (e) {
+			this.enableAddUser = (e.login != '' && e.name  != '' && event.email  != '')
+		},
+
+		selectUser: function (e) {
+			this.enableAddUser = false
+			return pxhr({
 				method: 'get',
-				url: 'access/acl?user=' + self.userLogin
-			}).then(function (res) {
+				url: 'access/user?login=' + e.login
+			}).then(res => {
+				this.handleResponse(res)
 				if (!res.error) {
-					self.objectsSelection = res
-				} else {
-					self.objectsSelection = []
-					self.message = res.error
-					self.alert = true
+					this.user = res
+					if (res._acl) this.objectsSelection = res._acl.split(',').map(Number)
 				}
 			}).catch(function (err) {
 				console.log(err)
 			})
-		},
-
-		labelSelect: function (item) {
-			return item.name
-		},
-
-		labelAdd: function (item) {
-			return item.displayName
 		}
+
 	}
 }
 

@@ -27,7 +27,7 @@ module.exports = function (system) {
 		} else if (last.charAt(last.length - 1) === '!') {
 			path.pop()
 			let [key, _value] = last.split('!')
-			node = system.tree._path(url, '/')
+			node = system.tree._path(path.join('/'), '/')
 			delete node[key]
 		} else {
 			node = system.tree._path(url, '/')
