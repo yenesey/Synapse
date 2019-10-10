@@ -103,27 +103,31 @@ system.easterEgg = function () {
 
 system.access = function (user, options = {}) {
 // карта доступа
-// это главная функция, весь доступ работает через нее
+// юзается в tasks и dlookup, а также в access/map
 // options = { 'class': className, object: objectId, granted: true|false }
-
 	let userAcl = String(user._acl).split(',').map(el => Number(el))
+	if ('object' in options) {
+		return { granted: userAcl.includes(options.object) }
+	}
 
-	if (!('object' in options)) {
-		let map = []
-		this.acl.forEach(el => {
-			let granted = userAcl.includes(el.id)
+	let map = []
+	let _class
+	this.tree.objects._recurse(1, (node, key, level) => {
+		if (level === 0) {
+			_class = key
+		} else {
+			let id = node._id(key)
+			let granted = userAcl.includes(id)
 			if (
-				(!('class' in options) || el['class'] === options['class']) && 
+				(!('class' in options) || _class === options['class']) &&
 				(!('granted' in options) || granted === options['granted'])
 			)  {
-				map.push({ ...el, granted: granted })
+				let obj = {	id: id,	name: key, class: _class, ...node[key], granted: granted }
+				map.push(obj)
 			}
-		})
-		return map
-	}
-	assert(this.acl.has(options.object), 'Отсутствует объект доступа')
-	let obj = this.acl.get(options.object)
-	return Object.assign({ granted: userAcl.includes(obj.id) }, obj)
+		}
+	})
+	return map
 }
 
 system.getUserById = function (id) {
@@ -148,14 +152,6 @@ module.exports = treeMapper(-1).then(tree => {
 	system.tree = tree
 	system.config = system.tree.config
 	const config = system.config
-
-	system.acl = new Map()
-	for (let _class in system.tree.objects) {
-		for (let object in system.tree.objects[_class]) {
-			let id = system.tree.objects[_class]._id(object)
-			system.acl.set(id,  { id: id, name: object, 'class': _class, ...system.tree.objects[_class][object] })
-		}
-	}
 
 	// eslint-disable-all`
 	for (var key in config.path) {

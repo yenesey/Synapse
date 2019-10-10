@@ -7,9 +7,15 @@
 const ora = require('../ds-oracle')
 const soap = require('soap')
 
+function dateFromStringDDMMYYYY (str) {
+	let date = str.split('.').reverse()
+	return new Date(date)
+}
+
 module.exports = function (system) {
 
-	const config = system.config.system
+	// const config = system.config.system
+	const config = system.config
 	const url = 'http://172.16.8.3:8962/solar-loyalty/loyaltyApi.wsdl'
 
 	// ibso("alter session set NLS_DATE_FORMAT='dd.mm.yyyy hh24:mi:ss'")
@@ -226,7 +232,7 @@ module.exports = function (system) {
 					REC.C_1 >= TO_DATE('${req.query.edfrom}', 'dd.mm.yyyy') and REC.C_1 < TO_DATE('${req.query.edto}', 'dd.mm.yyyy')+1
 				order by REC.C_1`,
 				{ },
-				{ maxRows: 3000 }
+				{ maxRows: 10000 }
 				).catch(err => { console.log('at receipt!'); throw err }),
 
 				// холды:
@@ -313,8 +319,13 @@ module.exports = function (system) {
 					receipt: receipt,
 					holds: holds,
 					trn_pays: receipt.reduce((result, item) => {
-						result.count += item['k-n'] // -- item['k-n'] принимает значения: [-1, 0, 1]
-						result.sum += item.sum_op * item['k-n']
+						if (
+							dateFromStringDDMMYYYY(item.date_op) >= dateFromStringDDMMYYYY(req.query.edfrom) &&
+							dateFromStringDDMMYYYY(item.date_op) <= dateFromStringDDMMYYYY(req.query.edto)
+						) {
+							result.count += item['k-n'] // -- item['k-n'] принимает значения: [-1, 0, 1]
+							result.sum += item.sum_op * item['k-n']
+						}
 						return result
 					},
 					{
@@ -355,7 +366,7 @@ module.exports = function (system) {
 		}
 		return t2000(
 			// SYSADM.EXCHANGE.F_CreateTaskInSMS(sPhone in varchar2, sSmsText in varchar2, sTypeDocument in varchar2 := 'NULL')
-			`begin :result := SYSADM.EXCHANGE.F_CreateTaskInSMS(:phone, :text, 'smsCode', 1); end;`,
+			`begin :result := SYSADM.EXCHANGE.F_CreateTaskInSMS(:phone, :text, 'smsCode', true); end;`,
 			{
 				phone: req.query.phone,
 				text: 'Kod proverki nomera telefona: ' + code,

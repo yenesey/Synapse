@@ -231,7 +231,7 @@ nav .v-list .v-list-group--active {
 	color: teal; 
 	font-size: 1.15em; 
 /*	font-style: italic;*/
-	margin: 0.6em  0em 1.5em 0em;
+	margin: 0.6em  0em 0.6em 0em;
 }
 
 .dragbar {

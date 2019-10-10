@@ -15,13 +15,19 @@ function createNode (node, level = 0) {
 	return Object.keys(node).map(key => ({
 		id: node._id(key),
 		name: key,
+		description: node[key] && node[key].description ? node[key].description : '',
 		children: (node[key] instanceof Object && level < 1) ? createNode(node[key], level + 1) : undefined
 	}))
 }
 
 module.exports = function (system) {
 	// -
-	const ADMIN_USERS = system.tree.objects.admin._id('Пользователи')
+	const ADMIN_USERS_ID = system.tree.objects.admin._id('Пользователи')
+
+	function requireAdmin (req, res, next) {
+		system.checkAccess(req.user, ADMIN_USERS_ID)
+		next()
+	}
 
 	function searchActiveDirectory (search) {
 		const config = system.config.ntlm
@@ -43,60 +49,45 @@ module.exports = function (system) {
 		)
 	} // query
 
-	this.get('/ldap-users', function (req, res) {
-		system.checkAccess(req.user, ADMIN_USERS)
+	this.get('*', function (req, res, next) {
+		assert(req.user, 'Не удалось определить пользователя. Копать в сторону [express-ntlm]')
+		next()
+	})
+
+	this.get('/map', function (req, res) {
+		// выдача полной карты доступа пользователя
+		let user = req.user
+		let access = system.access(user, { granted: true })
+		delete user.id
+		delete user._acl
+		res.json({ ...user, access: access })
+	})
+
+	// this.get('/admin/*', requireAdmin) -- можно повесить требование админа на ветку, но пока решил сделать так как есть
+
+	this.get('/ldap-users', requireAdmin, function (req, res) {
 		searchActiveDirectory(req.query.filter).then(result => res.json(result))
 	})
 
-	this.get('/users', function (req, res) {
-		system.checkAccess(req.user, ADMIN_USERS)
+	this.get('/users', requireAdmin, function (req, res) {
 		let users = system.tree.users
 		let map = Object.keys(users).map(user => ({ id: users._id(user), login: user, ...users[user] }))
 			.filter(el => (req.query['show-disabled'] === 'true' || !(el['disabled'])))
 		res.json(map)
 	})
 
-	this.get('/object-map', function (req, res) {
-		system.checkAccess(req.user, ADMIN_USERS)
+	this.get('/objects', requireAdmin, function (req, res) {
 		res.json(createNode(system.tree.objects))
 	})
 
-	this.get('/map', function (req, res) {
-		// выдача полной карты доступа заданного пользователя (req.query.user)
-		// если пользователь не задан - выдается собственная карта доступа
-		assert(req.ntlm, 'Не удалось определить пользователя. NTLM?')
-
-		var options = { /* granted: true */ }
-		let user = null
-		if ('user' in req.query) { // запрос по другому пользователю? тогда нужны привилегии!
-			system.checkAccess(req.user, ADMIN_USERS)
-			user = system.getUser(req.query.user)
-		} else {
-			user = req.user
-		}
-
-		if ('class' in req.query) options.class = req.query.class
-
-		let access = system.access(user, options)
-		delete user.id
-		delete user._acl
-		res.json({ ...user, access: access })
-	})
-
-	this.get('/user', function (req, res) {
-		assert(req.ntlm, 'Не удалось определить пользователя. NTLM?')
-		system.checkAccess(req.user, ADMIN_USERS)
+	this.get('/user', requireAdmin, function (req, res) {
 		let login = req.query.login
 		assert(login, 'В запросе отсутствует ключевой реквизит - login')
 		let users = system.tree.users
 		res.json({ id: users._id(login), ...users[login] })
 	})
 
-	this.put('/user', bodyParser.json(), function (req, res) {
-		// операция добавления/редактирования пользователя
-		assert(req.ntlm, 'Не удалось определить пользователя. NTLM?')
-		system.checkAccess(req.user, ADMIN_USERS)
-
+	this.put('/user', bodyParser.json(), requireAdmin, function (req, res) { // операция добавления/редактирования пользователя
 		let user = req.body
 		assert(user.login, 'В запросе отсутствует ключевой реквизит - login')
 		if (user.login in system.tree.users) {

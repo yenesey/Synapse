@@ -4,9 +4,9 @@ div
 		v-switch(v-model='showDisabled' messages='Показ. блок' style='margin-top: -0.425em;')
 		// select from system:
 		v-autocomplete(
-			autocomplete="off"
+			autocomplete='off'
 			hide-no-data,
-			hide-selected, 
+			item-disabled='__'
 			return-object,
 			v-model='user',
 			:items='usersCached',
@@ -18,11 +18,17 @@ div
 			label='Выбрать существующего пользователя',
 			placeholder='Начните вводить логин',
 		)
+			template(v-slot:item='el')
+				v-list-item-content
+					v-list-item-title(v-html='el.item.login')
+					v-list-item-subtitle(v-html='el.item.name')
+					v-list-item-subtitle(v-html='el.item.email')
+
 		div(style='width:30px;height:auto;')
 
 		// select from ActiveDirectory:
 		v-autocomplete(
-			autocomplete="off"
+			autocomplete='off'
 			hide-no-data,
 			return-object,
 			v-model='userLdap',
@@ -51,9 +57,9 @@ div
 	v-slide-y-transition(mode='out-in')
 		div(v-if='user.login')
 			v-layout
-				v-text-field(label='ФИО:', v-model='user.name', @change='changeUser', style='padding:10px', hide-details autocomplete="off")
-				v-text-field(label='Login:', v-model='user.login', @change='changeUser' style='padding:10px', hide-details autocomplete="off")
-				v-text-field(label='Email:', v-model='user.email', @change='changeUser' style='padding:10px', hide-details autocomplete="off")
+				v-text-field(label='ФИО:', v-model='user.name', @change='changeUser', style='padding:10px', hide-details autocomplete='off')
+				v-text-field(label='Login:', v-model='user.login', @change='changeUser' style='padding:10px', hide-details autocomplete='off')
+				v-text-field(label='Email:', v-model='user.email', @change='changeUser' style='padding:10px', hide-details autocomplete='off')
 				v-switch(label='Заблокировать', v-model='user.disabled', @change='changeUser' hide-details)
 				
 			v-treeview(
@@ -65,7 +71,11 @@ div
 				v-model='objectsSelection'
 				@input='treeCheck'
 			)
-			v-alert(type='info' v-if='user._acl===""' dismissible border='left' elevation='2' colored-border) Атрибуты доступа пока не установлены
+				template(v-slot:label='{ item }')
+					v-list-item-content
+						v-list-item-title(v-html='item.name')
+						v-list-item-subtitle(v-html='item.description' style='color:teal')
+			v-alert(type='info' v-if='objectsSelection.length===0' dismissible border='left' elevation='2' colored-border) Атрибуты доступа пока не установлены
 
 </template>
 
@@ -77,11 +87,11 @@ export default {
 		return {
 			user: {},
 			usersCached: [],
-	  		search: null,
+	  		search: '',
 
 			userLdap: {},
 			ldapCached: [],
-			searchLDAP: null,
+			searchLDAP: '',
 			ldapLoading: false,	
 
 			enableAddUser: false,
@@ -97,7 +107,7 @@ export default {
 	mounted () {
 		pxhr({
 			method: 'get',
-			url: 'access/object-map',
+			url: 'access/objects',
 		}).then(res => {
 			this.objects = res
 		}).catch(function (err) {
@@ -121,7 +131,10 @@ export default {
 			this.usersCached = []
 		},
 	 	search (val) {
-			if (val.length === 0) this.usersCached = []
+			if (!val || val.length === 0) {
+				this.usersCached = []
+				return
+			}
 	 	  	if (this.usersCached.length > 0) return
 	 	  	pxhr({method:'GET', url: 'access/users?show-disabled=' + this.showDisabled})
 	 	  	   .then(res => {
@@ -133,7 +146,12 @@ export default {
 		},
 	
  	 	searchLDAP (val) {
-	 	  	if (this.ldapCached.length > 0) return
+			if (!val || val.length === 0) {
+				this.ldapCached = []
+				this.ldapLoading = false
+				return
+			}
+			if (this.ldapCached.length > 0) return
 	 	  	if (this.ldapLoading) return
 
 	 	  	this.ldapLoading = true
@@ -210,8 +228,12 @@ export default {
 			}).then(res => {
 				this.handleResponse(res)
 				if (!res.error) {
-					this.user = res
-					if (res._acl) this.objectsSelection = res._acl.split(',').map(Number)
+					this.user = {login: e.login, ...res}
+					if (res._acl) {
+						this.objectsSelection = res._acl.split(',').map(Number)
+					} else {
+						this.objectsSelection = []
+					}
 				}
 			}).catch(function (err) {
 				console.log(err)

@@ -257,7 +257,7 @@ export default {
 	line-height:1em;
 	padding: .2em .8em;
 	display: inline-block;
-	color: #426D98;	
+	color: #426D98 !important;	
 	text-decoration: none;
 }
 

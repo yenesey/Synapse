@@ -30,6 +30,22 @@ function bool (_path) {
 	}
 }
 
+function _recurse (node) {
+	// return interface (deep: [zero based], callback: [function(node, key, level)])
+	return function (deep, callback) {
+		function recurse (node, level, deep) {
+			if (node instanceof Object && level <= deep) {
+				for (let key in node) {
+					// callback first (parent first), then recurse children
+					let result = callback(node, key, level) || recurse(node[key], level + 1, deep)
+					if (result) return result // result break execution and pop through call stack
+				}
+			}
+		}
+		return recurse(node, 0, deep)
+	}
+}
+
 module.exports = function (db, table) {
 	// -
 	function addNode (idp, target, key, value) {
@@ -71,6 +87,7 @@ module.exports = function (db, table) {
 				case '_id': return (key) => keystore.get(key)
 				case '_path': return path.bind(target)
 				case '_bool' : return bool.bind(receiver)
+				case '_recurse' : return _recurse(receiver)
 				}
 				return undefined
 			},

@@ -54,7 +54,7 @@ module.exports = function (system) {
 			function (req, res, next) {
 				// req.ntlm = {}
 				// req.ntlm.UserName = 'bogachev'
-				req.user = system.getUser(req.ntlm.UserName)
+				req.user = req.ntlm ? system.getUser(req.ntlm.UserName) : undefined
 				next()
 			}
 		])

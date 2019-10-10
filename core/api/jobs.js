@@ -19,12 +19,15 @@ var crons = {} // ассоциативный массив (ключ-значен
 
 module.exports = function (system) {
 // -
-	let config = system.config
+	const config = system.config
+	const jobs = system.tree.jobs
 	const launcher = require('../launcher.js')(config)
 	const folder = require('../user-folders.js')(config.path.users, config.tasks.history)
 	const mail = email.server.connect(system.config.mail)
 
 	mail.sendp = util.promisify(mail.send)
+
+	for (let id in jobs) schedule(jobs[id])  // вешаем на расписание прямо на старте
 
 	function destroy (job) {
 		if (job.id in crons) {
@@ -152,19 +155,7 @@ module.exports = function (system) {
 		}
 	}
 
-	function updateStatement (tableName, obj, _key = 'id') {
-		// построить конструкцию SQL UPDATE на основании пар ключ-значений объекта <obj>
-		if (!(_key in obj)) return null
-		var keys = Object.keys(obj)
-		keys.splice(keys.indexOf(_key), 1)
-		if (keys.length === 0) return null
-
-		return {
-			sql: 'update ' + tableName + ' set ' + keys.join('=?,') + '=? where ' + _key + '=?',
-			params: keys.concat([_key]).map((el) => obj[el])
-		}
-	}
-
+ /*
 	function dbop (job, type) {
 		// весь набор необходимых операций с базой в одной функции
 		// передаем job и что с ним делать (type)
@@ -209,16 +200,8 @@ module.exports = function (system) {
 			return system.db('DELETE FROM jobs WHERE id=?',	[job.id])
 		}
 	} // dbop
+*/
 
-	//
-	dbop({}, 'sel').then(jobs => // грузим все задачи...
-		jobs.forEach(job =>
-			schedule(job)  // вешаем на расписание
-		)
-	)
-		.catch(err => console.log(err.message))
-
-	//
 	// небольшой бэкенд ниже
 	this.route('/')
 
@@ -273,19 +256,18 @@ module.exports = function (system) {
 				.catch(err => system.errorHandler(err, req, res))
 		})
 
-	this.route('/run')
-		.get(function (req, res) {
-			dbop({ id: req.query.id }, 'sel')
-				.then(job =>
-					task(job)().then(code => {
-						job.last = moment().format('YYYY-MM-DD HH:mm')
-						system.db(
-							'UPDATE jobs SET last = ?, code = ? WHERE id = ?',
-							[job.last, code, job.id]
-						)
-						res.json(job)
-					})
-				)
-				.catch(err => system.errorHandler(err, req, res))
-		})
+	this.get('/run', function (req, res) {
+		dbop({ id: req.query.id }, 'sel')
+			.then(job =>
+				task(job)().then(code => {
+					job.last = moment().format('YYYY-MM-DD HH:mm')
+					system.db(
+						'UPDATE jobs SET last = ?, code = ? WHERE id = ?',
+						[job.last, code, job.id]
+					)
+					res.json(job)
+				})
+			)
+			.catch(err => system.errorHandler(err, req, res))
+	})
 }
