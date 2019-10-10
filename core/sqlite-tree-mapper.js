@@ -45,6 +45,11 @@ function _recurse (node) {
 		return recurse(node, 0, deep)
 	}
 }
+function _reserve (idp, target) {
+	return db(`insert into ${table} (idp, name) values ($idp, $name)`, { $idp: idp, $name: 'dummykey' })
+		//.then(id => {})
+
+}
 
 module.exports = function (db, table) {
 	// -
@@ -88,6 +93,7 @@ module.exports = function (db, table) {
 				case '_path': return path.bind(target)
 				case '_bool' : return bool.bind(receiver)
 				case '_recurse' : return _recurse(receiver)
+				case '_reserve' : return addNode(id, target, '_dummy_', null)
 				}
 				return undefined
 			},

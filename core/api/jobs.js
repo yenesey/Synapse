@@ -206,27 +206,18 @@ module.exports = function (system) {
 	this.route('/')
 
 		.get(function (req, res) {
-			dbop({}, 'sel')
-				.then(jobs => {
-					jobs.forEach(job => {
-						if (!(job.id in crons)) job.error = true
-					})
-					res.json(jobs)
-				})
+			res.json(jobs)
 		})
 
 		.put(bodyParser.json(), function (req, res) {
 			var job = req.body
 
 			if (!('id' in job)) { // job без id кандидат на добавление
-				dbop(job, 'ins')
-					.then(id =>
-						dbop({ id: id }, 'sel')
-							.then(job => {
-								schedule(job)
-								res.json(job)
-							})
-					)
+				jobs._reserve(job)
+					.then(id => {
+						schedule(job)
+						res.json(job)
+					})
 					.catch(err => system.errorHandler(err, req, res))
 				return
 			}
