@@ -199,6 +199,11 @@ nav .v-list .v-list-group--active {
 	background-color: #d1ecff;
 }
 
+.v-list .v-list-item__icon:first-child {
+    margin-right: 16px;
+}
+
+
 .user {
 	height:28px;
 	margin-top: -0.125em; 

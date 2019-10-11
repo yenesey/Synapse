@@ -45,16 +45,24 @@ function _recurse (node) {
 		return recurse(node, 0, deep)
 	}
 }
-function _reserve (idp, target) {
-	return db(`insert into ${table} (idp, name) values ($idp, $name)`, { $idp: idp, $name: 'dummykey' })
-		//.then(id => {})
-
-}
 
 module.exports = function (db, table) {
 	// -
+	var pendings = []
+	// -
+	function _rename (target, receiver) {
+		return function (oldName, newName) {
+			target[newName] = receiver[oldName]
+			return Promise.all(pendings).then(() => {
+				let id = receiver._id(oldName)
+				console.log(pendings, id, newName)
+				db(`update ${table} set name = $name where id = $id`, { $id: id, $name: newName })
+			})
+		}
+	}
+
 	function addNode (idp, target, key, value) {
-		return db(`replace into ${table} (idp, name, value) values ($idp, $name, $value)`, { $idp: idp, $name: key, $value: value })
+		return db(`insert into ${table} (idp, name, value) values ($idp, $name, $value)`, { $idp: idp, $name: key, $value: value })
 			.then(_id => {
 				if (value instanceof Object) {
 					let node = proxify({}, _id, new Map()) // empty node & empty map
@@ -79,9 +87,22 @@ module.exports = function (db, table) {
 		// -
 		return new Proxy(node, {
 			set (target, key, value, receiver) { // about to set target[key] = value
+
 				addNode(id, target, key, value)
-					.then(_id => keystore.set(key, _id))
+					.then(_id => {
+						if (key === '_id') {
+							target[_id] = target[key]
+							delete target[key]
+							keystore.set(_id, _id)
+							console.log('update name to ', _id)
+							console.log(keystore)
+							db(`update ${table} set name = $name where id = $id`, { $id: _id, $name: _id })
+						} else {
+							keystore.set(key, _id)
+						}
+					})
 					.catch(err => console.log(err.message + ' when create', key, '=', value))
+
 				return Reflect.set(target, key, value)
 			},
 
@@ -90,10 +111,11 @@ module.exports = function (db, table) {
 
 				switch (key) {
 				case '_id': return (key) => keystore.get(key)
+
 				case '_path': return path.bind(target)
 				case '_bool' : return bool.bind(receiver)
 				case '_recurse' : return _recurse(receiver)
-				case '_reserve' : return addNode(id, target, '_dummy_', null)
+				// case '_rename' : return _rename(target, receiver)
 				}
 				return undefined
 			},

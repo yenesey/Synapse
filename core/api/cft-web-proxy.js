@@ -2,37 +2,50 @@
 
 const soap = require('soap')
 const uuidv4 = require('../lib').uuidv4
+const request = require('request')
+const req = request.defaults({ strictSSL: false })
 
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+// process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
 
 module.exports = function (system) {
 	// -
 	const url = system.config['cft-web-proxy'].document
+	// const fs = require('fs')
+	// const cert = fs.readFileSync('C:\\dev\\synapse\\sslcert\\cft.cer')
+
 	var	client = null
 	soap.createClientAsync(url, {
+		request: req,
 		envelopeKey: 'soapenv',
 		useEmptyTag: true,
 		overrideRootElement: {
 			namespace: 'tns',
 			xmlnsAttributes: []
 		}
+		/*
+		wsdl_options: {
+			// cert: cert,
+			// key: ???
+			rejectUnauthorized: false
+		}
+		*/
 	}).then(_client => { client = _client })
-		.catch(system.log)
+		.catch(system.errorHandler)
 
 	this.get('/doc', function (req, res) {
 		// -
 		if (client === null) {
-			res.json({ success: false, error: 'cft-web-proxy' })
+			res.json({ success: false, error: 'cft-web-proxy - client not initialized' })
 			return
 		}
 		client.DOCUMENTAsync({
 			'tns:UID': uuidv4(),
 			'tns:DOCLIST': {
 				'BEGIN_': {
-					'DOCUNO': { attributes: { Value: 'SPRING_3' } },
+					'DOCUNO': { attributes: { Value: 'SPRING_45' } },
 					'VIDDOC': { attributes: { Value: 'БЕЗН_ПЛ_ПОРУЧ' } },
 					'DOCNUM': { attributes: { Value: '0001001' } },
-					'DATEDOC': { attributes: { Value: '2019-07-22' } },
+					'DATEDOC': { attributes: { Value: '2019-10-03' } },
 					'PRIORITET': { attributes: { Value: '3' } },
 					'ACC_DT': { attributes: { Value: '40817810000000000025' } },
 					'ACCPL': { attributes: { Value: '' } },

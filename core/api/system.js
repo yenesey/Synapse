@@ -10,20 +10,31 @@
 	/system/objects! - удаляет ветку или значение
 */
 
+function safeParse(str) {
+	try {
+		return JSON.parse(str)
+	} catch (err) {
+		return str
+	}
+}
+
 module.exports = function (system) {
 	//
 	this.get('*', function (req, res) {
-		let url = decodeURIComponent(req.url).substring(1)
+		// console.log(req.query)
+		let rg = /^([\w|\/|\:\-\!]+)\=*\"?([\w\:\/\.\?\-\{\}]*)\"?/
+		rg.test(decodeURIComponent(req.url).substring(1))
+
+		let url = RegExp.$1
+		let value = RegExp.$2
 		let path = url.split('/')
 		let last = path.slice(-1).pop()
 		let node = null
 
-		if (last.indexOf('=') !== -1) {
+		if (value) { // есть выражение за знаком '='
 			path.pop()
-			let [key, value] = last.split('=')
 			node = system.tree._path(path.join('/'), '/')
-			value = JSON.parse(value)
-			node[key] = value
+			node[last] = safeParse(value)
 		} else if (last.charAt(last.length - 1) === '!') {
 			path.pop()
 			let [key, _value] = last.split('!')

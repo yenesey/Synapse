@@ -25,17 +25,16 @@ module.exports = function (fileName) {
 
 	function query (sql, params) {
 		return new Promise(function (resolve, reject) {
-			function _dbcb (err, result) {
-				if (err) {
-					reject(err)
-				}	else {
-					resolve(this.lastID || this.changes || result)
-				}
-			}
-			if (/update|replace/mig.test(sql)) {
-				db.run(sql, params,	_dbcb)
+			if (/update|replace|insert/mig.test(sql)) {
+				db.run(sql, params,	function (err) {
+					if (err) reject(err)
+					resolve(this.lastID || this.changes)
+				})
 			} else {
-				db.all(sql, params,	_dbcb)
+				db.all(sql, params,	function (err, result) {
+					if (err) reject(err)
+					resolve(result)
+				})
 			}
 		})
 	}
