@@ -101,7 +101,8 @@ export default {
 			userLogin: '',
 
 			objects: [],
-			objectsSelection: []
+			objectsSelection: [],
+			objectsSelectionChanging: false // флаг используетя в treeCheck чтобы отделить пользовательские изенения от подгружаемых с сервера
 		}
 	},
 	mounted () {
@@ -177,11 +178,12 @@ export default {
 			}
 		},
 		treeCheck (e) {
+			if (this.objectsSelectionChanging) return
 			this.user._acl = e.join(',')
 			pxhr({
 				method: 'put',
 				url: 'access/user',
-				data: this.user
+				data: { login :  this.user.login, _acl: this.user._acl }
 			})
 			.then(this.handleResponse)
 			.catch(function (err) {
@@ -229,11 +231,15 @@ export default {
 				this.handleResponse(res)
 				if (!res.error) {
 					this.user = {login: e.login, ...res}
+					this.objectsSelectionChanging = true
 					if (res._acl) {
 						this.objectsSelection = res._acl.split(',').map(Number)
 					} else {
 						this.objectsSelection = []
 					}
+					this.$nextTick(() => { // даем тикнуть событию input в treeview, и лишь потом снимаем флаг
+						this.objectsSelectionChanging = false 
+					})
 				}
 			}).catch(function (err) {
 				console.log(err)

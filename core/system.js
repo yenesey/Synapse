@@ -40,9 +40,14 @@ system.errorHandler = function (err, req, res, next) {
 
 // ---------------------------------------------------------------------------------------------
 
+system.dateStamp = function () {
+	let dt = new Date()
+	return dt.getFullYear() + '-' + dt.getMonth()+1 + '-' + dt.getDate() + ' ' + dt.getHours() + ':' + dt.getMinutes() + ':' + dt.getMilliseconds()
+	//return dt.toLocaleDateString('ru', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + dt.toLocaleTimeString('ru', { hour12: false })
+}
+
 system.log = function (...args) {
-	var dt = new Date()
-	let stamp = dt.toLocaleDateString('ru', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + dt.toLocaleTimeString('ru', { hour12: false })
+	let stamp = this.dateStamp()
 	console.log(chalk.reset.cyan.bold(stamp) + ' ' +
 		args.reduce((all, arg) => all + ((typeof arg === 'object') ? util.inspect(arg, { colors: true }) : arg), '')
 	)
@@ -92,7 +97,7 @@ system.info = function () {
 		}
 		return result
 	}, {})
-	return format(info, chalk.green.bold)
+	return format(info, chalk.greenBright)
 }
 
 system.easterEgg = function () {
@@ -130,21 +135,24 @@ system.access = function (user, options = {}) {
 	return map
 }
 
-system.getUserById = function (id) {
-	return { id: id, ...this.users.get(id) }
-}
-
 system.getUser = function (login) {
 	assert(login in this.tree.users, 'Пользователь ' + login + ' не зарегистрирован')
 	return { id: this.tree.users._id(login), login: login, ...this.tree.users[login] }
 }
 
-// проверка прав доступа пользователя к заданному объекту (блокировка тоже проверяется)
 system.checkAccess = function (user, object) {
 	assert(!user.disabled, 'Пользователь ' + user.login + ' заблокирован')
 	let access = this.access(user, { object: object })
 	assert(access && access.granted, 'Не разрешен доступ к операции')
 	return access
+}
+
+system.getUsersHavingAccess = function (objectId) {
+	let users = []
+	for (let user in this.tree.users) {
+		if (!user.disabled && user._acl.includes(objectId)) users.push(user)
+	}
+	return users
 }
 
 /// /////////////////////////////////////////////////////////////////////
@@ -160,7 +168,7 @@ module.exports = treeMapper(-1).then(tree => {
 		}
 	}
 	config.path.root = ROOT_DIR
-
+/*
 	if (config.ssl.cert) {
 		return promisify(fs.readFile)(path.join(ROOT_DIR, 'sslcert', config.ssl.cert))
 			.then(cert => {
@@ -168,6 +176,6 @@ module.exports = treeMapper(-1).then(tree => {
 				return system
 			})
 	}
-
+*/
 	return system
 })

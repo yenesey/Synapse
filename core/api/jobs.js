@@ -15,34 +15,35 @@ const moment = require('moment')
 const parser = require('cron-parser')
 const fsp = require('../fsp')
 
-var crons = {} // ассоциативный массив (ключ-значение). id : handle //где id соответствует job.id , а handle - объект cron.schedule
+
 
 module.exports = function (system) {
 // -
 	const config = system.config
 	const jobs = system.tree.jobs
+	const crons = {} // хранилище CronJob-ов. ключи те же что и у jobs
+
 	const launcher = require('../launcher.js')(config)
 	const folder = require('../user-folders.js')(config.path.users, config.tasks.history)
-	const mail = email.server.connect(system.config.mail)
+	const mail = email.server.connect(config.mail)
 
 	mail.sendp = util.promisify(mail.send)
 
-	for (let id in jobs) schedule(jobs[id])  // вешаем на расписание прямо на старте
+	for (let keyId in jobs) schedule(keyId)  // вешаем на расписание прямо на старте
 
-	function destroy (job) {
-		if (job.id in crons) {
-		// 	crons[job.id].destroy();
-			stop(job)
-			delete crons[job.id]
+	function destroy (key) {
+		if (key in crons) {
+			crons[key].stop()
+			delete crons[key]
 		}
 	}
 
-	function start (job) {
-		if (job.id in crons) crons[job.id].start()
+	function start (key) {
+		if (key in crons) crons[key].start()
 	}
 
-	function stop (job) {
-		if (job.id in crons) crons[job.id].stop()
+	function stop (key) {
+		if (key in crons) crons[key].stop()
 	}
 
 	function task (job) {
@@ -92,17 +93,17 @@ module.exports = function (system) {
 		} // function success
 
 		function error (stdout) {
-			system.users('Администраторы')
-				.then(data => data.map((el) => el.email))
-				.then(emails =>
-					mail.sendp({
-						from: `Synapse <synapse@${os.hostname().toLowerCase()}`,
-						to: emails.join(','),
-						subject: job.description || job.name,
-						attachment: [{ data: '<html><pre>' + stdout + '</pre></html>', alternative: true }]
-					})
-				)
-				.catch(err => console.log(err.stack))
+			try {
+				let emails = system.getUsersHavingAccess(system.tree.groups._id('Администраторы')).map(el => el.email)
+				mail.sendp({
+					from: `Synapse <synapse@${os.hostname().toLowerCase()}`,
+					to: emails.join(','),
+					subject: job.description || job.name,
+					attachment: [{ data: '<html><pre>' + stdout + '</pre></html>', alternative: true }]
+				})
+			} catch(err) {
+				console.log(err.stack)
+			}
 		}
 
 		return function () {
@@ -143,12 +144,11 @@ module.exports = function (system) {
 		}// scheduled function
 	} // task(job)
 
-	function schedule (job) {
-		// повесить job на расписание
+	function schedule (key) { // повесить job на расписание
+		let job = jobs[key]
 		try {
-			// handle инициализируется в объект с методами .start() .stop()
-			var handle = new CronJob(job.schedule, task(job), function () {}, Boolean(job.enabled))
-			crons[job.id] = handle // ассоциируем handle с id
+			// crons[key] инициализируется в объект с методами .start() .stop()
+			crons[key] = new CronJob(job.schedule, task(job), function () {}, Boolean(job.enabled))
 		} catch (err) {
 			console.log('job.schedule: ' + err.message)
 			job.error = err.message // улетит клиенту с ответом
@@ -213,7 +213,7 @@ module.exports = function (system) {
 			var job = req.body
 
 			if (!('id' in job)) { // job без id кандидат на добавление
-				jobs._reserve(job)
+				jobs._add(job)
 					.then(id => {
 						schedule(job)
 						res.json(job)
