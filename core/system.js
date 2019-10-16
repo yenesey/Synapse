@@ -43,7 +43,7 @@ system.errorHandler = function (err, req, res, next) {
 system.dateStamp = function () {
 	let dt = new Date()
 	return dt.getFullYear() + '-' + dt.getMonth()+1 + '-' + dt.getDate() + ' ' + dt.getHours() + ':' + dt.getMinutes() + ':' + dt.getMilliseconds()
-	//return dt.toLocaleDateString('ru', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + dt.toLocaleTimeString('ru', { hour12: false })
+	// return dt.toLocaleDateString('ru', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + dt.toLocaleTimeString('ru', { hour12: false })
 }
 
 system.log = function (...args) {
@@ -149,8 +149,9 @@ system.checkAccess = function (user, object) {
 
 system.getUsersHavingAccess = function (objectId) {
 	let users = []
-	for (let user in this.tree.users) {
-		if (!user.disabled && user._acl.includes(objectId)) users.push(user)
+	for (let key in this.tree.users) {
+		let user = this.tree.users[key]
+		if (!user.disabled && user._acl && user._acl.includes(objectId)) users.push(user)
 	}
 	return users
 }

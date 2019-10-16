@@ -51,7 +51,7 @@ module.exports = function (db, table) {
 	function _add (id, target, keystore) {
 		return function (node) {
 			let key = String(Date.now()) + String(Math.random())
-			return addNode (id, target, key, node)
+			return addNode(id, target, key, node)
 				.then(_id => {
 					target[_id] = target[key]
 					delete target[key]
@@ -99,7 +99,7 @@ module.exports = function (db, table) {
 
 				switch (key) {
 				case '_id': return (key) => keystore.get(key)
-
+				case '_idWithin': return (key) => ({ id: keystore.get(key), ...target[key] })
 				case '_path': return path.bind(target)
 				case '_bool' : return bool.bind(receiver)
 				case '_recurse' : return _recurse(receiver)

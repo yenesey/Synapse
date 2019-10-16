@@ -274,7 +274,7 @@ nav .v-list .v-list-group--active {
 }
 
 /*---------------------table.synapse-----------------------*/
-
+/*
 table.synapse {
 	border: 1px solid #a8cfe6 !important;
 	border-radius: 3px;
@@ -283,7 +283,6 @@ table.synapse {
 }
 
 table.synapse th {
-/*	background: linear-gradient(to bottom, #b6dff6, #a8cfe6);*/
 	background: #ACDBFF;
 	color: black;
 	cursor: default;
@@ -308,7 +307,6 @@ table.synapse tbody tr td {
 
 table.synapse tbody tr:hover, table.synapse tbody  tr:hover input, table.synapse tbody  tr:hover select{
 	background-image: linear-gradient(to bottom, #d0edf5, #e1eff0 100%);
-/*  border-style: groove;*/
 }
 
 table.synapse tr.error, table.synapse tr.error input{
@@ -326,9 +324,10 @@ table.synapse input, table.synapse select{
 	border:none;
 	width:100%;
 }
-*/
+
 table.synapse input[type="checkbox"]{
 	width:auto !important;
 }
+*/
 
 </style>

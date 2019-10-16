@@ -15,8 +15,6 @@ const moment = require('moment')
 const parser = require('cron-parser')
 const fsp = require('../fsp')
 
-
-
 module.exports = function (system) {
 // -
 	const config = system.config
@@ -46,7 +44,9 @@ module.exports = function (system) {
 		if (key in crons) crons[key].stop()
 	}
 
-	function task (job) {
+	function task (key) {
+		let job = jobs[key]
+
 		function success (taskPath, stdout) {
 			if (!job.params.pp) return
 
@@ -101,7 +101,7 @@ module.exports = function (system) {
 					subject: job.description || job.name,
 					attachment: [{ data: '<html><pre>' + stdout + '</pre></html>', alternative: true }]
 				})
-			} catch(err) {
+			} catch (err) {
 				console.log(err.stack)
 			}
 		}
@@ -203,62 +203,53 @@ module.exports = function (system) {
 */
 
 	// небольшой бэкенд ниже
-	this.route('/')
+	this.get('/tasks', function (req, res) {
+		let tasks = system.tree.objects.tasks
+		let map = Object.keys(tasks).map(task => ({ id: tasks._id(task), name: task, ...tasks[task] }))
+		res.json(map)
+	})
 
+	this.route('/')
 		.get(function (req, res) {
 			res.json(jobs)
 		})
 
 		.put(bodyParser.json(), function (req, res) {
-			var job = req.body
+			let { key, job } = req.body
 
-			if (!('id' in job)) { // job без id кандидат на добавление
-				jobs._add(job)
-					.then(id => {
-						schedule(job)
-						res.json(job)
-					})
-					.catch(err => system.errorHandler(err, req, res))
+			if (!key) {
+				jobs._add(job).then(key => {
+					schedule(key)
+					res.json({ 'key': key, ...job })
+				}).catch(err => system.errorHandler(err, req, res))
 				return
 			}
 
-			dbop(job, 'upd')
-				.then(job => {
-					// console.log('upd:' + JSON.stringify(job))
-					destroy(job)
-					schedule(job)
-
-					if (job.enabled) {
-						if (!job.error) start(job)
-					} else stop(job)
-
-					res.json({ id: job.id, error: Boolean(job.error) })
-				})
-				.catch(err => system.errorHandler(err, req, res))
+			destroy(key)
+			schedule(key)
+			if (job.enabled) {
+				if (!job.error) start(job)
+			} else {
+				stop(job)
+			}
+			res.json({ key: key, ...job })
+			// .catch(err => system.errorHandler(err, req, res))
 		})
 
 		.delete(bodyParser.json(), function (req, res) {
-			var job = req.body
-			dbop(job, 'del')
-				.then(() => {
-					res.json({ id: job.id })
-					destroy(job)
-				})
-				.catch(err => system.errorHandler(err, req, res))
+			let { key } = req.body
+			destroy(key)
+			delete jobs[key]
+			res.json({ key: key })
 		})
 
 	this.get('/run', function (req, res) {
-		dbop({ id: req.query.id }, 'sel')
-			.then(job =>
-				task(job)().then(code => {
-					job.last = moment().format('YYYY-MM-DD HH:mm')
-					system.db(
-						'UPDATE jobs SET last = ?, code = ? WHERE id = ?',
-						[job.last, code, job.id]
-					)
-					res.json(job)
-				})
-			)
+		let { key } = req.query
+		task(key)().then(code => {
+			let job = jobs[key]
+			job.last = system.dateStamp()
+			res.json(job)
+		})
 			.catch(err => system.errorHandler(err, req, res))
 	})
 }
