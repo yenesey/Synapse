@@ -1,8 +1,8 @@
 <template lang="pug"> 
 v-app
-	v-navigation-drawer.blue.lighten-4(fixed app :width='navWidth' :value='navVisible' :clipped='navClipped' style='z-index:10' ref='nav')
+	v-navigation-drawer.blue.lighten-4(app :width='navWidth' :value='navVisible' :clipped='navClipped' style='z-index:10' ref='nav')
 		v-list.blue.lighten-4
-			v-list-item(@click="navigate('/')")
+			v-list-item.elevation-1(@click='navigate("/")' )
 				v-list-item-icon
 					v-icon account_circle
 				v-list-item-title.user {{user}}
@@ -25,13 +25,13 @@ v-app
 						v-icon(v-text="'chevron_right'") //task.icon || group.icon || 
 					v-list-item-title {{task.name || 'noname'}}
 
-	v-app-bar.blue.lighten-4(app, :clipped-left='navClipped', height='48px', style='z-index:9'  ref='toolbar')
+	v-app-bar.blue.lighten-4.elevation-1(app, :clipped-left='navClipped', height='48px', style='z-index:9'  ref='toolbar')
 		v-app-bar-nav-icon(@click.stop="toggleNav('Visible')")
 		v-btn(icon @click.stop="toggleNav('Clipped')" v-show='navVisible')
 			v-icon web
-		template(v-if='isDevMode')
+		template(v-if='devServer')
 			v-spacer
-			v-toolbar-title !!! dev-mode !!!
+			v-toolbar-title <-- dev-server -->
 		v-spacer
 		v-toolbar-title Synapse
 		v-menu(offset-y='', v-if='admin')
@@ -76,7 +76,7 @@ export default {
 		}
 	},
 	computed : {
-		isDevMode: () => window.location.port !== '',
+		devServer: () => window.location.port !== '',
 		admin() {
 			return this.routes.find(r=>r.path==='/admin')
 		},
@@ -164,7 +164,6 @@ export default {
   font-feature-settings: 'liga'; 
 }
 
-
 .v-toolbar__title {
 	top: 50%;
 	margin-top: -0.425em; 
@@ -176,11 +175,11 @@ export default {
 	-webkit-user-select: none;
 	-moz-user-select: none;
 	-ms-user-select: none;
-	text-shadow:	
-		0 0 5px rgba(0,0,0,.1), 
-		0 1px 3px rgba(0,0,0,.3), 
-		0 3px 5px rgba(0,0,0,.2),
-		0 5px 10px rgba(0,0,0,.25); 
+	text-shadow:
+		0 0   1px rgba(0,0,0,.1),
+		0 2px 4px rgba(0,0,0,.3),
+		0 5px 6px rgba(0,0,0,.2);
+
 }
 nav .v-list {
 	padding: 0;
@@ -218,11 +217,13 @@ nav .v-list .v-list-group--active {
 	-webkit-user-select: none;
 	-moz-user-select: none;
 	-ms-user-select: none;
+	/*
 	text-shadow:	
 		0 0 5px rgba(0,0,0,.1), 
 		0 1px 3px rgba(0,0,0,.3), 
 		0 3px 5px rgba(0,0,0,.2),
 		0 5px 10px rgba(0,0,0,.25);
+	*/
 } 
 
 .container h3 {

@@ -111,13 +111,15 @@ system.access = function (user, options = {}) {
 // юзается в tasks и dlookup, а также в access/map
 // options = { 'class': className, object: objectId, granted: true|false }
 	let userAcl = String(user._acl).split(',').map(el => Number(el))
+	/*
 	if ('object' in options) {
-		return { granted: userAcl.includes(options.object) }
+		return { granted: userAcl.includes(options.object),  this.tree.objects._id() }
 	}
-
+	*/
 	let map = []
+	let obj
 	let _class
-	this.tree.objects._recurse(1, (node, key, level) => {
+	let objFound = this.tree.objects._recurse(1, (node, key, level) => {
 		if (level === 0) {
 			_class = key
 		} else {
@@ -127,11 +129,16 @@ system.access = function (user, options = {}) {
 				(!('class' in options) || _class === options['class']) &&
 				(!('granted' in options) || granted === options['granted'])
 			)  {
-				let obj = {	id: id,	name: key, class: _class, ...node[key], granted: granted }
-				map.push(obj)
+				let _obj = {	id: id,	name: key, class: _class, ...node[key], granted: granted }
+				map.push(_obj)
+				if (options.object && id === options.object) {
+					obj = _obj
+					return true
+				}
 			}
 		}
 	})
+	if (objFound) return obj
 	return map
 }
 
