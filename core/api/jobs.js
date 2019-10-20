@@ -203,6 +203,13 @@ module.exports = function (system) {
 */
 
 	// небольшой бэкенд ниже
+
+	this.ws('/', (s, req) => {
+		console.error('websocket connection');
+		for (var t = 0; t < 3; t++)
+		  setTimeout(function() { s.send('message from server ' + t) }, 1000*t);
+	})
+
 	this.get('/tasks', function (req, res) {
 		let tasks = system.tree.objects.tasks
 		let map = Object.keys(tasks).map(task => ({ id: tasks._id(task), name: task, ...tasks[task] }))

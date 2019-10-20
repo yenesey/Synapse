@@ -154,6 +154,13 @@ export default {
 	},
 
 	mounted () { // при появлении в DOM
+		// window.location.host
+
+		var s = new WebSocket('ws://localhost/jobs');
+		s.addEventListener('error', function (m) { console.log("error"); });
+		s.addEventListener('open', function (m) { console.log("websocket connection open"); });
+		s.addEventListener('message', function (m) { console.log(m); });
+		/*
 		this.$watch('job', this.changes, { deep: true })
 
 		pxhr({ method:'get', url:'jobs' })
@@ -167,7 +174,8 @@ export default {
  	  	  	})
  	  	 	.catch(err => {
  	  	  	 	console.log(err)
- 	  	  	})
+			})
+		*/		 
 	},
 
 	methods: {

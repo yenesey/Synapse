@@ -42,8 +42,8 @@ system.errorHandler = function (err, req, res, next) {
 
 system.dateStamp = function () {
 	let dt = new Date()
-	return dt.getFullYear() + '-' + dt.getMonth()+1 + '-' + dt.getDate() + ' ' + dt.getHours() + ':' + dt.getMinutes() + ':' + dt.getMilliseconds()
-	// return dt.toLocaleDateString('ru', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + dt.toLocaleTimeString('ru', { hour12: false })
+	//return dt.getFullYear() + '-' + String(dt.getMonth()+1) + '-' + dt.getDate() + ' ' + dt.getHours() + ':' + dt.getMinutes() + ':' + dt.getMilliseconds()
+	return dt.toLocaleDateString('ru', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + dt.toLocaleTimeString('ru', { hour12: false })
 }
 
 system.log = function (...args) {

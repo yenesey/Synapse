@@ -26,11 +26,13 @@
 
 const path    = require('path')
 const CronJob = require('cron').CronJob
-const express = require('express')
 const morgan  = require('morgan')
 const https   = require('https')
 const http    = require('http')
 const compression = require('compression')
+const express = require('express')
+const app     = express()
+const websockets = require('express-ws')
 
 var server = null
 
@@ -77,7 +79,7 @@ process.argv.forEach(arg => {
 -------------------------------------------------------------------------------------
 */
 require('synapse/system').then(system => {
-	const app = express()
+
 	const config = system.config
 
 	server = process.env.SSL
@@ -90,8 +92,9 @@ require('synapse/system').then(system => {
 	})
 
 	process.env.PORT = process.env.PORT || (process.env.SSL ? '443' : '80')
-
+	
 	server.listen(process.env.PORT, function () {
+		websockets(app, server)
 		system.info = system.info.bind(this) // for this.address
 
 		// eslint-disable-next-line no-new
