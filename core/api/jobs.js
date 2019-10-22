@@ -108,7 +108,7 @@ module.exports = function (system) {
 
 		return function () {
 			var stdout = ''
-			var argv = Object.assign({}, job.params.argv)
+			var argv = Object.assign({}, job.argv)
 			var _eval = ''
 			for (var key in argv) {
 				try	{
@@ -204,59 +204,53 @@ module.exports = function (system) {
 
 	// небольшой бэкенд ниже
 
-	this.ws('/', (s, req) => {
-		console.error('websocket connection');
-		for (var t = 0; t < 3; t++)
-		  setTimeout(function() { s.send('message from server ' + t) }, 1000*t);
+	function handleWs (m, ws) {
+		let data
+		try {
+			data = JSON.parse(m)
+			console.log(data)
+
+			if (data.action === 'create') {
+				let job = data.payload
+				jobs._add(job).then(key => {
+					schedule(key)
+					let j = {}
+					j[key] = job
+					ws.send(JSON.stringify(j))
+				}).catch(err => system.errorHandler(err))
+			}
+
+			if (data.action === 'delete') {
+				let key = data.key
+				delete jobs[key]
+				// ws.send(JSON.stringify({delete: key}))
+			}
+
+			if (data.action === 'update') {
+				let job = data.payload
+				let existing = jobs[data.key]
+				Object.keys(job).forEach(key => {
+					existing[key] = job[key]
+				})
+			}
+
+		} catch (err) {
+			console.log(err)
+		}
+	}
+
+	this.ws('/', (ws, req) => {
+		ws.send(JSON.stringify(jobs))
+		ws.on('message', function (m) {
+			handleWs(m, ws)
+		})
 	})
 
 	this.get('/tasks', function (req, res) {
+		system.checkAccess(req.user, system.tree.objects.admin._id('Планировщик'))
 		let tasks = system.tree.objects.tasks
 		let map = Object.keys(tasks).map(task => ({ id: tasks._id(task), name: task, ...tasks[task] }))
 		res.json(map)
 	})
 
-	this.route('/')
-		.get(function (req, res) {
-			res.json(jobs)
-		})
-
-		.put(bodyParser.json(), function (req, res) {
-			let { key, job } = req.body
-
-			if (!key) {
-				jobs._add(job).then(key => {
-					schedule(key)
-					res.json({ 'key': key, ...job })
-				}).catch(err => system.errorHandler(err, req, res))
-				return
-			}
-
-			destroy(key)
-			schedule(key)
-			if (job.enabled) {
-				if (!job.error) start(job)
-			} else {
-				stop(job)
-			}
-			res.json({ key: key, ...job })
-			// .catch(err => system.errorHandler(err, req, res))
-		})
-
-		.delete(bodyParser.json(), function (req, res) {
-			let { key } = req.body
-			destroy(key)
-			delete jobs[key]
-			res.json({ key: key })
-		})
-
-	this.get('/run', function (req, res) {
-		let { key } = req.query
-		task(key)().then(code => {
-			let job = jobs[key]
-			job.last = system.dateStamp()
-			res.json(job)
-		})
-			.catch(err => system.errorHandler(err, req, res))
-	})
 }

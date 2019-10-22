@@ -5,29 +5,29 @@ v-flex.xs12
 			v-simple-table.ma-1
 				template(v-slot:default)
 					tbody
-						tr.blue.lighten-4
+						tr(:style='{"background-color": $vuetify.theme.currentTheme.primary}')
 							// Выбор и параметры джоба
-							td.body-1.text-center(colspan='2' v-if='job.id') Редактировать задачу{{' [id:' + job.id + ']'}}
+							td.body-1.text-center(colspan='2' v-if='key') Редактировать задачу{{` [key:${key}]`}}
 							td.body-1.text-center(colspan='2' v-else) Создать задачу
 						tr
 							td(colspan='2')
 								v-autocomplete(
 									dense
 									hide-details	
+									return-object
 									prepend-icon='timeline'							
 									:menu-props='{ "maxHeight":600 }'
 									full-width
 									autocomplete='off'
 									hide-no-data,
 									item-disabled='__'
-									return-object,
 									v-model='task',
 									:items='tasksCached',
 									:loading='tasksLoading',
 									:search-input.sync='searchTask',
 									@input='selectTask',
 									item-text='name',
-									item-value='name',
+									item-value='id',
 									label='Выбрать задачу',
 								)
 
@@ -69,9 +69,9 @@ v-flex.xs12
 				template(v-slot:default)
 					thead
 						tr
-							th.body-1.text-center.blue.lighten-4(colspan='9') Список задач на сервере
+							th.body-1.text-center(colspan='9' :style='{"background-color": $vuetify.theme.currentTheme.primary}') Список задач на сервере
 						tr
-							th.text-center.subtitle-1 №
+							th.text-center.subtitle-1 #id
 							th.text-center.subtitle-1 Задача
 							th.text-center.subtitle-1 Описание
 							th.text-center.subtitle-1 Выполн.
@@ -79,37 +79,39 @@ v-flex.xs12
 							th.text-center.subtitle-1 Вкл
 							th.text-center.subtitle-1 Вручную
 							th.text-center
-								v-icon(size='22') mail_outline
+								v-icon mail_outline
 							th.text-center
-								v-icon(size='22') play_circle_outline
+								v-icon delete
 					tbody
-						tr(v-for='(obj, key) in jobs', :key='key', @click='jobSelect($event, obj)', :class='{error: states[index]==2, selected: job.id===obj.id }')
-							td.text-center {{obj.id}}
-							td {{ obj.name }}
+						tr(v-for='(obj, key) in jobs', :key='key', @click='selectJob(key)', :class='{}')
+							td.text-center {{key}}
+							td.font-weight-bold {{ obj.name }}
 							td
-								v-text-field(v-model='obj.description', dense,hide-details)
+								v-text-field(v-model='obj.description', dense, hide-details)
 							td {{obj.last}}
 								// input(v-if='obj.code==0 || obj.code==2', type='text', v-model='obj.last', size='10', style='text-align:center; font-size: 12px', readonly='')
 								// input(v-else='', type='text', v-model='obj.last', size='10', style='text-align:center; font-size: 12px; color: red', readonly='')
 							td {{obj.next}}
 								
-							td(style='text-align:center')
-								input(type='checkbox', v-model='obj.enabled', :disabled='obj.error')
-							td(style='text-align:center')
-								v-icon(size='22', v-if='states[index]!==1', @click='jobRun($event, obj)') play_arrow
+							td(style='padding-left:25px; padding-right:0px')
+								v-switch(v-model='obj.enabled', dense, hide-details)
+							td.text-center
+								v-btn(text icon)
+									v-icon.hover-elevate(@click='runJob(key)') play_arrow
 							td(style='text-align:center')
 								v-icon(size='22', v-if='obj.email') mail_outline
 								v-icon(size='22', v-if='obj.print') local_printshop
-							td(style='text-align:center')
-								v-icon.trash-bin(size='22', v-if='states[index]==0', @click='jobDelete(obj)') delete
-								img(v-if='states[index]==1', src='../assets/ui-anim_basic_16x16.gif', style='vertical-align: text-bottom;')
+							td.text-center
+								v-btn(text icon color='rgba(195, 75, 75, 0.952)')
+									v-icon.hover-elevate(@click='deleteJob(key)') delete
+
 </template>
 
 <script>
 import {debounceKeyed, difference, clone, pxhr} from 'lib'
 import moment from 'moment'
 
-var _default = {
+var _schema = {
 	task: -1,
 	description: '',
 	next: '',
@@ -126,7 +128,7 @@ var _before = null
 export default {
 // В "Планировщике" реализован подход к вводу/редактированию данных, который использует реактивные 
 // возможности Vue, и AJAX (стандартные HTTP запросы, выполняемые асинхронно) 
-// - единицей данных является объект запланированной задачи, описанный в _default
+// - единицей данных является объект запланированной задачи, описанный в _schema
 // - ввод данных осуществляется как в таблице, так и в окне, детализирующем конкретный выбранный элемент
 // - ввод считается законченным, после того как пользователь перестал изменять данные в течение заданного интервала времени
 // - введенные данные анализируются перед отправкой запроса на сервер, с целью минимизации количества запросов/траффика,
@@ -146,27 +148,35 @@ export default {
 			tasksLoading: false,
 			searchTask: '',
 
-			jobs: [], //массив job-ов (редактируемых данных) [ job(1) | job(2) |.... | job(n) ]
-			states:[], //состояния job-ов вынесены отдельно, чтобы на них не срабатывал $watch('job'
-			job: clone(_default), //"скользящий" фрейм, указывающий на конкретный редактируемый job в массиве jobs
-			jobName: '' //--для обратной связи с компонентом выбора задачи
+			$ws: null,
+			jobs: {}, // массив job-ов (редактируемых данных) [ job(1) | job(2) |.... | job(n) ]
+			key: '',
+			job: clone(_schema), // "скользящий" фрейм, указывающий на конкретный редактируемый job в массиве jobs
+			jobName: '' // --для обратной связи с компонентом выбора задачи
 		}
 	},
 
-	mounted () { // при появлении в DOM
-		// window.location.host
+	mounted () {
+		let self = this
+		let wss = window.location.protocol.replace(/http/i, 'ws') + '//' + window.location.host.replace(/:\d+/, '')
+		let ws = new WebSocket(wss + '/jobs')
+		ws.onerror = function (m) { console.log('error') }
+		ws.addEventListener('close', function (m) { console.log(m); })
+		// s.onopen = function (m) { console.log('websocket connection open', s.readyState) }
 
-		var s = new WebSocket('ws://localhost/jobs');
-		s.addEventListener('error', function (m) { console.log("error"); });
-		s.addEventListener('open', function (m) { console.log("websocket connection open"); });
-		s.addEventListener('message', function (m) { console.log(m); });
-		/*
-		this.$watch('job', this.changes, { deep: true })
-
-		pxhr({ method:'get', url:'jobs' })
-			.then(jobs => { 
-				this.jobs = jobs
-			})
+		ws.onmessage = function (m) {
+			let data
+			try {
+				data = JSON.parse(m.data)
+				Object.keys(data).forEach(key => {
+					self.$set(self.jobs, key, data[key])
+				})
+			} catch (err) {
+				console.log(err)
+			}
+		}
+		self.$ws = ws
+		// self.$watch('job', this.changes, { deep: true })
 
  	  	pxhr({method:'GET', url: 'jobs/tasks'})
  	  	   .then(res => {
@@ -175,70 +185,56 @@ export default {
  	  	 	.catch(err => {
  	  	  	 	console.log(err)
 			})
-		*/		 
+		
 	},
 
+	watch: {
+		job (before, after) {
+			console.log(difference(before, after))
+		}
+
+	},
+	
 	methods: {
-		jobState: function(job, state){
-			let index = this.jobs.indexOf(job)
-			if (index !== -1) this.states[index] = state
-			this.$forceUpdate()
-		},
 
 		debounced: debounceKeyed(function(first, last){
 			// "Keyed"  - указывает на то, что функция "ключуется" по первому параметру.
 			// первый параметр - ключ открывает отдельную последовательность debounce	
 			var self = this;
 			var changes = {};
-			if (last.task != -1)	changes = difference(first, last);
+			if (last.task != -1) changes = difference(first, last);
 			
 			if (!changes) {
-				self.jobState(last, 0);
+				// self.jobState(last, 0);
 				return; 
 			}
 
 			if ('error' in changes) delete changes.error;
 		
-			if (Object.keys(changes).length===0) return;
-			if (last.id) changes.id = last.id;
+			if (Object.keys(changes).length === 0) return;
+			// if (last.id) changes.id = last.id;
 
-			pxhr({ method:'put', url:'jobs', data : changes })
-			.then(function(res){
-					if (!last.id){
-						res.params = res.params || clone(_default.params);
-						self.states.push(res.error ? 2 : 0);
-						self.jobs.push(res);	
-						self.jobSelect(null, res);
-					} else {
-						self.jobState(last, res.error ? 2 : 0)
-						_before = clone(last);
-					}
-				})
+			self.$ws.send(JSON.stringify({action: 'update', key: self.key,  payload: changes}))
+			_before = clone(last)
 			},3000),
 
-		changes : function(obj){
-			this.jobState(obj, 1);
+		changes: function(obj){
+			// this.jobState(obj, 1);
 			this.debounced(obj.id || -1, [0,1], _before, obj);
 		},
 
-		fetchParams : function(taskId){
-			//извлекаем argv = {key: value} непосредственно из текста рендер-функции Vue-компонента
-			var rg = new RegExp('"?name"?: ?"([^\n]*?)",?\n?(?:\\s*"?value"?: ?"?(?:_vm\.|[a-z]\.)?([^\n]*?)"?,?(?:,?\\w*:|}|\n))?', 'g');
-
-			var res;
-
+		fetchParams (id) {
+			// извлекаем argv = {key: value} непосредственно из текста рендер-функции Vue-компонента
+			var rg = new RegExp('"?name"?: ?"([^\n]*?)",?\n?(?:\\s*"?value"?: ?"?(?:_vm\.|[a-z]\.)?([^\n]*?)"?,?(?:,?\\w*:|}|\n))?', 'g')
+			var res
 			//находим нужную задачу по id
-			var task = this.$router.options.routes[2].children
-				.find(function(item){
-					return item.path == taskId
-				})
-			
-			var argv = {};		
+			var task = this.$router.options.routes[2].children.find(item => item.path == id)
+			var argv = {}	
 			if (task && task.component) 
-				task.component.render(function(src){
-					if (src){
+				task.component.render(function (src) {
+					if (src) {
 						if (src.__file !== 'client_source/task.vue'){ 
-							while (res = rg.exec(src.render)) //--выскребаем параметры с помощью регулярки
+							while (res = rg.exec(src.render)) // -- выскребаем параметры с помощью регулярки
 								argv[res[1]] = res[2] || '';
 						
 							if (src.staticRenderFns)
@@ -252,52 +248,36 @@ export default {
 			return argv
 		},
 
-		selectTask(evnt) { // dlookup event
-			this.job  = clone(_default)
-			this.job.task = evnt.id
-			this.argv = this.fetchParams(evnt.id)
-			// this.job.params.pp = {print:'', email:{}}
-			_before = clone(_default)
+		selectTask (task) {
+			this.job  = clone(_schema)
+			this.job.task = task.id
+			this.job.name = task.name
+			this.job.argv = this.fetchParams(task.id)
+			_before = clone(_schema)
 			_before.schedule = ''
+			this.$ws.send(JSON.stringify({ action: 'create', key: null,  payload: this.job }))
 		},
 
-		jobSelect : function(evnt, job){ //select in table
-			if (this.job === job) return;
-			this.jobName = job.name; //dlookup text
-			job.params = {
-			//подмешиваем к имеющиемя в задаче параметрам, параметры по умолчанию (приоритет имеющимся)
-				argv : Object.assign(this.fetchParams(job.task), job.params.argv),
-				pp   : Object.assign({email:{}, print:''},     job.params.pp)
-			};
-//			console.log(JSON.stringify(job.params, null, " "))
-			_before = clone(job);//?
-
-			if (evnt && evnt.target && evnt.target.type=='checkbox') _before.enabled = !evnt.target.checked;
-			this.job = job;
-
+		selectJob (key) { //select in table
+			let job = this.jobs[key]
+			this.searchTask = job.name
+			job.argv = Object.assign(this.fetchParams(job.task), job.argv)
+			job.pp = Object.assign({ email:{}, print:'' }, job.pp)
+			_before = clone(job)
+			this.key = key
+			this.job = job
 		},
 
-		jobRun : function(evnt, job){
-			var self = this;
-			self.jobState(job, 1)
-			pxhr({ method:'get', url:'jobs/run?id=' + job.id})
-			.then(function(res){
-		  job.last = res.last;
-					self.jobState(job, 0)
-			})
+		runJob (key) {
+			this.$ws.send(JSON.stringify({ action: 'run', key: key}))
 		},
 		
-		jobDelete : function(job){
-			var self = this;
-			pxhr({ method:'delete', url:'jobs', data : job })
-			.then(function(result){
-				self.jobs.splice(self.jobs.indexOf(job), 1);
-				self.job = clone(_default);
-				_before = clone(_default);
-			})
+		deleteJob (key) {
+			this.$ws.send(JSON.stringify({ action: 'delete', key: key}))
+			this.$delete(this.jobs, key)
 		},
 
-		formatEmail  : function(item) {	
+		formatEmail (item) {	
 			return (typeof item === 'object')
 				? item.name + '<' + item.email + '>'
 				: item
@@ -308,6 +288,16 @@ export default {
 
 </script>
 
-<style></style>
+<style>
+
+.hover-elevate:hover {
+	transform: scale(1.2);
+}
+.v-input--selection-controls {
+	margin-top: 0px;
+	padding-top: 0px;
+}
+
+</style>
 
 

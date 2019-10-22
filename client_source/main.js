@@ -34,7 +34,7 @@ import App from './app.vue'
 
 
 if (typeof baseUrl !== 'undefined') _.baseUrl = baseUrl // eslint-disable-line
- 
+
 _.pxhr({method: 'get', url: 'access/map'})
 .catch(err => ({login: 'Нет доступа!', access: [], err: err})) 
 .then(user => {
@@ -56,7 +56,7 @@ _.pxhr({method: 'get', url: 'access/map'})
 	if (access.admin && access.admin.length)
 		routes.push({
 			path: '/admin',
-//      name: 'Админ',
+			// name: 'Админ',
 			icon: 'settings',
 			component: {render: (h) => h('router-view')}, 
 			children: access.admin.map(el=>({
@@ -70,7 +70,7 @@ _.pxhr({method: 'get', url: 'access/map'})
 
 
 	if (access.tasks && access.tasks.length){
-		let allTasks = require.context('./tasks', false, /\.vue$/) //todo: rename files .html to .vue
+		let allTasks = require.context('./tasks', false, /\.vue$/)
 		routes.push({
 			path: '/tasks',
 			// name: 'Tasks',

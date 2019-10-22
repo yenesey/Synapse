@@ -14,8 +14,8 @@
       --service      - запустить как службу (влияет на обработку сигналов прерывания и закрытия процесса)
 
   запуск через "npm run":
-    \> npm run dev-api    - бэкенд для разработки
-    \> npm run dev-server - сборка и отдача клиентского приложения на лету
+    \> npm run dev-backend  - бэкенд для разработки
+    \> npm run dev-frontend - фронтенд для разработки
 
     \> npm run build      - сборка статического клиентского приложения (bundle) для production
 
@@ -92,7 +92,7 @@ require('synapse/system').then(system => {
 	})
 
 	process.env.PORT = process.env.PORT || (process.env.SSL ? '443' : '80')
-	
+
 	server.listen(process.env.PORT, function () {
 		websockets(app, server)
 		system.info = system.info.bind(this) // for this.address
@@ -129,8 +129,8 @@ require('synapse/system').then(system => {
 		if (config._bool('telebot.on')) app.use(api('telebot'))
 		if (config._bool('cards.on')) app.use(api('cards'))
 
-		api.useNtlm() // отныне и далее у нас есть userName из AD
-		app.use(api(['access', 'dlookup', 'dbquery', 'tasks', 'jobs', 'system'])) /* 'forms' */
+		api.useNtlm() // отныне и далее вниз у нас есть userName из AD
+		app.use(api(['access', 'dlookup', 'dbquery', 'tasks', 'system', 'jobs'])) /* 'forms' */
 		app.use(system.errorHandler)
 	})
 

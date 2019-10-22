@@ -14,7 +14,7 @@ module.exports = async function (params, system) {
 	const ibso = await oracle.getConnection(config.ibs)
 	const t2000 = await oracle.getConnection({ connectString: 'T2000', schema: 'T2000', user: 'WH', password: 'warehouse' })
 
-	//let select = await t2000.execute(`select * from IBS_ACC_FIN`,{}, { maxRows: 10 })
+	// let select = await t2000.execute(`select * from IBS_ACC_FIN`,{}, { maxRows: 10 })
 
 	let result = await ibso.execute(`
 		select
@@ -45,11 +45,7 @@ module.exports = async function (params, system) {
 	do {
 		rows = await rs.getRows(NUM_ROWS)
 		if (rows.length > 0) {
-			info = await t2000.executeMany(
-				statement,
-				rows,
-				{ autoCommit: true }
-			)
+			info = await t2000.executeMany(statement, rows,	{ autoCommit: true })
 			console.log(info)
 		}
 	} while (rows.length === NUM_ROWS)
