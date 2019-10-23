@@ -24,10 +24,10 @@ module.exports = function (system) {
 	const launcher = require('../launcher.js')(config)
 	const folder = require('../user-folders.js')(config.path.users, config.tasks.history)
 	const mail = email.server.connect(config.mail)
-
+	
 	mail.sendp = util.promisify(mail.send)
 
-	for (let keyId in jobs) schedule(keyId)  // вешаем на расписание прямо на старте
+	// for (let keyId in jobs) schedule(keyId)  // вешаем на расписание прямо на старте
 
 	function destroy (key) {
 		if (key in crons) {
@@ -228,6 +228,7 @@ module.exports = function (system) {
 
 			if (data.action === 'update') {
 				let job = data.payload
+				if (!(data.key in jobs)) return
 				let existing = jobs[data.key]
 				Object.keys(job).forEach(key => {
 					existing[key] = job[key]

@@ -22,9 +22,9 @@ v-flex.xs12
 									hide-no-data,
 									item-disabled='__'
 									v-model='task',
-									:items='tasksCached',
+									:items='tasks',
 									:loading='tasksLoading',
-									:search-input.sync='searchTask',
+									:search-input.sync='taskSearch',
 									@input='selectTask',
 									item-text='name',
 									item-value='id',
@@ -71,7 +71,7 @@ v-flex.xs12
 						tr
 							th.body-1.text-center(colspan='9' :style='{"background-color": $vuetify.theme.currentTheme.primary}') Список задач на сервере
 						tr
-							th.text-center.subtitle-1 #id
+							th.text-center.subtitle-1 #key
 							th.text-center.subtitle-1 Задача
 							th.text-center.subtitle-1 Описание
 							th.text-center.subtitle-1 Выполн.
@@ -85,7 +85,7 @@ v-flex.xs12
 					tbody
 						tr(v-for='(obj, key) in jobs', :key='key', @click='selectJob(key)', :class='{}')
 							td.text-center {{key}}
-							td.font-weight-bold {{ obj.name }}
+							td(style='color:teal') {{ obj.name }}
 							td
 								v-text-field(v-model='obj.description', dense, hide-details)
 							td {{obj.last}}
@@ -102,17 +102,17 @@ v-flex.xs12
 								v-icon(size='22', v-if='obj.email') mail_outline
 								v-icon(size='22', v-if='obj.print') local_printshop
 							td.text-center
-								v-btn(text icon color='rgba(195, 75, 75, 0.952)')
+								v-btn(text icon)
 									v-icon.hover-elevate(@click='deleteJob(key)') delete
 
 </template>
 
 <script>
-import {debounceKeyed, difference, clone, pxhr} from 'lib'
+import {debounce, diff, clone, pxhr} from 'lib'
 import moment from 'moment'
 
 var _schema = {
-	task: -1,
+	task: null,
 	description: '',
 	next: '',
 	last: '',
@@ -121,106 +121,86 @@ var _schema = {
 	email: {},
 	print: '',
 	schedule: '* * * * * *',
+	state: 'OK',
 	enabled: false
 }
-var _before = null
 
 export default {
-// В "Планировщике" реализован подход к вводу/редактированию данных, который использует реактивные 
-// возможности Vue, и AJAX (стандартные HTTP запросы, выполняемые асинхронно) 
-// - единицей данных является объект запланированной задачи, описанный в _schema
-// - ввод данных осуществляется как в таблице, так и в окне, детализирующем конкретный выбранный элемент
-// - ввод считается законченным, после того как пользователь перестал изменять данные в течение заданного интервала времени
-// - введенные данные анализируются перед отправкой запроса на сервер, с целью минимизации количества запросов/траффика,
-// 	 в результате чего на сервер отправляется только измененные поля запланированной задачи
-//
-//  для обеспечения всего вышеперечисленного задействованы функции: 
-// - vm.$watch        - наблюдение за изменениями записей заданного объекта 
-// - _.debounceKeyed  - выполнение функции, после заданного интервала времени, после того, как 
-//                      пользователь перестал повторять (boucing) вызывать эту функцию. 
-// - _.difference     - определение различий между двумя данными объектами
-// - _.clone          - глубокое клонирование заданного объекта
 
 	data () {
 		return {
 			task: '',
-			tasksCached: [],
+			taskSearch: '',
+			tasks: [],
 			tasksLoading: false,
-			searchTask: '',
 
-			$ws: null,
-			jobs: {}, // массив job-ов (редактируемых данных) [ job(1) | job(2) |.... | job(n) ]
+			jobs: {}, // {key1: _schema, key2: _schema, .... keyN: _schema}
 			key: '',
-			job: clone(_schema), // "скользящий" фрейм, указывающий на конкретный редактируемый job в массиве jobs
-			jobName: '' // --для обратной связи с компонентом выбора задачи
+			job: clone(_schema) // указатель на выбранный в таблице job
 		}
+	},
+
+	created () {
+		this.$ws = null,
+		this.$lazy = {}
 	},
 
 	mounted () {
 		let self = this
-		let wss = window.location.protocol.replace(/http/i, 'ws') + '//' + window.location.host.replace(/:\d+/, '')
-		let ws = new WebSocket(wss + '/jobs')
-		ws.onerror = function (m) { console.log('error') }
-		ws.addEventListener('close', function (m) { console.log(m); })
-		// s.onopen = function (m) { console.log('websocket connection open', s.readyState) }
+		let ws = new WebSocket(this.$root.getWebsocketUrl() + '/jobs')
+		self.$ws = ws
+		ws.onerror = console.log 
+		ws.onclose = function (m) { console.log(`websocket readyState=${ws.readyState}`) }
+		// addEventListener('open', fn())
+		ws.onopen = function (m) { console.log(`websocket readyState=${ws.readyState}`) }
 
 		ws.onmessage = function (m) {
 			let data
 			try {
 				data = JSON.parse(m.data)
-				Object.keys(data).forEach(key => {
+				if (data) Object.keys(data).forEach(key => {
 					self.$set(self.jobs, key, data[key])
+					self.$lazy[key] = self.lazyUpdateFactory(key, clone(data[key]), ws)
 				})
+				
 			} catch (err) {
 				console.log(err)
 			}
 		}
-		self.$ws = ws
-		// self.$watch('job', this.changes, { deep: true })
+		self.$watch('job', this.observeJob, { deep: true })
 
  	  	pxhr({method:'GET', url: 'jobs/tasks'})
  	  	   .then(res => {
- 	  	   		this.tasksCached = res
+ 	  	   		this.tasks = res
  	  	  	})
  	  	 	.catch(err => {
  	  	  	 	console.log(err)
 			})
 		
 	},
-
-	watch: {
-		job (before, after) {
-			console.log(difference(before, after))
-		}
-
-	},
 	
 	methods: {
-
-		debounced: debounceKeyed(function(first, last){
-			// "Keyed"  - указывает на то, что функция "ключуется" по первому параметру.
-			// первый параметр - ключ открывает отдельную последовательность debounce	
-			var self = this;
-			var changes = {};
-			if (last.task != -1) changes = difference(first, last);
-			
-			if (!changes) {
-				// self.jobState(last, 0);
-				return; 
-			}
-
-			if ('error' in changes) delete changes.error;
 		
-			if (Object.keys(changes).length === 0) return;
-			// if (last.id) changes.id = last.id;
+		lazyUpdateFactory (key, base, $ws) {
+			return debounce( function (changed) {
+				$ws.send(
+					JSON.stringify({
+						action: 'update',
+						key: key,
+						payload: diff(base, changed)
+					})
+				)
+				base = clone(changed)
+			}, 3000 ) // ms
+		},
 
-			self.$ws.send(JSON.stringify({action: 'update', key: self.key,  payload: changes}))
-			_before = clone(last)
-			},3000),
+		observeJob (_new, _old) {
+			let key = this.key
+			if (key in this.$lazy) this.$lazy[key](_new)
 
-		changes: function(obj){
-			// this.jobState(obj, 1);
-			this.debounced(obj.id || -1, [0,1], _before, obj);
+			if (_new === _old) { // меняется значение внутри самого job'a
+			} else { // меняется job целиком
+			}
 		},
 
 		fetchParams (id) {
@@ -249,23 +229,22 @@ export default {
 		},
 
 		selectTask (task) {
-			this.job  = clone(_schema)
-			this.job.task = task.id
-			this.job.name = task.name
-			this.job.argv = this.fetchParams(task.id)
-			_before = clone(_schema)
-			_before.schedule = ''
-			this.$ws.send(JSON.stringify({ action: 'create', key: null,  payload: this.job }))
+			let job = clone(_schema)
+			job.task = task.id
+			job.name = task.name
+			job.argv = this.fetchParams(task.id)
+			this.$ws.send(JSON.stringify({ action: 'create', key: null,  payload: job }))
+			this.key = null
+			this.job  = job
 		},
 
-		selectJob (key) { //select in table
+		selectJob (key) { //select row in table
+			if (this.key === key || !(key in this.jobs)) return
 			let job = this.jobs[key]
-			this.searchTask = job.name
+			this.taskSearch = job.name
 			job.argv = Object.assign(this.fetchParams(job.task), job.argv)
-			job.pp = Object.assign({ email:{}, print:'' }, job.pp)
-			_before = clone(job)
 			this.key = key
-			this.job = job
+			this.job = job // note: 'observeJob' on nextTick  -!!!если бы работало не так, пришлось бы инкапсулировать key в job!!!
 		},
 
 		runJob (key) {
@@ -275,6 +254,7 @@ export default {
 		deleteJob (key) {
 			this.$ws.send(JSON.stringify({ action: 'delete', key: key}))
 			this.$delete(this.jobs, key)
+			delete this.$lazy[key]
 		},
 
 		formatEmail (item) {	
@@ -292,6 +272,7 @@ export default {
 
 .hover-elevate:hover {
 	transform: scale(1.2);
+	color: rgba(195, 75, 75, 0.952) !important;
 }
 .v-input--selection-controls {
 	margin-top: 0px;

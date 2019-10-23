@@ -95,7 +95,12 @@ module.exports = function (db, table) {
 			},
 
 			get (target, key, receiver) {
-				if (Reflect.has(target, key)) return target[key]
+				if (Reflect.has(target, key)) {
+					let value = target[key]
+					// experimental: proxify null values
+					if (value === null) return proxify({}, keystore.get(key), keystore)
+					return value
+				}
 
 				switch (key) {
 				case '_id': return (key) => keystore.get(key)

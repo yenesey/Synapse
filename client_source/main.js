@@ -32,6 +32,10 @@ import taskWrapper from './task.vue'
 import admin from './admin/admin.js'
 import App from './app.vue'
 
+function getWebsocketUrl () {
+	let {protocol, host} = window.location
+	return protocol.replace(/http/i, 'ws') + '//' + host.replace(/:\d+/, '')
+}
 
 if (typeof baseUrl !== 'undefined') _.baseUrl = baseUrl // eslint-disable-line
 
@@ -100,7 +104,10 @@ _.pxhr({method: 'get', url: 'access/map'})
 
 	// запускаем приложение:
 	new Vue({ 
-		el: '#app', 
+		el: '#app',
+		methods: { // todo: look at #https://vuejs.org/v2/guide/mixins.html#
+			getWebsocketUrl: getWebsocketUrl
+		},
 		vuetify: vuetify,
 		store: store,
 		router: new VueRouter({routes: routes}),

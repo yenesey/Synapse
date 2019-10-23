@@ -76,37 +76,7 @@ _.debounce = function (func, wait, immediate) {
 	}
 }
 
-_.debounceKeyed = function (func, wait) {
-// func = function(arg1, arg2,.. argN){}
-// debounceKeyed return function(key, flags:[0|1, 0|1,....N], arg1, arg2,.. argN){}
-// flags: Array [1=update, 0=not update]
-
-	var keys = {}
-	return function () {
-		var self = this
-		var args = Array.prototype.slice.call(arguments)
-		var key = args[0]
-		var flags = args[1]
-		args.shift()
-		args.shift()
-		if (!(key in keys)) {
-			keys[key] = {
-				debounced: _.debounce(function (args) {
-					var result = func.apply(self, args)
-					delete keys[key]
-					return result
-				}, wait),
-				firstCall: args
-			}
-		}
-		args = flags.map(function (el, index) {
-			return el	? args[index] : keys[key].firstCall[index]
-		})
-		return keys[key].debounced(args)
-	} // function()
-}
-
-function isDictionary(obj) { 
+function isDictionary (obj) {
 	return typeof obj === 'object' && typeof obj.constructor === 'undefined'
 }
 
@@ -118,7 +88,7 @@ _.clone = function (obj) {
 }
 
 _.equals = function (obj1, obj2) {
-	if ((typeof obj1 !== 'object') || (typeof obj2 !== 'object')) return obj1 === obj2
+	if (!(obj1 instanceof Object && obj2 instanceof Object)) return obj1 === obj2
 
 	for (var key in obj2) {
 		if (!(key in obj1))	return false
@@ -126,13 +96,13 @@ _.equals = function (obj1, obj2) {
 
 	var result = true
 	for (key in obj1) {
-		if (key in obj2)	result = result && _.equals(obj1[key], obj2[key])
+		if (key in obj2) result = result && _.equals(obj1[key], obj2[key])
 		else return false
 	}
 	return result
 }
 
-_.difference = function (obj1, obj2) {
+_.diff = function (obj1, obj2) {
 	var keys = Object.keys(obj1).concat(Object.keys(obj2))
 	keys = _.uniq(keys)
 
