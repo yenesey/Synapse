@@ -136,15 +136,30 @@ export default {
 	font-family: 'Sony_Sketch_EF';
 	font-style: normal;
 	font-weight: 400;
-	src: url('./assets/Sony_Sketch_EF.woff') format('woff'); 
+	src: url('./assets/fonts/Sony_Sketch_EF.woff') format('woff'); 
 }
+/*
+@font-face {
+  font-family: 'Play';
+  font-style: normal;
+  font-weight: 400;
+  src: url('./assets/fonts/Play.woff') format('woff');
+}
+*/
 
 @font-face {
   font-family: 'Material Icons';
   font-style: normal;
   font-weight: 400;
-  src: url("./assets/MaterialIcons-Regular.woff") format("woff");
+  src: url("./assets/fonts/MaterialIcons-Regular.woff") format("woff");
 }
+
+/*
+.v-application .body-1 {
+	font-family: Play;
+	font-size: 1.2em;
+}
+*/
 
 .material-icons {
   font-family: 'Material Icons';

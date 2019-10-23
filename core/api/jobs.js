@@ -5,7 +5,6 @@
   TODO: проверка прав админа
 */
 
-const bodyParser = require('body-parser')
 const CronJob = require('cron').CronJob
 const email = require('emailjs/email')
 const util = require('util')
@@ -20,6 +19,8 @@ module.exports = function (system) {
 	const config = system.config
 	const jobs = system.tree.jobs
 	const crons = {} // хранилище CronJob-ов. ключи те же что и у jobs
+	const wss = {} // хранилище Websockets - соединений
+	var $ws = null
 
 	const launcher = require('../launcher.js')(config)
 	const folder = require('../user-folders.js')(config.path.users, config.tasks.history)
@@ -27,7 +28,7 @@ module.exports = function (system) {
 	
 	mail.sendp = util.promisify(mail.send)
 
-	// for (let keyId in jobs) schedule(keyId)  // вешаем на расписание прямо на старте
+	for (let key in jobs) schedule(key)  // вешаем на расписание прямо на старте
 
 	function destroy (key) {
 		if (key in crons) {
@@ -44,16 +45,22 @@ module.exports = function (system) {
 		if (key in crons) crons[key].stop()
 	}
 
+	function sendJob(key) {
+		let job = {}
+		job[key] = jobs[key]
+		$ws.send(JSON.stringify(job))
+	}
+
 	function task (key) {
 		let job = jobs[key]
-
+		let K = key
 		function success (taskPath, stdout) {
-			if (!job.params.pp) return
+			if (!(job.print || job.emails)) return
 
 			// печать на указанный принтер (пока Windows-only)
-			if (job.params.pp.print) {
+			if (job.print) {
 				launcher.exec('cscript',
-					['/nologo', './core/winprint.js', taskPath, job.params.pp.print],
+					['/nologo', './core/winprint.js', taskPath, job.print],
 					{
 						log: false, // не логируем процесс стандартным методом
 						cp866: true
@@ -64,8 +71,8 @@ module.exports = function (system) {
 			}
 
 			// рассылка получателям
-			if (job.params.pp.email.length) {
-				var to = job.params.pp.email.join(',')
+			if (Object.keys(job.emails).length) {
+				let to = Object.values(job.emails).join(',')
 				if (to.length) {
 					fsp.ls(taskPath)
 						.then(items => items.filter(item => !item.folder).map(file => file.name))
@@ -94,7 +101,7 @@ module.exports = function (system) {
 
 		function error (stdout) {
 			try {
-				let emails = system.getUsersHavingAccess(system.tree.groups._id('Администраторы')).map(el => el.email)
+				let emails = system.getUsersHavingAccess(system.tree.objects.groups._id('Администраторы')).map(el => el.email)
 				mail.sendp({
 					from: `Synapse <synapse@${os.hostname().toLowerCase()}`,
 					to: emails.join(','),
@@ -118,6 +125,10 @@ module.exports = function (system) {
 					// console.log(err)
 				}
 			}
+			// todo: разослать состояние выполнения задачи всем wss
+
+			job.state = 'running'
+			sendJob(K)
 			return folder('cron')
 				.then(taskPath =>
 					launcher.task(
@@ -130,12 +141,17 @@ module.exports = function (system) {
 							}
 						}, argv),
 						function (data) {
+							// todo: можно проплюнуть data по wss
 							stdout += data
 						},
 						function (code) {
-							system.db('UPDATE jobs SET last = ?, code = ? WHERE id = ?',
-								[moment().format('YYYY-MM-DD HH:mm'), code, job.id]
-							)
+							job.last = system.dateStamp()
+							job.code = code
+							job.state = 'done'
+							let interval = parser.parseExpression(job.schedule)
+							if (job.enabled) job.next = moment(new Date(interval.next().toString())).format('YYYY-MM-DD HH:mm')
+							sendJob(K)
+							// todo: отослать состояние завершения
 							if (code === 0)	success(taskPath, stdout)
 							if (code === 1)	error(stdout)
 						}
@@ -148,91 +164,45 @@ module.exports = function (system) {
 		let job = jobs[key]
 		try {
 			// crons[key] инициализируется в объект с методами .start() .stop()
-			crons[key] = new CronJob(job.schedule, task(job), function () {}, Boolean(job.enabled))
+			crons[key] = new CronJob(job.schedule, task(key), function () {}, Boolean(job.enabled))
 		} catch (err) {
 			console.log('job.schedule: ' + err.message)
 			job.error = err.message // улетит клиенту с ответом
 		}
 	}
 
- /*
-	function dbop (job, type) {
-		// весь набор необходимых операций с базой в одной функции
-		// передаем job и что с ним делать (type)
-		// на выходе - промис
-		var stt = ''
-		var _job = Object.assign({}, job)
-		if ('params' in _job)  _job.params = JSON.stringify(_job.params)
-		if (!_job.id) _job.params = '{"argv":{},"pp":{"email":[""],"print":""}}'
-
-		switch (type) {
-		case 'sel': // загрузить все jobs=[{job},{job}..] или.. загрузить указанный job по id
-			stt = (job.id ? 'and j.id=?' : '')
-			return system.db(
-				'SELECT j.id, j.task, o.name, o.class, j.params, j.code, j.last, j.schedule, j.description, j.enabled ' +
-				'FROM jobs j, objects o ' +
-				'WHERE j.task = o.id ' + stt,
-				[job.id]
-			)
-				.then(select => {
-					select.forEach(job => {
-						try {
-							var interval = parser.parseExpression(job.schedule)
-							if (job.enabled) job.next = moment(new Date(interval.next().toString())).format('YYYY-MM-DD HH:mm')
-							job.params = JSON.parse(job.params)
-						} catch (err) {
-							console.log('error parsing job.params at job.id=' + job.id + ' ' + err.message)
-						}
-					})
-					if (job.id) return select[0]
-					return select
-				})
-		case 'ins':
-			return system.db(
-				'INSERT INTO jobs VALUES (null, ?, ?, ?, 0, null, null, null)',
-				[_job.task, _job.params, _job.schedule]
-			)
-		case 'upd':
-			stt = updateStatement('jobs', _job)
-			if (stt) return system.db(stt.sql, stt.params).then(() => dbop(job, 'sel'))
-			return dbop(job, 'sel')
-		case 'del':
-			return system.db('DELETE FROM jobs WHERE id=?',	[job.id])
-		}
-	} // dbop
-*/
-
 	// небольшой бэкенд ниже
 
 	function handleWs (m, ws) {
-		let data
 		try {
-			data = JSON.parse(m)
-			console.log(data)
+			let { action, key, payload } = JSON.parse(m)
 
-			if (data.action === 'create') {
-				let job = data.payload
-				jobs._add(job).then(key => {
+			switch (action) {
+			case 'create':
+				jobs._add(payload).then(key => {
 					schedule(key)
-					let j = {}
-					j[key] = job
-					ws.send(JSON.stringify(j))
+					sendJob(key)
 				}).catch(err => system.errorHandler(err))
-			}
+				break
 
-			if (data.action === 'delete') {
-				let key = data.key
-				delete jobs[key]
-				// ws.send(JSON.stringify({delete: key}))
-			}
-
-			if (data.action === 'update') {
-				let job = data.payload
-				if (!(data.key in jobs)) return
-				let existing = jobs[data.key]
-				Object.keys(job).forEach(key => {
-					existing[key] = job[key]
+			case 'update':
+				if (!(key in jobs)) return
+				let job = jobs[key]
+				Object.keys(payload).forEach(_key => {
+					job[_key] = payload[_key]
 				})
+				break
+
+			case 'delete':
+				if (!(key in jobs)) return
+				destroy(key)
+				delete jobs[key]
+				break
+
+			case 'run':
+				if (!(key in jobs)) return
+				task(key)()
+				break
 			}
 
 		} catch (err) {
@@ -241,6 +211,7 @@ module.exports = function (system) {
 	}
 
 	this.ws('/', (ws, req) => {
+		$ws = ws
 		ws.send(JSON.stringify(jobs))
 		ws.on('message', function (m) {
 			handleWs(m, ws)

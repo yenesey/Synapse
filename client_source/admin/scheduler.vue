@@ -36,50 +36,60 @@ v-flex.xs12
 								label {{key}}
 							td
 								v-text-field(dense single-line hide-details v-model='job.argv[key]', autocomplete='off')
-							tr
-								th(colspan='2') Расписание
-							tr
-								td(colspan='2')
-									pre(style='margin:0 0; padding: 0 .5em').
-										┌─────────── second (optional)
-										│ ┌───────── minute
-										│ │ ┌─────── hour
-										│ │ │ ┌───── day of month
-										│ │ │ │ ┌─── month
-										│ │ │ │ │ ┌─ day of week
-									v-text-field(v-model='job.schedule', height='16px' style='font-family: monospace; color: teal;', autocomplete='off')
 						tr
-							td(colspan='2') Результат
-						tr
-							td(colspan='2', style='vertical-align: text-top')
-								v-icon mail_outline
-									|  e-mail 
-								br
-								// array(v-model='job.email', b-size='22')
-									dlookup(slot-scope='{el, index}', style='width:250px', db='db/synapse.db', table='users', result='email', look-in='%name%, %email%', fields='name', where='(disabled = 0 or disabled is null) and (not email is null)', order='name', :min-length='0', :getlabel='formatEmail', v-model='job.email[index]')
-										i(slot-scope='{item, index}')
-											| {{item.name}} 
-											i(style='color:teal')  {{'(' + item.email + ')'}} 
+							th(colspan='2') Расписание
 						tr
 							td(colspan='2')
-								v-text-field(prepend-icon='local_printshop' v-model='job.print', label='Прописать принтер', autocomplete='off')
+								pre.ma-0().
+									┌─────────── second (optional)
+									│ ┌───────── minute
+									│ │ ┌─────── hour
+									│ │ │ ┌───── day of month
+									│ │ │ │ ┌─── month
+									│ │ │ │ │ ┌─ day of week
+								v-text-field.ma-0(v-model='job.schedule', hide-details, style='font-family: monospace; color: teal;', autocomplete='off')
+						tr
+							th(colspan='2') Вывод результатов
+						tr
+							td(colspan='2', style='vertical-align: text-top')
+								array(v-model='emails', b-size='22')
+									// v-model='user',
+									v-autocomplete( 
+										slot-scope='{el, index}'
+										dense
+										hide-details	
+										prepend-icon='mail_outline'
+										autocomplete='off'
+										hide-no-data,
+										item-disabled='__'
+										v-model='job.emails[index]',
+										:items='usersCached',
+										item-text='email',
+										item-value='email'
+									)
+										template(v-slot:item='el')
+											v-list-item-content
+												v-list-item-subtitle(v-html='el.item.name')
+												v-list-item-subtitle(v-html='el.item.email')
+						tr
+							td(colspan='2')
+								v-text-field.mt-2(v-model='job.print', prepend-icon='local_printshop', hide-details, label='Принтер', autocomplete='off')
 			// --------------------------------------------------------
 		v-flex.xs9
 			v-simple-table.ma-1(fixed-header=true)
 				template(v-slot:default)
 					thead
 						tr
-							th.body-1.text-center(colspan='9' :style='{"background-color": $vuetify.theme.currentTheme.primary}') Список задач на сервере
+							th.body-1.text-center(colspan='9' :style='{"background-color": $vuetify.theme.currentTheme.primary} ') Список задач на сервере
 						tr
 							th.text-center.subtitle-1 #key
 							th.text-center.subtitle-1 Задача
 							th.text-center.subtitle-1 Описание
-							th.text-center.subtitle-1 Выполн.
+							th.text-center.subtitle-1 Выполнено
 							th.text-center.subtitle-1 Следующ
 							th.text-center.subtitle-1 Вкл
 							th.text-center.subtitle-1 Вручную
-							th.text-center
-								v-icon mail_outline
+							th.text-center.subtitle-1 Вывод
 							th.text-center
 								v-icon delete
 					tbody
@@ -87,7 +97,7 @@ v-flex.xs12
 							td.text-center {{key}}
 							td(style='color:teal') {{ obj.name }}
 							td
-								v-text-field(v-model='obj.description', dense, hide-details)
+								v-text-field(v-model='obj.description', dense, hide-details, autocomplete='off')
 							td {{obj.last}}
 								// input(v-if='obj.code==0 || obj.code==2', type='text', v-model='obj.last', size='10', style='text-align:center; font-size: 12px', readonly='')
 								// input(v-else='', type='text', v-model='obj.last', size='10', style='text-align:center; font-size: 12px; color: red', readonly='')
@@ -96,10 +106,10 @@ v-flex.xs12
 							td(style='padding-left:25px; padding-right:0px')
 								v-switch(v-model='obj.enabled', dense, hide-details)
 							td.text-center
-								v-btn(text icon)
+								v-btn(text icon v-if='obj.state !== "running"')
 									v-icon.hover-elevate(@click='runJob(key)') play_arrow
-							td(style='text-align:center')
-								v-icon(size='22', v-if='obj.email') mail_outline
+							td.text-center
+								v-icon(size='22', v-if='Object.keys(obj.emails).length') mail_outline
 								v-icon(size='22', v-if='obj.print') local_printshop
 							td.text-center
 								v-btn(text icon)
@@ -118,7 +128,7 @@ var _schema = {
 	last: '',
 	code: 0,
 	argv: {},
-	email: {},
+	emails: {},
 	print: '',
 	schedule: '* * * * * *',
 	state: 'OK',
@@ -134,6 +144,9 @@ export default {
 			tasks: [],
 			tasksLoading: false,
 
+			usersCached: [],
+			emails: [''],
+
 			jobs: {}, // {key1: _schema, key2: _schema, .... keyN: _schema}
 			key: '',
 			job: clone(_schema) // указатель на выбранный в таблице job
@@ -142,11 +155,13 @@ export default {
 
 	created () {
 		this.$ws = null,
-		this.$lazy = {}
+		this.$jobs = {},
+		this.$lazyUpdate = null
 	},
 
 	mounted () {
 		let self = this
+		window.tst = this
 		let ws = new WebSocket(this.$root.getWebsocketUrl() + '/jobs')
 		self.$ws = ws
 		ws.onerror = console.log 
@@ -158,11 +173,13 @@ export default {
 			let data
 			try {
 				data = JSON.parse(m.data)
-				if (data) Object.keys(data).forEach(key => {
-					self.$set(self.jobs, key, data[key])
-					self.$lazy[key] = self.lazyUpdateFactory(key, clone(data[key]), ws)
-				})
-				
+				if (data) {
+					Object.keys(data).forEach(key => {
+						self.$jobs[key] = clone(data[key])
+						self.$set(self.jobs, key, data[key])
+						if (self.key === key) self.job = data[key]
+					})
+				}	
 			} catch (err) {
 				console.log(err)
 			}
@@ -177,27 +194,35 @@ export default {
  	  	  	 	console.log(err)
 			})
 		
+ 	  	pxhr({method:'GET', url: 'access/users?show-disabled=false'})
+ 	  	   .then(res => {
+ 	  	   		this.usersCached = res
+ 	  	  	})
+ 	  	 	.catch(err => {
+ 	  	  	 	console.log(err)
+ 	  	  	})
+
 	},
-	
+
 	methods: {
 		
-		lazyUpdateFactory (key, base, $ws) {
-			return debounce( function (changed) {
-				$ws.send(
-					JSON.stringify({
+		lazyUpdateFactory (key) {
+			return  debounce( function () {
+				let _diff = diff(this.$jobs[key], this.jobs[key])
+				this.$jobs[key] = clone(this.jobs[key])
+				if (_diff) {
+					let msg = JSON.stringify({
 						action: 'update',
 						key: key,
-						payload: diff(base, changed)
+						payload: _diff
 					})
-				)
-				base = clone(changed)
-			}, 3000 ) // ms
+					this.$ws.send(msg)
+				}	
+			}, 3000)  // ms
 		},
-
+		
 		observeJob (_new, _old) {
-			let key = this.key
-			if (key in this.$lazy) this.$lazy[key](_new)
-
+			if (this.$lazyUpdate) this.$lazyUpdate()
 			if (_new === _old) { // меняется значение внутри самого job'a
 			} else { // меняется job целиком
 			}
@@ -238,13 +263,18 @@ export default {
 			this.job  = job
 		},
 
-		selectJob (key) { //select row in table
+		selectJob (key) { // select row in table
 			if (this.key === key || !(key in this.jobs)) return
 			let job = this.jobs[key]
 			this.taskSearch = job.name
 			job.argv = Object.assign(this.fetchParams(job.task), job.argv)
 			this.key = key
 			this.job = job // note: 'observeJob' on nextTick  -!!!если бы работало не так, пришлось бы инкапсулировать key в job!!!
+
+			this.emails = Object.keys(job.emails)
+			if (this.emails.length === 0) this.emails = ['']
+
+			this.$lazyUpdate = this.lazyUpdateFactory(key)
 		},
 
 		runJob (key) {
@@ -252,9 +282,12 @@ export default {
 		},
 		
 		deleteJob (key) {
-			this.$ws.send(JSON.stringify({ action: 'delete', key: key}))
+			this.$ws.send(JSON.stringify({ action: 'delete', key: key }))
 			this.$delete(this.jobs, key)
-			delete this.$lazy[key]
+			this.$delete(this.$jobs, key)
+			this.task = null
+			this.key = ''
+			this.job = clone(_schema)
 		},
 
 		formatEmail (item) {	
@@ -262,7 +295,7 @@ export default {
 				? item.name + '<' + item.email + '>'
 				: item
 		}
-	} //methods:
+	} // methods:
 
 }
 
@@ -274,6 +307,7 @@ export default {
 	transform: scale(1.2);
 	color: rgba(195, 75, 75, 0.952) !important;
 }
+
 .v-input--selection-controls {
 	margin-top: 0px;
 	padding-top: 0px;
