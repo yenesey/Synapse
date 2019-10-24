@@ -17,23 +17,24 @@ const ntlm = require('express-ntlm')
 module.exports = function (system) {
 	const config = system.config
 
-	function load (moduleName) {
-		const apiModule = require(path.join(__dirname, 'api', moduleName))
+	function loadModule (name) {
+		const apiModule = require(path.join(__dirname, 'api', name))
 		const apiRouter = express.Router({ strict: true })
 		apiModule.call(apiRouter, system)
-		router.use('/' + moduleName, apiRouter)
+		router.use('/' + name, apiRouter)
 		return router
 	}
 
-	function api (moduleName) {
-		if (typeof moduleName === 'string') return load(moduleName)
-		if (typeof moduleName === 'object') for (let el of moduleName) load(el)
+	function api (name) {
+		if (typeof name === 'string') return loadModule(name)
+		if (typeof name === 'object') for (let el of name) loadModule(el)
 		return router
 	}
 
 	api.useNtlm = function () {
 		// basic-auth через Active Directory (ntlm)
 		router.use([
+			/*
 			function (req, res, next) {
 				if (req.headers.upgrade === 'websocket') return next() // skip ntlm when ws:// todo: need some other auth scenario
 				return ntlm({
@@ -52,10 +53,10 @@ module.exports = function (system) {
 					domain: config.ntlm.domain,
 					domaincontroller: config.ntlm.dc
 				})(req, res, next)
-			},
+			},*/
 			function (req, res, next) {
-				// req.ntlm = {}
-				// req.ntlm.UserName = 'bogachev'
+				req.ntlm = {}
+				req.ntlm.UserName = 'bogachev'
 				req.user = req.ntlm ? system.getUser(req.ntlm.UserName) : undefined
 				next()
 			}

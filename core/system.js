@@ -181,8 +181,9 @@ module.exports = treeMapper(-1).then(tree => {
 		return promisify(fs.readFile)(path.join(ROOT_DIR, 'sslcert', config.ssl.cert))
 			.then(cert => {
 				config.ssl.certData = cert
-				return system
 			})
+				.catch(err => system.errorHandler(err))
+				.then(() => system)
 	}
 
 	return system

@@ -125,14 +125,15 @@ _.uniq = function (array) {
 	})
 }
 
-_.mutateMerge = function (dst, src) {
+_.mutate = function (dst, src) {
 	for (let key in src) {
 		if (key in dst && isObject(dst[key]) && isObject(src[key])) {
-			_.mutateMerge(dst[key], src[key])
+			_.mutate(dst[key], src[key])
 		} else {
 			dst[key] = src[key]
 		}
 	}
+	return dst
 }
 
 // END----------- работа со справочниками ключ-значение (то есть с объектами)

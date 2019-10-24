@@ -127,7 +127,7 @@ v-flex.xs12
 
 <script>
 
-import {debounce, diff, clone, mutateMerge, pxhr} from 'lib'
+import {debounce, diff, clone, mutate, pxhr} from 'lib'
 
 const schema = {
 	task: null,
@@ -190,7 +190,7 @@ export default {
 	},
 
 	created () {
-		this.$ws = null,
+		this.socket = null,
 		this.jobsShadow = {},
 		this.lazyUpdate = null
 	},
@@ -205,7 +205,7 @@ export default {
 			try { data = JSON.parse(m.data) } catch (err) {	console.log(err) }
 			if (data) this.traverseIncomingJobs(data)
 		}
-		this.$ws = ws
+		this.socket = ws
 
  	  	pxhr({method:'GET', url: 'scheduler/tasks'})
  	  	   .then(res => {
@@ -232,18 +232,16 @@ export default {
 	},
 
 	methods: {
+		send (msg)	{	
+			this.socket.send(JSON.stringify( msg ))
+		},
+
 		createLazyUpdate (key) {
 			return  debounce( function () {
 				let _diff = diff(this.jobsShadow[key], this.jobs[key])
-				mutateMerge(this.jobsShadow[key], this.jobs[key])
-				//this.jobsShadow[key] = clone(this.jobs[key])
 				if (_diff) {
-					let msg = JSON.stringify({
-						action: 'update',
-						key: key,
-						payload: _diff
-					})
-					this.$ws.send(msg)
+					mutate(this.jobsShadow[key], this.jobs[key])
+					this.send({ action: 'update', key: key, payload: _diff })
 				}	
 			}, 3000)  // ms
 		},
@@ -260,11 +258,11 @@ export default {
 			// важный момент: существующие ключи обновляются но не перезаписываются
 			let {job, jobs, jobsShadow, $set} = this
 			for (let key in data) {
-				// let item = Object.assign(data[key], schema) // todo: подстраховка от кривой схемы - мерджить только отсутсвующие ключи
-				let item = data[key]
+				let item = mutate(clone(schema), data[key]) // подстраховка от кривой схемы
+				// let item = data[key]
 				if (key in jobs) {
-					mutateMerge(jobs[key], item)
-					mutateMerge(jobsShadow[key], item)
+					mutate(jobs[key], item)
+					mutate(jobsShadow[key], item)
 				} else {
 					$set(jobs, key, item)
 					$set(jobsShadow, key, clone(item))
@@ -303,7 +301,7 @@ export default {
 			job.task = task.id
 			job.name = task.name
 			job.argv = this.fetchParams(task.id)
-			this.$ws.send(JSON.stringify({ action: 'create', key: null,  payload: job }))
+			this.send({ action: 'create', key: null,  payload: job })
 			this.key = null
 			this.job  = job
 		},
@@ -314,7 +312,7 @@ export default {
 			this.taskSearch = job.name
 			job.argv = Object.assign(this.fetchParams(job.task), job.argv)
 			this.key = key
-			this.job = job // note: 'observeJob' on nextTick  -!!!если бы работало не так, пришлось бы инкапсулировать key в job!!!
+			this.job = job // note: 'jobChanged' on nextTick  -!!!если бы работало не так, пришлось бы инкапсулировать key в job!!!
 
 			this.emails = Object.keys(job.emails)
 			if (this.emails.length === 0) this.emails = ['']
@@ -323,11 +321,11 @@ export default {
 		},
 
 		runJob (key) {
-			this.$ws.send(JSON.stringify({ action: 'run', key: key}))
+			this.send({ action: 'run', key: key })
 		},
 		
 		deleteJob (key) {
-			this.$ws.send(JSON.stringify({ action: 'delete', key: key }))
+			this.send({ action: 'delete', key: key })
 			this.$delete(this.jobs, key)
 			this.$delete(this.jobsShadow, key)
 			this.task = null
