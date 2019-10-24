@@ -76,8 +76,13 @@ _.debounce = function (func, wait, immediate) {
 	}
 }
 
-function isDictionary (obj) {
+// ----------- работа со справочниками ключ-значение (то есть с объектами)
+function isDictionary (obj) { // является ли obj экземпляром Object.create(null)
 	return typeof obj === 'object' && typeof obj.constructor === 'undefined'
+}
+
+function isObject (o) { // является ли obj экземпляром {}
+	return (!!o) && (o.constructor === Object)
 }
 
 _.clone = function (obj) {
@@ -120,7 +125,17 @@ _.uniq = function (array) {
 	})
 }
 
-//
+_.mutateMerge = function (dst, src) {
+	for (let key in src) {
+		if (key in dst && isObject(dst[key]) && isObject(src[key])) {
+			_.mutateMerge(dst[key], src[key])
+		} else {
+			dst[key] = src[key]
+		}
+	}
+}
+
+// END----------- работа со справочниками ключ-значение (то есть с объектами)
 
 _.rightPad =	function (str, padStr, toSize) {
 // набивка строки (str) символами другой строки (padStr) слева
@@ -141,13 +156,14 @@ _.extName = function (name) {
 	return (index !== -1) ? name.substr(index + 1) : ''
 }
 
+/*
 _.insProp = function (key, value) {
 // устновка пары key = value для объекта
 // использовать с call / apply / bind, ибо this
-	if (value && key)	this[key] = value
+	if (value && key) this[key] = value
 	return _.insProp.bind(this) // для вызова по цепочке
 }
-
+*/
 // --------------------------------------------------------------------
 
 _.simplify = function (_arrayOfObj) {

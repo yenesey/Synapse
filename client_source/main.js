@@ -39,7 +39,7 @@ function getWebsocketUrl () {
 
 if (typeof baseUrl !== 'undefined') _.baseUrl = baseUrl // eslint-disable-line
 
-_.pxhr({method: 'get', url: 'access/map'})
+_.pxhr({method: 'get', url: 'users/access'})
 .catch(err => ({login: 'Нет доступа!', access: [], err: err})) 
 .then(user => {
 

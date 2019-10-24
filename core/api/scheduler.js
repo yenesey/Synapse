@@ -10,25 +10,26 @@ const email = require('emailjs/email')
 const util = require('util')
 const path = require('path')
 const os  = require('os')
-const moment = require('moment')
+const day = require('dayjs')
 const parser = require('cron-parser')
 const fsp = require('../fsp')
+const uuidv4 = require('../lib').uuidv4
 
 module.exports = function (system) {
 // -
 	const config = system.config
 	const jobs = system.tree.jobs
+
 	const crons = {} // хранилище CronJob-ов. ключи те же что и у jobs
-	const wss = {} // хранилище Websockets - соединений
-	var $ws = null
+	const sockets = {} // хранилище Websockets - соединений
 
 	const launcher = require('../launcher.js')(config)
 	const folder = require('../user-folders.js')(config.path.users, config.tasks.history)
 	const mail = email.server.connect(config.mail)
-	
+
 	mail.sendp = util.promisify(mail.send)
 
-	for (let key in jobs) schedule(key)  // вешаем на расписание прямо на старте
+	// for (let key in jobs) schedule(key)  // вешаем на расписание прямо на старте
 
 	function destroy (key) {
 		if (key in crons) {
@@ -36,7 +37,7 @@ module.exports = function (system) {
 			delete crons[key]
 		}
 	}
-
+	/*
 	function start (key) {
 		if (key in crons) crons[key].start()
 	}
@@ -44,16 +45,22 @@ module.exports = function (system) {
 	function stop (key) {
 		if (key in crons) crons[key].stop()
 	}
+	*/
+	function broadcast (data, exclude) {
+		for (let id in sockets) {
+			if (!exclude || !exclude.includes(id)) sockets[id].send(data)
+		}
+	}
 
-	function sendJob(key) {
+	function makeMessage (key, data) {
 		let job = {}
-		job[key] = jobs[key]
-		$ws.send(JSON.stringify(job))
+		job[key] = data
+		return JSON.stringify(job)
 	}
 
 	function task (key) {
 		let job = jobs[key]
-		let K = key
+
 		function success (taskPath, stdout) {
 			if (!(job.print || job.emails)) return
 
@@ -96,8 +103,8 @@ module.exports = function (system) {
 							console.log('[jobs] error trying email job results: ' + err.message + ' ' + util.inspect({ id: job.id, task: job.task, name: job.name }))
 						)
 				}
-			}	// job.params.pp.email.length
-		} // function success
+			}
+		}
 
 		function error (stdout) {
 			try {
@@ -117,10 +124,10 @@ module.exports = function (system) {
 			var stdout = ''
 			var argv = Object.assign({}, job.argv)
 			var _eval = ''
-			for (var key in argv) {
+			for (let arg in argv) {
 				try	{
-					_eval = eval(argv[key]) // eslint-disable-line
-					argv[key] = _eval
+					_eval = eval(argv[arg]) // eslint-disable-line
+					argv[arg] = _eval
 				} catch (err) {
 					// console.log(err)
 				}
@@ -128,7 +135,9 @@ module.exports = function (system) {
 			// todo: разослать состояние выполнения задачи всем wss
 
 			job.state = 'running'
-			sendJob(K)
+
+			broadcast(makeMessage(key, { state: 'running' }))
+
 			return folder('cron')
 				.then(taskPath =>
 					launcher.task(
@@ -149,9 +158,15 @@ module.exports = function (system) {
 							job.code = code
 							job.state = 'done'
 							let interval = parser.parseExpression(job.schedule)
-							if (job.enabled) job.next = moment(new Date(interval.next().toString())).format('YYYY-MM-DD HH:mm')
-							sendJob(K)
-							// todo: отослать состояние завершения
+							if (job.enabled) job.next = day(new Date(interval.next().toString())).format('YYYY-MM-DD HH:mm')
+
+							broadcast(makeMessage(key, {
+								state: 'done',
+								code: code,
+								last: job.last,
+								next: job.next
+							}))
+
 							if (code === 0)	success(taskPath, stdout)
 							if (code === 1)	error(stdout)
 						}
@@ -173,15 +188,15 @@ module.exports = function (system) {
 
 	// небольшой бэкенд ниже
 
-	function handleWs (m, ws) {
+	function traverseIncomingActions (data, id) {
 		try {
-			let { action, key, payload } = JSON.parse(m)
+			let { action, key, payload } = JSON.parse(data)
 
 			switch (action) {
 			case 'create':
 				jobs._add(payload).then(key => {
 					schedule(key)
-					sendJob(key)
+					broadcast(makeMessage(key, jobs[key]))
 				}).catch(err => system.errorHandler(err))
 				break
 
@@ -191,12 +206,14 @@ module.exports = function (system) {
 				Object.keys(payload).forEach(_key => {
 					job[_key] = payload[_key]
 				})
+				broadcast(makeMessage(key, payload), [id])
 				break
 
 			case 'delete':
 				if (!(key in jobs)) return
 				destroy(key)
 				delete jobs[key]
+				broadcast(makeMessage(key, { state: 'deleted' }), [id])
 				break
 
 			case 'run':
@@ -211,11 +228,16 @@ module.exports = function (system) {
 	}
 
 	this.ws('/', (ws, req) => {
-		$ws = ws
+		// todo: сделать аутентификацию. например. первое сообщение должно содержать некий токен, иначе немедленное закрытие соединения
+
+		let id = uuidv4()
+		sockets[id] = ws
+		ws.onerror = system.log
+		ws.onmessage = (m) => traverseIncomingActions(m.data, id)
+		ws.onclose = (m) => {
+			delete sockets[id]
+		}
 		ws.send(JSON.stringify(jobs))
-		ws.on('message', function (m) {
-			handleWs(m, ws)
-		})
 	})
 
 	this.get('/tasks', function (req, res) {
@@ -224,5 +246,4 @@ module.exports = function (system) {
 		let map = Object.keys(tasks).map(task => ({ id: tasks._id(task), name: task, ...tasks[task] }))
 		res.json(map)
 	})
-
 }

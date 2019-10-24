@@ -54,7 +54,7 @@ module.exports = function (system) {
 		next()
 	})
 
-	this.get('/map', function (req, res) {
+	this.get('/access', function (req, res) {
 		// выдача полной карты доступа пользователя
 		let user = req.user
 		let access = system.access(user, { granted: true })
@@ -69,7 +69,7 @@ module.exports = function (system) {
 		searchActiveDirectory(req.query.filter).then(result => res.json(result))
 	})
 
-	this.get('/users', requireAdmin, function (req, res) {
+	this.get('/', requireAdmin, function (req, res) {
 		let users = system.tree.users
 		let map = Object.keys(users).map(user => ({ id: users._id(user), login: user, ...users[user] }))
 			.filter(el => (req.query['show-disabled'] === 'true' || !(el['disabled'])))

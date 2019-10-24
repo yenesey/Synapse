@@ -108,7 +108,7 @@ system.easterEgg = function () {
 
 system.access = function (user, options = {}) {
 // карта доступа
-// юзается в tasks и dlookup, а также в access/map
+// юзается в tasks и dlookup, а также в users/access
 // options = { 'class': className, object: objectId, granted: true|false }
 	let userAcl = String(user._acl).split(',').map(el => Number(el))
 	/*

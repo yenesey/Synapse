@@ -1,14 +1,18 @@
 <template lang="pug">
 v-flex.xs12
+	v-alert(v-model='alert', dismissible, colored-border, border='right', type='error', elevation=2) Отсутствует соединение c 
+		span.teal--text(style='text-decoration:underline') {{this.$root.getWebsocketUrl() + '/scheduler'}}
+
 	v-layout(align-start, justify-start, row, fill-height)
 		v-flex.xs3
-			v-simple-table.ma-1
+
+			v-simple-table.ma-1()
 				template(v-slot:default)
+					thead
+						tr(:style='{"background-color": $vuetify.theme.currentTheme.neutral }')
+							th.body-1.text-center(colspan='2' v-if='key') Редактировать задачу{{` [key:${key}]`}}
+							th.body-1.text-center(colspan='2' v-else) Создать задачу
 					tbody
-						tr(:style='{"background-color": $vuetify.theme.currentTheme.primary}')
-							// Выбор и параметры джоба
-							td.body-1.text-center(colspan='2' v-if='key') Редактировать задачу{{` [key:${key}]`}}
-							td.body-1.text-center(colspan='2' v-else) Создать задачу
 						tr
 							td(colspan='2')
 								v-autocomplete(
@@ -40,7 +44,7 @@ v-flex.xs12
 							th(colspan='2') Расписание
 						tr
 							td(colspan='2')
-								pre.ma-0().
+								pre.ma-0(style='line-height:1.2em').
 									┌─────────── second (optional)
 									│ ┌───────── minute
 									│ │ ┌─────── hour
@@ -74,13 +78,16 @@ v-flex.xs12
 						tr
 							td(colspan='2')
 								v-text-field.mt-2(v-model='job.print', prepend-icon='local_printshop', hide-details, label='Принтер', autocomplete='off')
-			// --------------------------------------------------------
+		// --------------------------------------------------------
 		v-flex.xs9
-			v-simple-table.ma-1(fixed-header=true)
+			v-simple-table.ma-1
+				thead
+					tr(:style='{"background-color": $vuetify.theme.currentTheme.neutral}')
+						th.text-center.body-1 Запланированные задачи
+
+			v-simple-table.ma-1(dense fixed-header)
 				template(v-slot:default)
 					thead
-						tr
-							th.body-1.text-center(colspan='9' :style='{"background-color": $vuetify.theme.currentTheme.primary} ') Список задач на сервере
 						tr
 							th.text-center.subtitle-1 #key
 							th.text-center.subtitle-1 Задача
@@ -93,11 +100,11 @@ v-flex.xs12
 							th.text-center
 								v-icon delete
 					tbody
-						tr(v-for='(obj, key) in jobs', :key='key', @click='selectJob(key)', :class='{}')
+						tr(v-for='(obj, key) in jobs', :key='key', @click='selectJob(key)', :class='{}' v-if='obj.state!=="deleted"')
 							td.text-center {{key}}
 							td(style='color:teal') {{ obj.name }}
 							td
-								v-text-field(v-model='obj.description', dense, hide-details, autocomplete='off')
+								v-text-field.body-2(v-model='obj.description', dense, full-width, hide-details,  autocomplete='off')
 							td {{obj.last}}
 								// input(v-if='obj.code==0 || obj.code==2', type='text', v-model='obj.last', size='10', style='text-align:center; font-size: 12px', readonly='')
 								// input(v-else='', type='text', v-model='obj.last', size='10', style='text-align:center; font-size: 12px; color: red', readonly='')
@@ -106,22 +113,23 @@ v-flex.xs12
 							td(style='padding-left:25px; padding-right:0px')
 								v-switch(v-model='obj.enabled', dense, hide-details)
 							td.text-center
-								v-btn(text icon v-if='obj.state !== "running"')
-									v-icon.hover-elevate(@click='runJob(key)') play_arrow
+								v-btn(text icon  @click='runJob(key)')
+									v-icon.hover-elevate(v-if='obj.state !== "running"') play_arrow
+									v-icon.rotate360(v-if='obj.state === "running"') cached
 							td.text-center
 								v-icon(size='22', v-if='Object.keys(obj.emails).length') mail_outline
 								v-icon(size='22', v-if='obj.print') local_printshop
 							td.text-center
-								v-btn(text icon)
-									v-icon.hover-elevate(@click='deleteJob(key)') delete
+								v-btn(text icon @click='deleteJob(key)')
+									v-icon.hover-elevate delete
 
 </template>
 
 <script>
-import {debounce, diff, clone, pxhr} from 'lib'
-import moment from 'moment'
 
-var _schema = {
+import {debounce, diff, clone, mutateMerge, pxhr} from 'lib'
+
+const schema = {
 	task: null,
 	description: '',
 	next: '',
@@ -135,6 +143,26 @@ var _schema = {
 	enabled: false
 }
 
+/*
+	На сервере и клиенте задачи хранятся в структуре вида:
+	jobs = {
+		key1: {...schema}, 
+		key2: {...schema}, 
+		......
+		keyN: {...schema}
+	}
+
+	Направление Сервер --> Клиент
+	При соединении с сервером, клиенту прилетает весь список jobs. Далее, в процессе взаимодействия, от
+	сервера прилетают только одиночные пары {key: {...schema}}, причем ...schema содержит только измененные поля
+
+	Направление Клиент --> Сервер
+	Клиент отправляет контракты вида { action: '', key: '',  payload: {...schema} }. 
+	action  ∈ {'create', 'update', 'delete', 'run' ...},
+	key     ∈ { jobs.key1, ... jobs.keyN },
+	payload ∈ {...schema}  - причем ...schema содержит только изменные поля
+*/
+
 export default {
 
 	data () {
@@ -147,46 +175,39 @@ export default {
 			usersCached: [],
 			emails: [''],
 
-			jobs: {}, // {key1: _schema, key2: _schema, .... keyN: _schema}
+			jobs: {}, // {key1: schema, key2: schema, .... keyN: schema}
 			key: '',
-			job: clone(_schema) // указатель на выбранный в таблице job
+			job: clone(schema), // указатель на выбранный в таблице job
+			wssReadyState: 0
+		}
+	},
+
+	watch: {
+		job: {
+			handler : 'jobChanged',
+			deep: true
 		}
 	},
 
 	created () {
 		this.$ws = null,
-		this.$jobs = {},
-		this.$lazyUpdate = null
+		this.jobsShadow = {},
+		this.lazyUpdate = null
 	},
 
 	mounted () {
-		let self = this
-		window.tst = this
-		let ws = new WebSocket(this.$root.getWebsocketUrl() + '/jobs')
-		self.$ws = ws
-		ws.onerror = console.log 
-		ws.onclose = function (m) { console.log(`websocket readyState=${ws.readyState}`) }
-		// addEventListener('open', fn())
-		ws.onopen = function (m) { console.log(`websocket readyState=${ws.readyState}`) }
-
-		ws.onmessage = function (m) {
+		let ws = new WebSocket(this.$root.getWebsocketUrl() + '/scheduler')
+		ws.onerror = console.log
+		ws.onclose = (m) => { this.wssReadyState = ws.readyState }
+		ws.onopen = (m) => { this.wssReadyState = ws.readyState }
+		ws.onmessage = (m) => {
 			let data
-			try {
-				data = JSON.parse(m.data)
-				if (data) {
-					Object.keys(data).forEach(key => {
-						self.$jobs[key] = clone(data[key])
-						self.$set(self.jobs, key, data[key])
-						if (self.key === key) self.job = data[key]
-					})
-				}	
-			} catch (err) {
-				console.log(err)
-			}
+			try { data = JSON.parse(m.data) } catch (err) {	console.log(err) }
+			if (data) this.traverseIncomingJobs(data)
 		}
-		self.$watch('job', this.observeJob, { deep: true })
+		this.$ws = ws
 
- 	  	pxhr({method:'GET', url: 'jobs/tasks'})
+ 	  	pxhr({method:'GET', url: 'scheduler/tasks'})
  	  	   .then(res => {
  	  	   		this.tasks = res
  	  	  	})
@@ -194,7 +215,7 @@ export default {
  	  	  	 	console.log(err)
 			})
 		
- 	  	pxhr({method:'GET', url: 'access/users?show-disabled=false'})
+ 	  	pxhr({method:'GET', url: 'users?show-disabled=false'})
  	  	   .then(res => {
  	  	   		this.usersCached = res
  	  	  	})
@@ -204,12 +225,18 @@ export default {
 
 	},
 
+	computed: {
+		alert () {
+			return this.wssReadyState !== 1
+		}
+	},
+
 	methods: {
-		
-		lazyUpdateFactory (key) {
+		createLazyUpdate (key) {
 			return  debounce( function () {
-				let _diff = diff(this.$jobs[key], this.jobs[key])
-				this.$jobs[key] = clone(this.jobs[key])
+				let _diff = diff(this.jobsShadow[key], this.jobs[key])
+				mutateMerge(this.jobsShadow[key], this.jobs[key])
+				//this.jobsShadow[key] = clone(this.jobs[key])
 				if (_diff) {
 					let msg = JSON.stringify({
 						action: 'update',
@@ -221,10 +248,28 @@ export default {
 			}, 3000)  // ms
 		},
 		
-		observeJob (_new, _old) {
-			if (this.$lazyUpdate) this.$lazyUpdate()
+		jobChanged (_new, _old) {
+			if (this.lazyUpdate) this.lazyUpdate()
 			if (_new === _old) { // меняется значение внутри самого job'a
 			} else { // меняется job целиком
+			}
+		},
+
+		traverseIncomingJobs (data) {
+			// принимаем входящие данные
+			// важный момент: существующие ключи обновляются но не перезаписываются
+			let {job, jobs, jobsShadow, $set} = this
+			for (let key in data) {
+				// let item = Object.assign(data[key], schema) // todo: подстраховка от кривой схемы - мерджить только отсутсвующие ключи
+				let item = data[key]
+				if (key in jobs) {
+					mutateMerge(jobs[key], item)
+					mutateMerge(jobsShadow[key], item)
+				} else {
+					$set(jobs, key, item)
+					$set(jobsShadow, key, clone(item))
+				}
+				if (this.key === key) job = this.jobs[key]
 			}
 		},
 
@@ -254,7 +299,7 @@ export default {
 		},
 
 		selectTask (task) {
-			let job = clone(_schema)
+			let job = clone(schema)
 			job.task = task.id
 			job.name = task.name
 			job.argv = this.fetchParams(task.id)
@@ -274,7 +319,7 @@ export default {
 			this.emails = Object.keys(job.emails)
 			if (this.emails.length === 0) this.emails = ['']
 
-			this.$lazyUpdate = this.lazyUpdateFactory(key)
+			this.lazyUpdate = this.createLazyUpdate(key)
 		},
 
 		runJob (key) {
@@ -284,10 +329,10 @@ export default {
 		deleteJob (key) {
 			this.$ws.send(JSON.stringify({ action: 'delete', key: key }))
 			this.$delete(this.jobs, key)
-			this.$delete(this.$jobs, key)
+			this.$delete(this.jobsShadow, key)
 			this.task = null
 			this.key = ''
-			this.job = clone(_schema)
+			this.job = clone(schema)
 		},
 
 		formatEmail (item) {	
@@ -295,13 +340,12 @@ export default {
 				? item.name + '<' + item.email + '>'
 				: item
 		}
-	} // methods:
-
+	}
 }
 
 </script>
 
-<style>
+<style scoped>
 
 .hover-elevate:hover {
 	transform: scale(1.2);
@@ -311,6 +355,29 @@ export default {
 .v-input--selection-controls {
 	margin-top: 0px;
 	padding-top: 0px;
+}
+
+.v-data-table th {
+	height: 38px !important;
+	/* font-weight: bold; */
+}
+
+.rotate360 {
+	color: teal !important;
+	animation-name: rotate;
+	animation-duration: 4.5s;
+	animation-iteration-count: infinite;
+	animation-direction: normal;
+	animation-timing-function: linear;
+	width:30px;
+	height:30px;
+	position:relative;
+	display:inline-block;
+}
+
+@keyframes rotate {
+	from  { transform:rotate(0deg); }
+	to    { transform:rotate(360deg);}
 }
 
 </style>

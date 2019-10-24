@@ -163,7 +163,7 @@ export default {
         self.taskMenuName = '';
         self.taskIcon = '';
       }
-			pxhr({ method:'get', url: '/access/tasks?object=' + self.taskId})
+			pxhr({ method:'get', url: '/users/tasks?object=' + self.taskId})
 			.then(function(res){
 				self.access = res;
 			})
@@ -171,7 +171,7 @@ export default {
 		},
 		setItem : function(userId, checked){ //установить/снять галочку с элемента
 			var self = this;
-			return pxhr({ method:'put', url: '/access/map', 
+			return pxhr({ method:'put', url: '/users/access', 
 				data:{
 					userId: userId, 
 					objectId: self.taskId, 

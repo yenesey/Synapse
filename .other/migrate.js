@@ -20,7 +20,6 @@ CREATE TABLE system (
     value STRING
 );
 INSERT INTO system (id, idp, name, value ) VALUES (-1, -1, 'root', NULL);
-CREATE INDEX "" ON system (idp ASC);
 CREATE UNIQUE INDEX node_unique ON system (idp, name);
 
 DROP VIEW vw_system_recursive;
@@ -158,7 +157,7 @@ if (process.argv[2] === '--import') {
 				if (counter === 5) {
 					console.log('[system] - таблица создана')
 				}
-				if (counter === 7) {
+				if (counter === 6) {
 					console.log('[vw_system_recursive] - вьюха создана')
 				}
 

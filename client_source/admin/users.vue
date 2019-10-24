@@ -108,7 +108,7 @@ export default {
 	mounted () {
 		pxhr({
 			method: 'get',
-			url: 'access/objects',
+			url: 'users/objects',
 		}).then(res => {
 			this.objects = res
 		}).catch(function (err) {
@@ -137,7 +137,7 @@ export default {
 				return
 			}
 	 	  	if (this.usersCached.length > 0) return
-	 	  	pxhr({method:'GET', url: 'access/users?show-disabled=' + this.showDisabled})
+	 	  	pxhr({method:'GET', url: 'users?show-disabled=' + this.showDisabled})
 	 	  	   .then(res => {
 	 	  	   		this.usersCached = res
 	 	  	  	})
@@ -157,7 +157,7 @@ export default {
 
 	 	  	this.ldapLoading = true
 
-	 	  	pxhr({method:'GET', url: 'access/ldap-users?filter=' + val})
+	 	  	pxhr({method:'GET', url: 'users/ldap-users?filter=' + val})
 	 	  	   .then(res => {
 					this.ldapCached = res
 	 	  	  	})
@@ -182,7 +182,7 @@ export default {
 			this.user._acl = e.join(',')
 			pxhr({
 				method: 'put',
-				url: 'access/user',
+				url: 'users/user',
 				data: { login :  this.user.login, _acl: this.user._acl }
 			})
 			.then(this.handleResponse)
@@ -199,7 +199,7 @@ export default {
 			this.user = user
 			pxhr({
 				method: 'put',
-				url: 'access/user',
+				url: 'users/user',
 				data: this.user
 			})
 				.then(res => {
@@ -212,7 +212,7 @@ export default {
 		changeUser () {
 			pxhr({
 				method: 'put',
-				url: 'access/user',
+				url: 'users/user',
 				data: this.user
 			})
 			.then(this.handleResponse)
@@ -226,14 +226,14 @@ export default {
 			this.enableAddUser = false
 			return pxhr({
 				method: 'get',
-				url: 'access/user?login=' + e.login
+				url: 'users/user?login=' + e.login
 			}).then(res => {
 				this.handleResponse(res)
 				if (!res.error) {
 					this.user = {login: e.login, ...res}
 					this.objectsSelectionChanging = true
 					if (res._acl) {
-						this.objectsSelection = res._acl.split(',').map(Number)
+						this.objectsSelection = String(res._acl).split(',').map(Number)
 					} else {
 						this.objectsSelection = []
 					}
