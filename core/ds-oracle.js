@@ -72,22 +72,21 @@ module.exports = function (config, options = { keepAlive: false }) {
 	}
 
 	function knownErrors (err) {
-		return closeConnection().then(() => {
-			console.log('[ds-oracle]: ' + err.message)
-			if (ERR_RECONNECT_LIST.includes(err.errorNum)) {
-				return getConnection()
-			}
-			if (ERR_PASSWORD_EXPIRED === err.errorNum) {
-				config.newPassword = genPassword()
-				return getConnection().then(conn => {
-					console.log(`[ds-oracle]: the new password for "${config.user}" is "${config.newPassword}"`)
-					config.password = config.newPassword
-					delete config.newPassword
-				})
-			}
-
-			throw err // если ошибка неизвестна - окончательно должна быть обработана в вызывающем модуле.
-		})
+		// return closeConnection().then(() => { ?? зачем CLOSE? если и так его нет!!!!
+		console.log('[ds-oracle]: ' + err.message)
+		if (ERR_RECONNECT_LIST.includes(err.errorNum)) {
+			return getConnection()
+		}
+		if (ERR_PASSWORD_EXPIRED === err.errorNum) {
+			config.newPassword = genPassword()
+			return getConnection().then(conn => {
+				console.log(`[ds-oracle]: the new password for "${config.user}" is "${config.newPassword}"`)
+				config.password = config.newPassword
+				delete config.newPassword
+			})
+		}
+		throw err // если ошибка неизвестна - окончательно должна быть обработана в вызывающем модуле.
+		// })
 	}
 
 	function exec (sql, binds = {}, options = { maxRows: 50 }) {

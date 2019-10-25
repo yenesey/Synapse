@@ -4,7 +4,7 @@
 	конвертация [settings], [objects], [objects_meta], [users] -> в [system]
 	выполнить последовательно:
 	\> node migrate
-	\> node migrate --import
+	\> node migrate --import 'admin-login'
 */
 const db = require('synapse/sqlite')('../db/synapse.db')
 const treeMap = require('synapse/sqlite-tree-mapper')(db, 'system')
@@ -125,8 +125,10 @@ if (process.argv[2] === '--import') {
 				}
 				let params = JSON.parse(job.params)
 				all[job.id]['params'] = {}
-				for (let key in params) {
-					all[job.id]['params'][key] = params[key]
+				if ('argv' in params) all[job.id]['argv'] = params['argv']
+				if ('pp' in params) {
+					all[job.id]['emails'] = params['pp']['email']
+					all[job.id]['print'] = params['pp']['print']
 				}
 				return all
 			}, {})
@@ -145,6 +147,13 @@ if (process.argv[2] === '--import') {
 				console.log('users.id   = ' + tree._id('users'))
 				console.log('jobs.id    = ' + tree._id('jobs'))
 				console.log('Выполнено!')
+				let admin = process.argv[3]
+				if (tree.users[admin]) {
+					tree.users[admin]._acl = String(tree.objects.admin._id('Пользователи'))
+					console.log('Права администратора назначены: ', tree.users[admin])
+				} else {
+					console.log('Администратор не указан, или указан неверно. Права не назначены!')
+				}
 			}, 1000)
 			
 		}).catch(console.log)
@@ -154,7 +163,7 @@ if (process.argv[2] === '--import') {
 		for (let q of sql) {
 			db(q).then(() => {
 				counter++
-				if (counter === 5) {
+				if (counter === 4) {
 					console.log('[system] - таблица создана')
 				}
 				if (counter === 6) {

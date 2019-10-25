@@ -1,40 +1,5 @@
 <template>
 <div>
-	<div>
-		<label for="select">Выбрать задачу:</label>	
-		<dlookup
-			name="select" 
-			db="db/synapse.db" 
-			table="objects LEFT JOIN objects_meta ON objects.id = objects_meta.object"
-			fields="objects.name, objects_meta.meta" 
-			result="objects.id"
-			look-in="objects.name%" 
-			where="objects.class = 'tasks'"
-			:min-length=0
-			style="width:300px;display:inline-block"
-			@select="selectTask"
-			:get-label="labelSelect"
-		>
-      <i slot-scope="{item, index}">
-        {{item.name}} 
-      </i>
-		</dlookup>
-	</div>
-
-	<div style="width:100%;height:2px;background:linear-gradient(to left, #CBE1F5, #74afd2); margin-top:1em; margin-bottom:1em;"></div>
-
-  <div style="display:inline-block">
-    <v-text-field v-if="taskId && access" 
-      label="Иконка"
-      :prepend-inner-icon="taskIcon"
-      v-model="taskIcon"
-      readonly
-      outline
-      clearable
-      @click="selectIcon = taskIcon; dialog = !dialog"
-      @input="setMeta"
-      hide-details />
-      <v-dialog v-model="dialog" lazy>
         <v-card>
           <v-card-title>
             <v-icon style="font-size: 48px; padding-right: 15px; color: teal">{{selectIcon}}</v-icon>
@@ -52,63 +17,6 @@
             <v-btn color="primary" @click.native="dialog = !dialog">Закрыть</v-btn>
           </v-card-actions>
         </v-card>
-      </v-dialog>
-    <br>
-    <table class="synapse" v-if="taskId && access" >
-      <tr>
-        <th><v-icon style="vertical-align: bottom; padding-right:5px">storage</v-icon><b>Группа меню</b></th>
-      </tr>
-      <tr>
-        <td>
-      		<dlookup
-            v-model="taskMenuName"
-      			db="db/synapse.db" 
-      			table="objects LEFT JOIN objects_meta ON objects.id = objects_meta.object"
-      			fields="objects.name, objects_meta.meta" 
-      			result="objects.id"
-      			look-in="objects.name%" 
-      			where="objects.class = 'menu' and objects.name <> 'default'"
-            :min-length=0
-      			style="width:300px;"
-            :get-label="labelMenu"
-            @input="setMeta"
-      		>
-            <i slot-scope="{item, index}">
-              {{(item.meta) ? JSON.parse(item.meta).description : ''}} 
-            </i>
-      		</dlookup>
-        </td>
-      </tr>
-    </table>
-  </div>
-  <div>
-  	<table class="synapse" v-if="taskId && access" >
-  		<thead style="font-size: 16px;">
-  			<tr>
-  				<th colspan=2><v-icon style="vertical-align: bottom; padding-right:5px">people</v-icon><b>Пользователи</b></th>
-  			</tr>
-  			<tr>
-  				<th> Активные </th>
-  				<th> Заблокированные </th>
-  			</tr>
-  		</thead>
-  
-  		<tbody>
-  			<tr> 
-  				<td style="vertical-align: baseline" >
-  					<template v-if="!el.disabled" v-for="el in access">
-              <v-checkbox :label="el.name" v-model="el.granted" @change="setItem(el.id, $event)" style="margin:0;padding-right:30px" hide-details></v-checkbox>
-  					</template>
-  				</td>
-  				<td style="vertical-align: baseline" >
-  					<template v-if="el.disabled" v-for="el in access">
-              <v-checkbox :label="el.name" v-model="el.granted" @change="setItem(el.id, $event)" style="margin:0;padding-right:30px" hide-details></v-checkbox>
-  					</template>
-  				</td>
-  			</tr>
-  		</tbody> 
-  	</table>
-  </div>
 </div>
 </template>
 

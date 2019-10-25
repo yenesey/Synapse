@@ -43,7 +43,7 @@ _.promiseTimeout = function (ms, promise) {
 }
 
 /*
-"underscore" debounce mod (invoked at leading and trailing edges both)
+  debounce mod (invoke at leading and(or) trailing edges both)
 */
 _.debounce = function (func, wait, immediate) {
 	var timeout = null
@@ -134,6 +134,10 @@ _.mutate = function (dst, src) {
 		}
 	}
 	return dst
+}
+
+_.merge = function (dst, src) { // immutable dst
+	return _.mutate(_.clone(dst), src)
 }
 
 // END----------- работа со справочниками ключ-значение (то есть с объектами)

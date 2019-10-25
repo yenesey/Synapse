@@ -29,7 +29,7 @@ module.exports = function (system) {
 
 	mail.sendp = util.promisify(mail.send)
 
-	// for (let key in jobs) schedule(key)  // вешаем на расписание прямо на старте
+	for (let key in jobs) schedule(key)  // вешаем на расписание прямо на старте
 
 	function destroy (key) {
 		if (key in crons) {

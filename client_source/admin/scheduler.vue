@@ -53,20 +53,22 @@ v-flex.xs12
 									│ │ │ │ │ ┌─ day of week
 								v-text-field.ma-0(v-model='job.schedule', hide-details, style='font-family: monospace; color: teal;', autocomplete='off')
 						tr
-							th(colspan='2') Вывод результатов
+							th Вывод результатов
+							th
+								v-btn.pr-2.float-right(small rounded @click='$set(job.emails, Object.keys(job.emails).length)') email
+									v-icon() add_circle
+									
 						tr
 							td(colspan='2', style='vertical-align: text-top')
-								array(v-model='emails', b-size='22')
-									// v-model='user',
-									v-autocomplete( 
-										slot-scope='{el, index}'
+								v-row.ma-0(v-for='(obj, key) in job.emails' :key='key')
+									v-autocomplete(
 										dense
 										hide-details	
 										prepend-icon='mail_outline'
 										autocomplete='off'
 										hide-no-data,
 										item-disabled='__'
-										v-model='job.emails[index]',
+										v-model='job.emails[key]',
 										:items='usersCached',
 										item-text='email',
 										item-value='email'
@@ -75,6 +77,9 @@ v-flex.xs12
 											v-list-item-content
 												v-list-item-subtitle(v-html='el.item.name')
 												v-list-item-subtitle(v-html='el.item.email')
+									v-btn(text icon @click='$delete(job.emails, key)')
+										v-icon.hover-elevate remove_circle
+			
 						tr
 							td(colspan='2')
 								v-text-field.mt-2(v-model='job.print', prepend-icon='local_printshop', hide-details, label='Принтер', autocomplete='off')
@@ -102,12 +107,10 @@ v-flex.xs12
 					tbody
 						tr(v-for='(obj, key) in jobs', :key='key', @click='selectJob(key)', :class='{}' v-if='obj.state!=="deleted"')
 							td.text-center {{key}}
-							td(style='color:teal') {{ obj.name }}
+							td(style='color:teal') {{obj.name}}
 							td
-								v-text-field.body-2(v-model='obj.description', dense, full-width, hide-details,  autocomplete='off')
+								v-text-field.body-2(v-model='obj.description', dense, full-width, hide-details, autocomplete='off')
 							td {{obj.last}}
-								// input(v-if='obj.code==0 || obj.code==2', type='text', v-model='obj.last', size='10', style='text-align:center; font-size: 12px', readonly='')
-								// input(v-else='', type='text', v-model='obj.last', size='10', style='text-align:center; font-size: 12px; color: red', readonly='')
 							td {{obj.next}}
 								
 							td(style='padding-left:25px; padding-right:0px')
@@ -127,7 +130,7 @@ v-flex.xs12
 
 <script>
 
-import {debounce, diff, clone, mutate, pxhr} from 'lib'
+import {debounce, diff, clone, mutate, merge, pxhr} from 'lib'
 
 const schema = {
 	task: null,
@@ -258,8 +261,8 @@ export default {
 			// важный момент: существующие ключи обновляются но не перезаписываются
 			let {job, jobs, jobsShadow, $set} = this
 			for (let key in data) {
-				let item = mutate(clone(schema), data[key]) // подстраховка от кривой схемы
-				// let item = data[key]
+				// let item = merge(schema, data[key]) // подстраховка от кривой схемы
+				let item = data[key]
 				if (key in jobs) {
 					mutate(jobs[key], item)
 					mutate(jobsShadow[key], item)
