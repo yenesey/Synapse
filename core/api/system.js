@@ -33,15 +33,15 @@ module.exports = function (system) {
 
 		if (value) { // есть выражение за знаком '='
 			path.pop()
-			node = system.tree._path(path.join('/'), '/')
+			node = system.tree._path(path)
 			node[last] = safeParse(value)
 		} else if (last.charAt(last.length - 1) === '!') {
 			path.pop()
 			let [key, _value] = last.split('!')
-			node = system.tree._path(path.join('/'), '/')
+			node = system.tree._path(path)
 			delete node[key]
 		} else {
-			node = system.tree._path(url, '/')
+			node = system.tree._path(url.split('/'))
 		}
 		res.json(node)
 	})

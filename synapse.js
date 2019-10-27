@@ -33,6 +33,7 @@ const compression = require('compression')
 const express = require('express')
 const app     = express()
 const websockets = require('express-ws')
+const { toBool } = require('synapse/lib')
 
 var server = null
 
@@ -125,9 +126,9 @@ require('synapse/system').then(system => {
 		}
 
 		const api = require('synapse/api.js')(system)
-		if (config._bool('cft-web-proxy.on')) app.use(api('cft-web-proxy'))
-		if (config._bool('telebot.on')) app.use(api('telebot'))
-		if (config._bool('cards.on')) app.use(api('cards'))
+		if (config['cft-web-proxy'].on) app.use(api('cft-web-proxy'))
+		if (config.telebot.on) app.use(api('telebot'))
+		if (config.cards.on) app.use(api('cards'))
 
 		api.useNtlm() // отныне и далее вниз у нас есть userName из AD
 		app.use(api(['users', 'dlookup', 'dbquery', 'tasks', 'system', 'scheduler'])) /* 'forms' */
