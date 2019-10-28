@@ -4,29 +4,19 @@
 	отображение древовидных структур в таблицу базы данных
 	 - поддерживается автоматический CRUD через операции с объектом
 */
-const ROOT_ID = -1
+const ROOT = -1
 
-function path (path, sep = '.') {
-	let node = this
-	let _path = path.split(sep)
-	if (_path.length === 1 && _path[0] === '') return node
-	for (let key of _path) {
-		if ((typeof node === 'object') && (key in node)) {
-			node = node[key]
-		} else {
-			return undefined
+function _path (node) {
+	return function (path) {
+		if (path.length === 1 && path[0] === '') return node
+		for (let key of path) {
+			if (!!node && (key in node)) {
+				node = node[key]
+			} else {
+				return undefined
+			}
 		}
-	}
-	return node
-}
-
-function bool (_path) {
-	let value = path.call(this, _path, '.')
-	if (typeof value === 'undefined' || value === null) return false
-	switch (value.toString().toLowerCase().trim()) {
-	case 'true': case 'yes': case '1': return true
-	case 'false': case 'no': case '0': case null: return false
-	default: return Boolean(value)
+		return node
 	}
 }
 
@@ -56,18 +46,18 @@ module.exports = function (db, table) {
 					target[_id] = target[key]
 					delete target[key]
 					keystore.set(_id, _id)
-					return db(`update ${table} set name = $name where id = $id`, { $id: _id, $name: _id }).then(() => _id)
+					return db.run(`update ${table} set name = $name where id = $id`, { $id: _id, $name: _id }).then(() => _id)
 				})
 		}
 	}
 
 	function addNode (idp, target, key, value) {
-		return db(`replace into ${table} (idp, name, value) values ($idp, $name, $value)`, { $idp: idp, $name: key, $value: value })
+		return db.run(`replace into ${table} (idp, name, value) values ($idp, $name, $value)`, { $idp: idp, $name: key, $value: value })
 			.then(_id => {
 				if (value instanceof Object) {
 					let node = proxify({}, _id, new Map()) // empty node & empty map
 					for (let subKey in value) {
-						node[subKey] = value[subKey] // assigns to proxified 'node' causes recursive call of 'addNode'
+						node[subKey] = value[subKey] // assign proxified 'node' causes recursive call of 'addNode'
 					}
 					target[key] = node // replace already assigned by just created
 				}
@@ -78,7 +68,7 @@ module.exports = function (db, table) {
 
 	function deleteNode (idp, target, key) {
 		if (Reflect.has(target, key) && Reflect.deleteProperty(target, key)) {
-			return db(`delete from ${table} where idp = $idp and name = $name`, { $idp: idp, $name: key })
+			return db.run(`delete from ${table} where idp = $idp and name = $name`, { $idp: idp, $name: key })
 		}
 		return Promise.resolve(true)
 	}
@@ -89,7 +79,7 @@ module.exports = function (db, table) {
 			set (target, key, value, receiver) { // about to set target[key] = value
 				addNode(id, target, key, value)
 					.then(_id => keystore.set(key, _id))
-					.catch(err => console.log(err.message + ' when create', key, '=', value))
+					.catch(err => console.log(err.message + ' while setting ' + key))
 
 				return Reflect.set(target, key, value)
 			},
@@ -104,9 +94,7 @@ module.exports = function (db, table) {
 
 				switch (key) {
 				case '_id': return (key) => keystore.get(key)
-				case '_idWithin': return (key) => ({ id: keystore.get(key), ...target[key] })
-				case '_path': return path.bind(target)
-				case '_bool' : return bool.bind(receiver)
+				case '_path': return _path(target)
 				case '_recurse' : return _recurse(receiver)
 				case '_add' : return _add(id, target, keystore)
 				}
@@ -119,13 +107,13 @@ module.exports = function (db, table) {
 		})
 	}
 
-	function buildNode (id = ROOT_ID, options = {}) { // well... brainf..ng, but works :)
+	function buildNode (id = ROOT, options = {}) { // well... brainf..ng, but works :)
 		let node = {}
 		let keystore = new Map() // node && keystore works parallel
 
 		return db(`select * from ${table} where idp = ? and id != idp`, [id])
 			.then(children => {
-				if (children.length === 0 && id !== ROOT_ID) { // no children means we're at the 'leaf' or single value
+				if (children.length === 0 && id !== ROOT) { // no children means we're at the 'leaf' or single value
 					return db(`select value from ${table} where id = ?`, [id]).then(([ { value } ]) => value)
 				}
 

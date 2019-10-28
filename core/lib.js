@@ -42,6 +42,15 @@ _.promiseTimeout = function (ms, promise) {
 	])
 }
 
+_.toBool = function  (value) {
+	if (typeof value === 'undefined' || value === null) return false
+	switch (value.toString().toLowerCase().trim()) {
+	case 'true': case 'yes': case '1': return true
+	case 'false': case 'no': case '0': case null: return false
+	default: return Boolean(value)
+	}
+}
+
 /*
   debounce mod (invoke at leading and(or) trailing edges both)
 */

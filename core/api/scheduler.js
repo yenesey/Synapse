@@ -157,11 +157,17 @@ module.exports = function (system) {
 							job.last = system.dateStamp()
 							job.code = code
 							job.state = 'done'
-							let interval = parser.parseExpression(job.schedule)
-							if (job.enabled) job.next = day(new Date(interval.next().toString())).format('YYYY-MM-DD HH:mm')
-
+							if (code !== 0) {
+								crons[key].stop()
+								job.enabled = false
+								job.state = 'error'
+							} else {
+								let interval = parser.parseExpression(job.schedule)
+								if (job.enabled) job.next = day(new Date(interval.next().toString())).format('YYYY-MM-DD HH:mm')
+							}
+							
 							broadcast(makeMessage(key, {
-								state: 'done',
+								state: job.state,
 								code: code,
 								last: job.last,
 								next: job.next
@@ -203,9 +209,9 @@ module.exports = function (system) {
 			case 'update':
 				if (!(key in jobs)) return
 				let job = jobs[key]
-				Object.keys(payload).forEach(_key => {
+				for (let _key in payload) {
 					job[_key] = payload[_key]
-				})
+				}
 				broadcast(makeMessage(key, payload), [id])
 				break
 
