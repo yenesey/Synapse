@@ -55,33 +55,27 @@ module.exports = function (db, table) {
 		/*
 		 todo: split into 2 table
 		*/
-
-		statement = [
-			[`replace into ${table} (idp, name) values ($idp, $name)`, { $idp: idp, $name: key } ],
-			[`replace into ${table}_values (id, value) values ($id, $value)`, { $id: id, $value: value }]
-		]
-
-		db.transaction(statement)
-
-		db.run(`begin`).then(() => db.run(`replace into ${table} (idp, name) values ($idp, $name)`, { $idp: idp, $name: key })
-			.then(id => db.run(`replace into ${table}_values (id, value) values ($id, $value)`, { $id: id, $value: value })
-				.then(id => db.run(`commit`))))
-			.catch(err => {
-				console.log(err)
-				db.run(`rollback`)
+		let newId
+		return db.run(`begin`)
+			.then(() => db.run(`replace into ${table} (idp, name) values ($idp, $name)`, { $idp: idp, $name: key }))
+			.then(id => {
+				newId = id
+				return db.run(`replace into ${table}_values (id, value) values ($id, $value)`, { $id: id, $value: value })
 			})
-
-		return db.run(`replace into ${table} (idp, name, value) values ($idp, $name, $value)`, { $idp: idp, $name: key, $value: value })
-			.then(_id => {
+			.then(() => db.run(`commit`))
+			.then(() => {
 				if (value instanceof Object) {
-					let node = proxify({}, _id, new Map()) // empty node & empty map
+					let node = proxify({}, newId, new Map()) // empty node & empty map
 					for (let subKey in value) {
 						node[subKey] = value[subKey] // assign proxified 'node' causes recursive call of 'addNode'
 					}
 					target[key] = node // replace already assigned by just created
 				}
-				// console.log('done', idp, key, value, _id)
-				return _id
+				return newId
+			})
+			.catch(err => {
+				console.log(err)
+				db.run(`rollback`)
 			})
 	}
 

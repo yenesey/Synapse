@@ -34,6 +34,7 @@ module.exports = function (system) {
 	api.useNtlm = function () {
 		// basic-auth через Active Directory (ntlm)
 		router.use([
+			/*
 			function (req, res, next) {
 				if (req.headers.upgrade === 'websocket') return next() // skip ntlm when ws:// todo: need some other auth scenario
 				return ntlm({
@@ -52,10 +53,10 @@ module.exports = function (system) {
 					domain: config.ntlm.domain,
 					domaincontroller: config.ntlm.dc
 				})(req, res, next)
-			},
+			},*/
 			function (req, res, next) {
-				// req.ntlm = {}
-				// req.ntlm.UserName = 'bogachev'
+				req.ntlm = {}
+				req.ntlm.UserName = 'bogachev'
 				req.user = req.ntlm ? system.getUser(req.ntlm.UserName) : undefined
 				next()
 			}

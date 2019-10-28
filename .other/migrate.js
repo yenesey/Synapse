@@ -11,16 +11,28 @@ const treeMap = require('synapse/sqlite-tree-mapper')(db, 'system')
 
 // -------------------------------------------
 let transaction = `
+BEGIN;
 DROP TABLE IF EXISTS system;
 CREATE TABLE system (
     id    INTEGER PRIMARY KEY ASC AUTOINCREMENT,
     idp   INTEGER REFERENCES system (id) ON DELETE CASCADE,--  NOT NULL,
-    name  STRING  NOT NULL,
-    value STRING
+    name  STRING  NOT NULL
 );
-INSERT INTO system (id, idp, name, value ) VALUES (-1, -1, 'root', NULL);
+INSERT INTO system (id, idp, name) VALUES (-1, -1, 'root');
 CREATE UNIQUE INDEX node_unique ON system (idp, name);
 
+
+DROP TABLE IF EXISTS system_values;
+CREATE TABLE system_values (
+    id     INTEGER REFERENCES system (id) ON DELETE CASCADE,
+    value  STRING  NOT NULL
+);
+
+
+ COMMIT;
+`
+// -------------------------------------------
+/*
 DROP VIEW IF EXISTS vw_system_recursive;
 CREATE VIEW vw_system_recursive AS
 WITH RECURSIVE Node (
@@ -51,9 +63,7 @@ SELECT Node.path,
        system
  WHERE system.id = Node.id
  ORDER BY Node.path;
-`
-// -------------------------------------------
-
+ */
 if (process.argv[2] === '--import') {
 	Promise.all([
 		treeMap(-1),
@@ -156,10 +166,6 @@ if (process.argv[2] === '--import') {
 		}).catch(console.log)
 } else {
 
-
-	db.transact(transaction.split(';').map(el => [el]))
-	
-	/*
 	transaction.split(';')
 	.reduce((chain, statement, index) => chain.then(() => db.run(statement).then((r) => {
 		console.log(statement.substr(0,12), '..... ->>> ', r)
@@ -171,5 +177,5 @@ if (process.argv[2] === '--import') {
 		}
 	})
 	), Promise.resolve())
-	*/
+
 }

@@ -34,29 +34,9 @@ module.exports = function (fileName) {
 		return new Promise(function (resolve, reject) {
 			db.run(sql, params,	function (err) {
 				if (err) reject(err)
-				console.log(sql.substr(0, 12), ' ..... ->>> ', params,  this.lastID)
 				resolve(this.lastID || this.changes)
 			})
 		})
-	}
-
-	_default.transact = function (statements) {
-		// statements = [  [sql: String, <binds: Object> ] ..., [...], [...] ]
-		if (!(statements instanceof Array)) return Promise.reject(new Error('statements are not properly defined'))
-
-		return statements.reduce((chain, current) =>
-			chain.then(() => _default.run(...current)),
-		_default.run('begin')
-		)
-			.then((r) => console.log('sadf')  )/*_default.run('commit') */
-			/*
-			.catch(err => {
-				console.log(err.message)
-				_default.run('rollback')
-			})
-			.then(() => console.log('sadf'))
-			*/
-			// .then(r => {results.push[r] })
 	}
 
 	return _default
