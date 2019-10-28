@@ -11,8 +11,6 @@ const treeMap = require('synapse/sqlite-tree-mapper')(db, 'system')
 
 // -------------------------------------------
 let transaction = `
-BEGIN;
-
 DROP TABLE IF EXISTS system;
 CREATE TABLE system (
     id    INTEGER PRIMARY KEY ASC AUTOINCREMENT,
@@ -53,11 +51,7 @@ SELECT Node.path,
        system
  WHERE system.id = Node.id
  ORDER BY Node.path;
- 
- COMMIT;
-
 `
-
 // -------------------------------------------
 
 if (process.argv[2] === '--import') {
@@ -162,9 +156,13 @@ if (process.argv[2] === '--import') {
 		}).catch(console.log)
 } else {
 
+
+	db.transact(transaction.split(';').map(el => [el]))
+	
+	/*
 	transaction.split(';')
 	.reduce((chain, statement, index) => chain.then(() => db.run(statement).then((r) => {
-		console.log(statement.substr(1,12), '..... ->>> ', r)
+		console.log(statement.substr(0,12), '..... ->>> ', r)
 		if (index === 4) {
 			console.log('[system] - таблица создана')
 		}
@@ -173,5 +171,5 @@ if (process.argv[2] === '--import') {
 		}
 	})
 	), Promise.resolve())
-
+	*/
 }

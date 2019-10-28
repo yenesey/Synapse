@@ -52,6 +52,25 @@ module.exports = function (db, table) {
 	}
 
 	function addNode (idp, target, key, value) {
+		/*
+		 todo: split into 2 table
+		*/
+
+		statement = [
+			[`replace into ${table} (idp, name) values ($idp, $name)`, { $idp: idp, $name: key } ],
+			[`replace into ${table}_values (id, value) values ($id, $value)`, { $id: id, $value: value }]
+		]
+
+		db.transaction(statement)
+
+		db.run(`begin`).then(() => db.run(`replace into ${table} (idp, name) values ($idp, $name)`, { $idp: idp, $name: key })
+			.then(id => db.run(`replace into ${table}_values (id, value) values ($id, $value)`, { $id: id, $value: value })
+				.then(id => db.run(`commit`))))
+			.catch(err => {
+				console.log(err)
+				db.run(`rollback`)
+			})
+
 		return db.run(`replace into ${table} (idp, name, value) values ($idp, $name, $value)`, { $idp: idp, $name: key, $value: value })
 			.then(_id => {
 				if (value instanceof Object) {
