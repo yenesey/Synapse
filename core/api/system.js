@@ -22,7 +22,7 @@ module.exports = function (system) {
 	//
 	this.get('*', function (req, res) {
 		// console.log(req.query)
-		let rg = /^([\w|\/|\:\-\!]+)\=*\"?([\w\:\/\.\?\-\{\}]*)\"?/
+		let rg = /^([\w\sа-яА-Я\/|\:\-\!]+)\=*\"?([\w\sа-яА-Я\:\@\/\.\?\-\{\}]*)\"?/
 		rg.test(decodeURIComponent(req.url).substring(1))
 
 		let url = RegExp.$1
@@ -30,6 +30,7 @@ module.exports = function (system) {
 		let path = url.split('/')
 		let last = path.slice(-1).pop()
 		let node = null
+		console.log(url, value)
 
 		if (value) { // есть выражение за знаком '='
 			path.pop()

@@ -158,7 +158,7 @@ system.getUsersHavingAccess = function (objectId) {
 	let users = []
 	for (let key in this.tree.users) {
 		let user = this.tree.users[key]
-		if (!user.disabled && user._acl && user._acl.includes(objectId)) users.push(user)
+		if (!user.disabled && user._acl && user._acl.split(',').includes(objectId)) users.push(user)
 	}
 	return users
 }
@@ -172,7 +172,7 @@ module.exports = treeMapper(-1).then(tree => {
 	// eslint-disable-all`
 	for (var key in config.path) {
 		if (!path.isAbsolute(config.path[key])) { // достраиваем относительные пути до полных
-			config.path[key] = path.join(ROOT_DIR, config.path[key])
+			config.path._.[key] = path.join(ROOT_DIR, config.path[key])
 		}
 	}
 	config.path.root = ROOT_DIR
@@ -180,10 +180,10 @@ module.exports = treeMapper(-1).then(tree => {
 	if (config.ssl.cert) {
 		return promisify(fs.readFile)(path.join(ROOT_DIR, 'sslcert', config.ssl.cert))
 			.then(cert => {
-				config.ssl.certData = cert
+				config.ssl._.certData = cert
 			})
-				.catch(err => system.errorHandler(err))
-				.then(() => system)
+			.catch(err => system.errorHandler(err))
+			.then(() => system)
 	}
 
 	return system

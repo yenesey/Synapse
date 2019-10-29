@@ -46,42 +46,42 @@ module.exports = function (db, table) {
 					target[_id] = target[key]
 					delete target[key]
 					keystore.set(_id, _id)
-					return db.run(`update ${table} set name = $name where id = $id`, { $id: _id, $name: _id }).then(() => _id)
+					return db.run(`update ${table}_nodes set name = $name where id = $id`, { $id: _id, $name: _id }).then(() => _id)
 				})
 		}
 	}
 
 	function addNode (idp, target, key, value) {
-		/*
-		 todo: split into 2 table
-		*/
-		let newId
-		return db.run(`begin`)
-			.then(() => db.run(`replace into ${table} (idp, name) values ($idp, $name)`, { $idp: idp, $name: key }))
+		return db.run(`replace into ${table}_nodes (idp, name) values ($idp, $name)`, { $idp: idp, $name: key })
 			.then(id => {
-				newId = id
-				return db.run(`replace into ${table}_values (id, value) values ($id, $value)`, { $id: id, $value: value })
+				if (!(value instanceof Object)) {
+					return db.run(`replace into ${table}_values (id, [value]) values ($id, $value)`, { $id: id, $value: value })
+				}
+				return id
 			})
-			.then(() => db.run(`commit`))
-			.then(() => {
+			.then(id => {
 				if (value instanceof Object) {
-					let node = proxify({}, newId, new Map()) // empty node & empty map
+					let node = proxify({}, id, new Map()) // empty node & empty map
+
+					// todo: проксировать уже после присвоения. в базу писать по рекурсивному обходу как в _.recurse
 					for (let subKey in value) {
 						node[subKey] = value[subKey] // assign proxified 'node' causes recursive call of 'addNode'
 					}
+
 					target[key] = node // replace already assigned by just created
 				}
-				return newId
+
+				return id
 			})
 			.catch(err => {
 				console.log(err)
-				db.run(`rollback`)
+				// db.run(`rollback`)
 			})
 	}
 
 	function deleteNode (idp, target, key) {
 		if (Reflect.has(target, key) && Reflect.deleteProperty(target, key)) {
-			return db.run(`delete from ${table} where idp = $idp and name = $name`, { $idp: idp, $name: key })
+			return db.run(`delete from ${table}_nodes where idp = $idp and name = $name`, { $idp: idp, $name: key })
 		}
 		return Promise.resolve(true)
 	}
@@ -106,10 +106,11 @@ module.exports = function (db, table) {
 				}
 
 				switch (key) {
+				case '_': return target
 				case '_id': return (key) => keystore.get(key)
 				case '_path': return _path(target)
-				case '_recurse' : return _recurse(receiver)
-				case '_add' : return _add(id, target, keystore)
+				case '_recurse': return _recurse(receiver)
+				case '_add': return _add(id, target, keystore)
 				}
 				return undefined
 			},
@@ -124,10 +125,10 @@ module.exports = function (db, table) {
 		let node = {}
 		let keystore = new Map() // node && keystore works parallel
 
-		return db(`select * from ${table} where idp = ? and id != idp`, [id])
+		return db(`select * from ${table}_nodes where idp = ? and id != idp`, [id])
 			.then(children => {
 				if (children.length === 0 && id !== ROOT) { // no children means we're at the 'leaf' or single value
-					return db(`select value from ${table} where id = ?`, [id]).then(([ { value } ]) => value)
+					return db(`select value from ${table}_values where id = ?`, [id]).then(result => result.length ? result[0].value : null)
 				}
 
 				return children.reduce((p, child) =>

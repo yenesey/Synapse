@@ -116,7 +116,7 @@ module.exports = function (system) {
 					attachment: [{ data: '<html><pre>' + stdout + '</pre></html>', alternative: true }]
 				})
 			} catch (err) {
-				console.log(err.stack)
+				system.errorHandler(err)
 			}
 		}
 

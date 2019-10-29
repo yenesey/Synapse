@@ -24,8 +24,7 @@ module.exports = function (fileName) {
 	const _default = function (sql, params) {
 		return new Promise(function (resolve, reject) {
 			db.all(sql, params,	function (err, result) {
-				if (err) reject(err)
-				resolve(result)
+				err ? reject(err) : resolve(result)
 			})
 		})
 	}
@@ -33,8 +32,7 @@ module.exports = function (fileName) {
 	_default.run = function (sql, params) {
 		return new Promise(function (resolve, reject) {
 			db.run(sql, params,	function (err) {
-				if (err) reject(err)
-				resolve(this.lastID || this.changes)
+				err ? reject(err) : resolve(this.lastID || this.changes)
 			})
 		})
 	}

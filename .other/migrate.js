@@ -6,33 +6,27 @@
 	\> node migrate
 	\> node migrate --import 'admin-login'
 */
-const db = require('synapse/sqlite')('../db/synapse.db')
+const db = require('synapse/sqlite')('../db/new.db')
 const treeMap = require('synapse/sqlite-tree-mapper')(db, 'system')
 
 // -------------------------------------------
 let transaction = `
 BEGIN;
-DROP TABLE IF EXISTS system;
-CREATE TABLE system (
+DROP TABLE IF EXISTS system_nodes;
+CREATE TABLE system_nodes (
     id    INTEGER PRIMARY KEY ASC AUTOINCREMENT,
-    idp   INTEGER REFERENCES system (id) ON DELETE CASCADE,--  NOT NULL,
+    idp   INTEGER REFERENCES system_nodes (id) ON DELETE CASCADE,--  NOT NULL,
     name  STRING  NOT NULL
 );
-INSERT INTO system (id, idp, name) VALUES (-1, -1, 'root');
-CREATE UNIQUE INDEX node_unique ON system (idp, name);
-
+INSERT INTO system_nodes (id, idp, name) VALUES (-1, -1, 'root');
+CREATE UNIQUE INDEX node_unique ON system_nodes (idp, name);
 
 DROP TABLE IF EXISTS system_values;
 CREATE TABLE system_values (
-    id     INTEGER REFERENCES system (id) ON DELETE CASCADE,
-    value  STRING  NOT NULL
+    id     INTEGER REFERENCES system_nodes (id) ON DELETE CASCADE,
+    value  STRING  -- NOT NULL
 );
 
-
- COMMIT;
-`
-// -------------------------------------------
-/*
 DROP VIEW IF EXISTS vw_system_recursive;
 CREATE VIEW vw_system_recursive AS
 WITH RECURSIVE Node (
@@ -44,26 +38,30 @@ AS (
     SELECT id,
            0,
            name
-      FROM system
+      FROM system_nodes
      WHERE idp = -1 AND 
            id != -1
     UNION
-    SELECT system.id,
+    SELECT system_nodes.id,
            Node.level + 1,
            Node.path || '/' || name
-      FROM system,
+      FROM system_nodes,
            Node
-     WHERE system.idp = Node.id
+     WHERE system_nodes.idp = Node.id
 )
 SELECT Node.path,
-       system.id,
+       system_nodes.id,
        substr('                       ', 1, level * 6) || name AS name,
-       system.value
-  FROM Node,
-       system
- WHERE system.id = Node.id
- ORDER BY Node.path;
- */
+       system_values.value
+	FROM Node,
+       system_nodes left join system_values on system_nodes.id = system_values.id
+WHERE system_nodes.id = Node.id
+ORDER BY Node.path;
+
+COMMIT;
+`
+// -------------------------------------------
+
 if (process.argv[2] === '--import') {
 	Promise.all([
 		treeMap(-1),
@@ -84,12 +82,12 @@ if (process.argv[2] === '--import') {
 			
 			// сохраняем конфиг (по идее system.id=1)
 			tree.config = oldConfig // -- вот такая магия. просто присваиваем старый конфиг и данные льются в таблицу [config]
-
+			/*
 			setTimeout(() => {
-				db.run('update system set value = "{-}" where idp = 1 and name = "ssl" ')
-				db.run('update system set value = "{-}" where idp = 1 and name = "path" ')
+				db.run('update system_values set value = "{-}" where idp = 1 and name = "ssl" ')
+				db.run('update system_values set value = "{-}" where idp = 1 and name = "path" ')
 			}, 1000)
-
+			*/
 			// Мапим объекты
 			var oldObjects = objects.reduce((all, item) => {
 				if (!(item.class in all))	{
@@ -169,10 +167,10 @@ if (process.argv[2] === '--import') {
 	transaction.split(';')
 	.reduce((chain, statement, index) => chain.then(() => db.run(statement).then((r) => {
 		console.log(statement.substr(0,12), '..... ->>> ', r)
-		if (index === 4) {
+		if (index === 6) {
 			console.log('[system] - таблица создана')
 		}
-		if (index === 6) {
+		if (index === 8) {
 			console.log('[vw_system_recursive] - вьюха создана')
 		}
 	})
