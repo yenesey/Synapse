@@ -172,7 +172,7 @@ module.exports = treeMapper(-1).then(tree => {
 	// eslint-disable-all`
 	for (var key in config.path) {
 		if (!path.isAbsolute(config.path[key])) { // достраиваем относительные пути до полных
-			config.path._.[key] = path.join(ROOT_DIR, config.path[key])
+			config.path._[key] = path.join(ROOT_DIR, config.path[key])
 		}
 	}
 	config.path.root = ROOT_DIR
