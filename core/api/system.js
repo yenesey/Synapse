@@ -10,12 +10,24 @@
 	/system/objects! - удаляет ветку или значение
 */
 
-function safeParse(str) {
+function safeParse (str) {
 	try {
 		return JSON.parse(str)
 	} catch (err) {
 		return str
 	}
+}
+
+function followPath (node, path) {
+	if (path.length === 1 && path[0] === '') return node
+	for (let key of path) {
+		if (!!node && (key in node)) {
+			node = node[key]
+		} else {
+			return undefined
+		}
+	}
+	return node
 }
 
 module.exports = function (system) {
@@ -34,15 +46,15 @@ module.exports = function (system) {
 
 		if (value) { // есть выражение за знаком '='
 			path.pop()
-			node = system.tree._path(path)
+			node = followPath(system.tree, path)
 			node[last] = safeParse(value)
 		} else if (last.charAt(last.length - 1) === '!') {
 			path.pop()
 			let [key, _value] = last.split('!')
-			node = system.tree._path(path)
+			node = followPath(system.tree, path)
 			delete node[key]
 		} else {
-			node = system.tree._path(url.split('/'))
+			node = followPath(system.tree, url.split('/'))
 		}
 		res.json(node)
 	})

@@ -4,21 +4,6 @@
 	отображение древовидных структур в таблицу базы данных
 	 - поддерживается автоматический CRUD через операции с объектом
 */
-const ROOT = -1
-
-function _path (node) {
-	return function (path) {
-		if (path.length === 1 && path[0] === '') return node
-		for (let key of path) {
-			if (!!node && (key in node)) {
-				node = node[key]
-			} else {
-				return undefined
-			}
-		}
-		return node
-	}
-}
 
 function _recurse (node) {
 	// return interface (deep: [zero based], callback: [function(node, key, level)])
@@ -36,52 +21,55 @@ function _recurse (node) {
 	}
 }
 
-module.exports = function (db, table) {
+module.exports = function (db, commonName) {
 	// -
 	function _add (id, target, keystore) {
-		return function (node) {
-			let key = String(Date.now()) + String(Math.random())
-			return addNode(id, target, key, node)
+		return function (node, nameMaker) {
+			let tempKey = String(Date.now()) + String(Math.random())
+			return addNode(id, target, tempKey, node)
 				.then(_id => {
-					target[_id] = target[key]
-					delete target[key]
-					keystore.set(_id, _id)
-					return db.run(`update ${table}_nodes set name = $name where id = $id`, { $id: _id, $name: _id }).then(() => _id)
+					let name = nameMaker ? nameMaker(id) : _id
+					target[name] = target[tempKey]
+					delete target[tempKey]
+					keystore.set(name, _id)
+					return db.run(`update ${commonName}_nodes set name = $name where id = $id`, { $id: _id, $name: _id }).then(() => _id)
 				})
 		}
 	}
 
 	function addNode (idp, target, key, value) {
-		return db.run(`replace into ${table}_nodes (idp, name) values ($idp, $name)`, { $idp: idp, $name: key })
+		return db.run(`replace into ${commonName}_nodes (idp, name) values ($idp, $name)`, { $idp: idp, $name: key })
 			.then(id => {
 				if (!(value instanceof Object)) {
-					return db.run(`replace into ${table}_values (id, [value]) values ($id, $value)`, { $id: id, $value: value })
+					return db.run(`replace into ${commonName}_values (id, [value]) values ($id, $value)`, { $id: id, $value: value })
 				}
 				return id
 			})
 			.then(id => {
 				if (value instanceof Object) {
 					let node = proxify({}, id, new Map()) // empty node & empty map
-
-					// todo: проксировать уже после присвоения. в базу писать по рекурсивному обходу как в _.recurse
+					// todo: ??? проксировать уже после присвоения. в базу писать по рекурсивному обходу как в _.recurse
 					for (let subKey in value) {
 						node[subKey] = value[subKey] // assign proxified 'node' causes recursive call of 'addNode'
 					}
-
 					target[key] = node // replace already assigned by just created
 				}
 
 				return id
 			})
 			.catch(err => {
-				console.log(err)
-				// db.run(`rollback`)
+				console.log(err) // db.run(`rollback`)
 			})
 	}
 
 	function deleteNode (idp, target, key) {
 		if (Reflect.has(target, key) && Reflect.deleteProperty(target, key)) {
-			return db.run(`delete from ${table}_nodes where idp = $idp and name = $name`, { $idp: idp, $name: key })
+			return (idp
+				? db.run(`delete from ${commonName}_nodes where idp = $idp and name = $name`, { $idp: idp, $name: key })
+				: db.run(`delete from ${commonName}_nodes where idp is null and name = $name`, { $name: key })
+			).catch(err => {
+				console.log(err)
+			})
 		}
 		return Promise.resolve(true)
 	}
@@ -108,8 +96,7 @@ module.exports = function (db, table) {
 				switch (key) {
 				case '_': return target
 				case '_id': return (key) => keystore.get(key)
-				case '_path': return _path(target)
-				case '_recurse': return _recurse(receiver)
+				case '_recurse' : return _recurse(receiver)
 				case '_add': return _add(id, target, keystore)
 				}
 				return undefined
@@ -121,26 +108,29 @@ module.exports = function (db, table) {
 		})
 	}
 
-	function buildNode (id = ROOT, options = {}) { // well... brainf..ng, but works :)
+	function buildNode (id = null) { // well... brainf..ng, but works :)
 		let node = {}
 		let keystore = new Map() // node && keystore works parallel
 
-		return db(`select * from ${table}_nodes where idp = ? and id != idp`, [id])
+		return (id
+			? db(`select * from ${commonName}_nodes where idp = ?`, [id])
+			: db(`select * from ${commonName}_nodes where idp is null`)
+		)
 			.then(children => {
-				if (children.length === 0 && id !== ROOT) { // no children means we're at the 'leaf' or single value
-					return db(`select value from ${table}_values where id = ?`, [id]).then(result => result.length ? result[0].value : null)
+				if (id && children.length === 0) { // no children means we're at the 'leaf' or single value
+					return db(`select value from ${commonName}_values where id = ?`, [id])
+						.then(result => result.length ? result[0].value : null)
 				}
-
 				return children.reduce((p, child) =>
 					p.then(() =>
-						buildNode(child.id, { unproxify: (typeof child.value === 'string' && child.value === '{-}') })
+						buildNode(child.id)
 							.then(childNode => {
 								keystore.set(child.name, child.id)
 								node[child.name] = childNode
 							})
 					)
 				, Promise.resolve(null)
-				).then(() => options.unproxify ? node : proxify(node, id, keystore))
+				).then(() => proxify(node, id, keystore))
 			})
 	}
 

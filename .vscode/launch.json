@@ -1,6 +1,7 @@
 {
   "version": "0.2.0",
   "configurations": [
+
     {
       "type": "chrome",
       "request": "launch",
@@ -28,7 +29,7 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "run-script",
-        "dev:api"
+        "dev-back"
       ],
       "port": 9229
     }

@@ -165,7 +165,7 @@ module.exports = function (system) {
 								let interval = parser.parseExpression(job.schedule)
 								if (job.enabled) job.next = day(new Date(interval.next().toString())).format('YYYY-MM-DD HH:mm')
 							}
-							
+
 							broadcast(makeMessage(key, {
 								state: job.state,
 								code: code,

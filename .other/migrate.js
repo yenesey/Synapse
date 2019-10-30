@@ -6,19 +6,19 @@
 	\> node migrate
 	\> node migrate --import 'admin-login'
 */
-const db = require('synapse/sqlite')('../db/new.db')
+const db = require('synapse/sqlite')('../db/synapse.db')
 const treeMap = require('synapse/sqlite-tree-mapper')(db, 'system')
 
 // -------------------------------------------
 let transaction = `
 BEGIN;
+
 DROP TABLE IF EXISTS system_nodes;
 CREATE TABLE system_nodes (
     id    INTEGER PRIMARY KEY ASC AUTOINCREMENT,
     idp   INTEGER REFERENCES system_nodes (id) ON DELETE CASCADE,--  NOT NULL,
     name  STRING  NOT NULL
 );
-INSERT INTO system_nodes (id, idp, name) VALUES (-1, -1, 'root');
 CREATE UNIQUE INDEX node_unique ON system_nodes (idp, name);
 
 DROP TABLE IF EXISTS system_values;
@@ -29,34 +29,43 @@ CREATE TABLE system_values (
 
 DROP VIEW IF EXISTS vw_system_recursive;
 CREATE VIEW vw_system_recursive AS
-WITH RECURSIVE Node (
+WITH RECURSIVE nested (
     id,
     level,
     path
 )
 AS (
-    SELECT id,
-           0,
-           name
-      FROM system_nodes
-     WHERE idp = -1 AND 
-           id != -1
+    SELECT 
+        id,
+        0,
+        name
+    FROM 
+        system_nodes
+    WHERE 
+        idp is null
     UNION
-    SELECT system_nodes.id,
-           Node.level + 1,
-           Node.path || '/' || name
-      FROM system_nodes,
-           Node
-     WHERE system_nodes.idp = Node.id
+    SELECT 
+        n.id,
+        nested.level + 1,
+        nested.path || '/' || name
+    FROM
+        system_nodes n,
+        nested
+    WHERE
+        n.idp = nested.id
 )
-SELECT Node.path,
-       system_nodes.id,
-       substr('                       ', 1, level * 6) || name AS name,
-       system_values.value
-	FROM Node,
-       system_nodes left join system_values on system_nodes.id = system_values.id
-WHERE system_nodes.id = Node.id
-ORDER BY Node.path;
+SELECT 
+    nested.path,
+    n.id,
+    substr('                       ', 1, level * 6) || n.name AS name,
+    v.value
+FROM 
+    nested,
+    system_nodes n left join system_values v on n.id = v.id
+WHERE
+    n.id = nested.id
+ORDER BY 
+    nested.path;
 
 COMMIT;
 `
@@ -64,7 +73,7 @@ COMMIT;
 
 if (process.argv[2] === '--import') {
 	Promise.all([
-		treeMap(-1),
+		treeMap(),
 		db('SELECT * FROM settings'),
 		db('SELECT *, (select meta from objects_meta where object = objects.id) as meta	FROM objects'),
 		db('SELECT * FROM users'),

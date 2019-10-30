@@ -164,7 +164,7 @@ system.getUsersHavingAccess = function (objectId) {
 }
 
 /// /////////////////////////////////////////////////////////////////////
-module.exports = treeMapper(-1).then(tree => {
+module.exports = treeMapper().then(tree => {
 	system.tree = tree
 	system.config = system.tree.config
 	const config = system.config
