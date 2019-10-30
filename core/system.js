@@ -12,6 +12,7 @@ const chalk = require('chalk')
 const fs = require('fs')
 const ROOT_DIR = path.join(__dirname, '..')
 const promisify = util.promisify
+const recurse = require('./lib').recurse
 const db = require('./sqlite')(path.join(ROOT_DIR, 'db/synapse.db')) // основная БД приложения
 const treeMapper = require('./sqlite-tree-mapper')(db, 'system')
 // ---------------------------------------------------------------------------
@@ -119,7 +120,7 @@ system.access = function (user, options = {}) {
 	let map = []
 	let obj
 	let _class
-	let objFound = this.tree.objects._recurse(1, (node, key, level) => {
+	let objFound = recurse(this.tree.objects, 1, (node, key, level) => {
 		if (level === 0) {
 			_class = key
 		} else {

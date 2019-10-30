@@ -5,22 +5,6 @@
 	 - поддерживается автоматический CRUD через операции с объектом
 */
 
-function _recurse (node) {
-	// return interface (deep: [zero based], callback: [function(node, key, level)])
-	return function (deep, callback) {
-		function recurse (node, level, deep) {
-			if (node instanceof Object && level <= deep) {
-				for (let key in node) {
-					// callback first (parent first), then recurse children
-					let result = callback(node, key, level) || recurse(node[key], level + 1, deep)
-					if (result) return result // result break execution and pop through call stack
-				}
-			}
-		}
-		return recurse(node, 0, deep)
-	}
-}
-
 module.exports = function (db, commonName) {
 	// -
 	function _add (id, target, keystore) {
@@ -96,7 +80,6 @@ module.exports = function (db, commonName) {
 				switch (key) {
 				case '_': return target
 				case '_id': return (key) => keystore.get(key)
-				case '_recurse' : return _recurse(receiver)
 				case '_add': return _add(id, target, keystore)
 				}
 				return undefined
@@ -119,7 +102,11 @@ module.exports = function (db, commonName) {
 			.then(children => {
 				if (id && children.length === 0) { // no children means we're at the 'leaf' or single value
 					return db(`select value from ${commonName}_values where id = ?`, [id])
-						.then(result => result.length ? result[0].value : null)
+						.then(result => {
+							if (result.length === 0) return 0
+							else if (result.length === 1) return result[0].value
+							return result.map(el => el.value)
+						})
 				}
 				return children.reduce((p, child) =>
 					p.then(() =>

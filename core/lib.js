@@ -149,6 +149,20 @@ _.merge = function (dst, src) { // immutable dst
 	return _.mutate(_.clone(dst), src)
 }
 
+_.recurse =	function (node, deep, callback) {
+	function recurse (node, level, deep) {
+		if (node instanceof Object && level <= deep) {
+			for (let key in node) {
+				// callback first (parent first), then recurse children
+				let result = callback(node, key, level) || recurse(node[key], level + 1, deep)
+				if (result) return result // result break execution and pop through call stack
+			}
+		}
+	}
+	return recurse(node, 0, deep)
+}
+
+
 // END----------- работа со справочниками ключ-значение (то есть с объектами)
 
 _.rightPad =	function (str, padStr, toSize) {
