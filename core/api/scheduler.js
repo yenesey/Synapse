@@ -203,7 +203,7 @@ module.exports = function (system) {
 			case 'create':
 				let name = String(Date.now()) + String(Math.random())
 				jobs._add(name, payload).then(id => {
-					jobs._rename(name, id).then(key => {
+					jobs._rename(name, String(id)).then(key => {
 						schedule(key)
 						broadcast(key, jobs[key])
 					})

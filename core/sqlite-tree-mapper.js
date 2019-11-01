@@ -120,15 +120,20 @@ module.exports = function (db, commonName) {
 				}
 
 				switch (key) {
-				case '_': return target
+				case '_': return target // access not proxified object
 				case '_id': return (key) => keystore.get(key)
-				case '_add': return (name, node) => addNode(id, target, name, node).then((id) => {keystore.set(name, id); return id} )
+				case '_add': return (key, value) => addNode(id, target, key, value)
+					.then((id) => {
+						keystore.set(String(key), id)
+						return id
+					})
 				case '_rename': return (oldName, newName) => {
 					let id = keystore.get(oldName)
+					if (!id) throw new Error('Key not defined')
 					target[newName] = target[oldName]
-					keystore.set(String(newName), id)
+					keystore.set(newName, id)
 					delete target[oldName]
-					keystore.delete(String(oldName))
+					keystore.delete(oldName)
 					return db.run(`update ${commonName}_nodes set name = $name where id = $id`, { $id: id, $name: newName }).then(() => newName)
 				}
 				}
