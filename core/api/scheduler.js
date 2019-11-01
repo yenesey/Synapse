@@ -38,24 +38,37 @@ module.exports = function (system) {
 		}
 	}
 	/*
-	function start (key) {
-		if (key in crons) crons[key].start()
-	}
-
-	function stop (key) {
-		if (key in crons) crons[key].stop()
+	function startStop (key, start) {
+		console.log('startStop', key, start)
+		if (start) crons[key].start(); else crons[key].stop()
 	}
 	*/
-	function broadcast (data, exclude) {
-		for (let id in sockets) {
-			if (!exclude || !exclude.includes(id)) sockets[id].send(data)
+
+	function renewNext (job) {
+		let interval = parser.parseExpression(job.schedule)
+		if (job.enabled) job.next = day(new Date(interval.next().toString())).format('YYYY-MM-DD HH:mm')
+	}
+
+	function schedule (key) { // повесить job на расписание
+		if (key in jobs) destroy(key)
+
+		let job = jobs[key]
+		try {
+			// crons[key] инициализируется в объект с методами .start() .stop()
+			crons[key] = new CronJob(job.schedule, task(key), function () {}, Boolean(job.enabled))
+		} catch (err) {
+			console.log('job.schedule: ' + err.message)
+			job.error = err.message // улетит клиенту с ответом
 		}
 	}
 
-	function makeMessage (key, data) {
+	function broadcast (key, data, exclude) {
 		let job = {}
 		job[key] = data
-		return JSON.stringify(job)
+		let message = JSON.stringify(job)
+		for (let id in sockets) {
+			if (!exclude || !exclude.includes(id)) sockets[id].send(message)
+		}
 	}
 
 	function task (key) {
@@ -136,7 +149,7 @@ module.exports = function (system) {
 
 			job.state = 'running'
 
-			broadcast(makeMessage(key, { state: 'running' }))
+			broadcast(key, { state: 'running' })
 
 			return folder('cron')
 				.then(taskPath =>
@@ -162,16 +175,15 @@ module.exports = function (system) {
 								job.enabled = false
 								job.state = 'error'
 							} else {
-								let interval = parser.parseExpression(job.schedule)
-								if (job.enabled) job.next = day(new Date(interval.next().toString())).format('YYYY-MM-DD HH:mm')
+								renewNext(job)
 							}
 
-							broadcast(makeMessage(key, {
+							broadcast(key, {
 								state: job.state,
 								code: code,
 								last: job.last,
 								next: job.next
-							}))
+							})
 
 							if (code === 0)	success(taskPath, stdout)
 							if (code === 1)	error(stdout)
@@ -181,17 +193,6 @@ module.exports = function (system) {
 		}// scheduled function
 	} // task(job)
 
-	function schedule (key) { // повесить job на расписание
-		let job = jobs[key]
-		try {
-			// crons[key] инициализируется в объект с методами .start() .stop()
-			crons[key] = new CronJob(job.schedule, task(key), function () {}, Boolean(job.enabled))
-		} catch (err) {
-			console.log('job.schedule: ' + err.message)
-			job.error = err.message // улетит клиенту с ответом
-		}
-	}
-
 	// небольшой бэкенд ниже
 
 	function traverseIncomingActions (data, id) {
@@ -200,26 +201,30 @@ module.exports = function (system) {
 
 			switch (action) {
 			case 'create':
-				jobs._add(payload).then(key => {
-					schedule(key)
-					broadcast(makeMessage(key, jobs[key]))
+				let name = String(Date.now()) + String(Math.random())
+				jobs._add(name, payload).then(id => {
+					jobs._rename(name, id).then(key => {
+						schedule(key)
+						broadcast(key, jobs[key])
+					})
 				}).catch(err => system.errorHandler(err))
 				break
 
 			case 'update':
 				if (!(key in jobs)) return
 				let job = jobs[key]
-				for (let _key in payload) {
-					job[_key] = payload[_key]
-				}
-				broadcast(makeMessage(key, payload), [id])
+				for (let k in payload) job[k] = payload[k]
+				destroy(key)
+				schedule(key)
+				renewNext(job)
+				broadcast(key, { ...payload, next: job.next })
 				break
 
 			case 'delete':
 				if (!(key in jobs)) return
 				destroy(key)
 				delete jobs[key]
-				broadcast(makeMessage(key, { state: 'deleted' }), [id])
+				broadcast(key, { state: 'deleted' }, [id])
 				break
 
 			case 'run':
@@ -227,7 +232,6 @@ module.exports = function (system) {
 				task(key)()
 				break
 			}
-
 		} catch (err) {
 			console.log(err)
 		}

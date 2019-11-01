@@ -8,10 +8,6 @@
 
 <script>
 export default {
-	data:()=>({ 
-		putFiles: false,
-		text: '123'
-	})
 }
 </script>
 

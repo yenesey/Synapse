@@ -176,7 +176,7 @@ module.exports = treeMapper().then(tree => {
 			config.path._[key] = path.join(ROOT_DIR, config.path[key])
 		}
 	}
-	config.path.root = ROOT_DIR
+	config.path._.root = ROOT_DIR
 
 	if (config.ssl.cert) {
 		return promisify(fs.readFile)(path.join(ROOT_DIR, 'sslcert', config.ssl.cert))

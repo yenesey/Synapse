@@ -13,6 +13,7 @@ module.exports = async function (param, system) {
 		keepAlive: true
 	}, system.config.ibs))
 
+
 	let rec = await ora(`
 SELECT
  OV.C_3 "date_begin",
