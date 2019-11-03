@@ -124,7 +124,7 @@ system.access = function (user, options = {}) {
 		if (level === 0) {
 			_class = key
 		} else {
-			let id = node._id(key)
+			let id = node.__[key].id
 			let granted = userAcl.includes(id)
 			if (
 				(!('class' in options) || _class === options['class']) &&
@@ -145,7 +145,7 @@ system.access = function (user, options = {}) {
 
 system.getUser = function (login) {
 	assert(login in this.tree.users, 'Пользователь ' + login + ' не зарегистрирован')
-	return { id: this.tree.users._id(login), login: login, ...this.tree.users[login] }
+	return { id: this.tree.users.__[login].id, login: login, ...this.tree.users[login] }
 }
 
 system.checkAccess = function (user, object) {
@@ -170,7 +170,7 @@ module.exports = treeMapper().then(tree => {
 	system.config = system.tree.config
 	const config = system.config
 
-	// eslint-disable-all`
+	// eslint-disable-all
 	for (var key in config.path) {
 		if (!path.isAbsolute(config.path[key])) { // достраиваем относительные пути до полных
 			config.path._[key] = path.join(ROOT_DIR, config.path[key])

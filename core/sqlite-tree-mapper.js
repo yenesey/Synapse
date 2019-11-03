@@ -86,7 +86,7 @@ module.exports = function (db, commonName) {
 			})
 			.then(id => {
 				if (value instanceof Object) {
-					let node = createProxy({}, id, new Map()) // empty node & empty map
+					let node = createProxy(id)
 					// todo: ??? проксировать уже после присвоения. в базу писать по рекурсивному обходу как в _.recurse
 					for (let subKey in value) {
 						node[subKey] = value[subKey] // assign proxified 'node' causes recursive call of 'addNode'
@@ -96,17 +96,26 @@ module.exports = function (db, commonName) {
 				return id
 			})
 			.catch(err => {
-				console.log(err) // db.run(`rollback`)
+				console.log(err)
 			})
 	}
 
-	function createProxy (node, id, keystore) {
+	function createProxy (id) {
 		// -
-		return new Proxy(node, {
+		const meta = {}
+
+		return new Proxy({}, {
 			set (target, key, value, receiver) {
-				addNode(id, target, key, value)
-					.then(_id => keystore.set(key, _id))
+				// if (util.types.isProxy(value))
+				let pending = addNode(id, target, key, value)
+					.then(_id => {
+						// if (_meta.pending) delete _meta.pending
+						meta[key].id = _id
+						return _id
+					})
 					.catch(err => console.log(err.message + ' while setting ' + key))
+				
+				meta[key] = { pending: pending }
 
 				return Reflect.set(target, key, value)
 			},
@@ -114,22 +123,20 @@ module.exports = function (db, commonName) {
 			get (target, key, receiver) {
 				if (Reflect.has(target, key)) {
 					let value = target[key]
-					// experimental: createProxy for null values
-					if (value === null) return createProxy({}, keystore.get(key), keystore)
+					if (value === null) return createProxy(meta[key].id)
 					return value
 				}
 
 				switch (key) {
 				case '_': return target
-				case '_id': return (key) => keystore.get(key)
-				case '_add': return (name, node) => addNode(id, target, name, node).then((id) => {keystore.set(name, id); return id} )
-				case '_rename': return (oldName, newName) => {
-					let id = keystore.get(oldName)
-					target[newName] = target[oldName]
-					keystore.set(String(newName), id)
-					delete target[oldName]
-					keystore.delete(String(oldName))
-					return db.run(`update ${commonName}_nodes set name = $name where id = $id`, { $id: id, $name: newName }).then(() => newName)
+				case '__': return meta
+				case '_rename': return (name, newName) => {
+					let id = meta[name].id
+					target[newName] = target[name]
+					meta[newName] = meta[name]
+					delete target[name]
+					delete meta[name]
+					return db.run(`update ${commonName}_nodes set name = $name where id = $id`, { $id: id, $name: newName })
 				}
 				}
 				return undefined
@@ -137,9 +144,8 @@ module.exports = function (db, commonName) {
 
 			deleteProperty (target, key) {
 				if (Reflect.has(target, key)) {
-					let id = keystore.get(key)
-					keystore.delete(String(key))
-					db.run(`delete from ${commonName}_nodes where id = $id`, { $id: id })
+					db.run(`delete from ${commonName}_nodes where id = $id`, { $id: meta[key].id })
+					delete meta[key]
 					return Reflect.deleteProperty(target, key)
 				}
 				return false
@@ -155,8 +161,7 @@ module.exports = function (db, commonName) {
 		if (<depth> is not defined or 0) - builds whole tree deep
 	*/
 		function _build (id, level) {
-			let node = {}
-			let keystore = new Map() // node && keystore works parallel
+			const node = createProxy(id)
 
 			return _ensureStruct.then(() => (id
 				? db(`select * from ${commonName}_nodes where idp = ?`, [id])
@@ -172,17 +177,17 @@ module.exports = function (db, commonName) {
 							})
 					}
 					if (depth && level >= depth) return
-					level = level + 1
+
 					return children.reduce((p, child) =>
-						p.then(() =>
-							_build(child.id, level)
-								.then(childNode => {
-									keystore.set(String(child.name), child.id) // ensure String because of SQLite type affinity
-									node[child.name] = childNode
-								})
+						p.then(() => _build(child.id, level + 1)
+							.then(childNode => {
+								node._[child.name] = childNode
+								node.__[child.name] = {}
+								node.__[child.name].id = child.id
+							})
 						)
 					, Promise.resolve(null)
-					).then(() => createProxy(node, id, keystore))
+					).then(() => node)
 				})
 			)
 		}

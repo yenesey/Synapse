@@ -5,8 +5,8 @@
 	\> node migrate <'admin-login'>
 */
 const db = require('synapse/sqlite')('../db/synapse.db')
-const newDb = require('synapse/sqlite')('../db/newDb.db')
-const treeMap = require('synapse/sqlite-tree-mapper')(newDb, 'system')
+// const newDb = require('synapse/sqlite')('../db/newDb.db')
+const treeMap = require('synapse/sqlite-tree-mapper')(db, 'system')
 const fs = require('fs')
 
 Promise.all([
@@ -99,11 +99,13 @@ Promise.all([
 			} else {
 				console.log('Администратор не указан, или указан неверно. Права не назначены!')
 			}
+			/*
 			Promise.all([db.close(), newDb.close()]).then(()=> {
 				console.log('Переименовываю synapse.db => synapse.db.save')
 				fs.renameSync('../db/synapse.db', '../db/synapse.db.save')
 				fs.renameSync('../db/newDb.db', '../db/synapse.db')
 			})
+			*/
 
 		}, 1000)
 		

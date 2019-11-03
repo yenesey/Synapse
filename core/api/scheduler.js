@@ -201,13 +201,15 @@ module.exports = function (system) {
 
 			switch (action) {
 			case 'create':
-				let name = String(Date.now()) + String(Math.random())
-				jobs._add(name, payload).then(id => {
-					jobs._rename(name, id).then(key => {
-						schedule(key)
-						broadcast(key, jobs[key])
+				let temp = String(Date.now()) + String(Math.random())
+				jobs[temp] = payload
+				jobs.__[temp].pending.then(id => {
+					let newName = String(id)
+					jobs._rename(temp, newName).then(result => {
+						schedule(newName)
+						broadcast(newName, jobs[newName])
 					})
-				}).catch(err => system.errorHandler(err))
+				}).catch(err => system.errorHandler(err))	
 				break
 
 			case 'update':
@@ -251,9 +253,9 @@ module.exports = function (system) {
 	})
 
 	this.get('/tasks', function (req, res) {
-		system.checkAccess(req.user, system.tree.objects.admin._id('Планировщик'))
+		system.checkAccess(req.user, system.tree.objects.admin.__['Планировщик'].id)
 		let tasks = system.tree.objects.tasks
-		let map = Object.keys(tasks).map(task => ({ id: tasks._id(task), name: task, ...tasks[task] }))
+		let map = Object.keys(tasks).map(task => ({ id: tasks.__[task].id, name: task, ...tasks[task] }))
 		res.json(map)
 	})
 }

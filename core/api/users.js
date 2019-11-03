@@ -22,7 +22,7 @@ function createNode (node, level = 0) {
 
 module.exports = function (system) {
 	// -
-	const ADMIN_USERS_ID = system.tree.objects.admin._id('Пользователи')
+	const ADMIN_USERS_ID = system.tree.objects.admin.__['Пользователи'].id
 
 	function requireAdmin (req, res, next) {
 		system.checkAccess(req.user, ADMIN_USERS_ID)
@@ -71,7 +71,7 @@ module.exports = function (system) {
 
 	this.get('/', requireAdmin, function (req, res) {
 		let users = system.tree.users
-		let map = Object.keys(users).map(user => ({ id: users._id(user), login: user, ...users[user] }))
+		let map = Object.keys(users).map(user => ({ id: users.__[user].id, login: user, ...users[user] }))
 			.filter(el => (req.query['show-disabled'] === 'true' || !(el['disabled'])))
 		res.json(map)
 	})
