@@ -203,7 +203,7 @@ module.exports = function (system) {
 			case 'create':
 				let temp = String(Date.now()) + String(Math.random())
 				jobs[temp] = payload
-				jobs.__[temp].pending.then(id => {
+				jobs.$[temp].pending.then(id => {
 					let newName = String(id)
 					jobs._rename(temp, newName).then(result => {
 						schedule(newName)
@@ -253,9 +253,9 @@ module.exports = function (system) {
 	})
 
 	this.get('/tasks', function (req, res) {
-		system.checkAccess(req.user, system.tree.objects.admin.__['Планировщик'].id)
+		system.checkAccess(req.user, system.tree.objects.admin.$['Планировщик'].id)
 		let tasks = system.tree.objects.tasks
-		let map = Object.keys(tasks).map(task => ({ id: tasks.__[task].id, name: task, ...tasks[task] }))
+		let map = Object.keys(tasks).map(task => ({ id: tasks.$[task].id, name: task, ...tasks[task] }))
 		res.json(map)
 	})
 }

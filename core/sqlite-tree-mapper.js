@@ -129,7 +129,7 @@ module.exports = function (db, commonName) {
 
 				switch (key) {
 				case '_': return target
-				case '__': return meta
+				case '$': return meta
 				case '_rename': return (name, newName) => {
 					let id = meta[name].id
 					target[newName] = target[name]
@@ -182,8 +182,8 @@ module.exports = function (db, commonName) {
 						p.then(() => _build(child.id, level + 1)
 							.then(childNode => {
 								node._[child.name] = childNode
-								node.__[child.name] = {}
-								node.__[child.name].id = child.id
+								node.$[child.name] = {}
+								node.$[child.name].id = child.id
 							})
 						)
 					, Promise.resolve(null)
