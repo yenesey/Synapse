@@ -124,13 +124,13 @@ system.access = function (user, options = {}) {
 		if (level === 0) {
 			_class = key
 		} else {
-			let id = node.$[key].id
+			let id = node.$(key).id
 			let granted = userAcl.includes(id)
 			if (
 				(!('class' in options) || _class === options['class']) &&
 				(!('granted' in options) || granted === options['granted'])
 			)  {
-				let _obj = {	id: id,	name: key, class: _class, ...node[key], granted: granted }
+				let _obj = { id: id, name: key, class: _class, ...node[key], granted: granted }
 				map.push(_obj)
 				if (options.object && id === options.object) {
 					obj = _obj
@@ -144,8 +144,9 @@ system.access = function (user, options = {}) {
 }
 
 system.getUser = function (login) {
-	assert(login in this.tree.users, 'Пользователь ' + login + ' не зарегистрирован')
-	return { id: this.tree.users.$[login].id, login: login, ...this.tree.users[login] }
+	let { users } = this.tree
+	assert(login in users, 'Пользователь ' + login + ' не зарегистрирован')
+	return { login: login, ...users.$(login) }
 }
 
 system.checkAccess = function (user, object) {

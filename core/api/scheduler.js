@@ -201,15 +201,11 @@ module.exports = function (system) {
 
 			switch (action) {
 			case 'create':
-				let temp = String(Date.now()) + String(Math.random())
-				jobs[temp] = payload
-				jobs.$[temp].pending.then(id => {
-					let newName = String(id)
-					jobs._rename(temp, newName).then(result => {
-						schedule(newName)
-						broadcast(newName, jobs[newName])
-					})
-				}).catch(err => system.errorHandler(err))	
+				// autoinc key
+				key = String(Object.keys(jobs).reduce((res, key) => Math.max(res, Number(key)) ,0) + 1)
+				jobs[key] = payload
+				schedule(key)
+				broadcast(key, jobs[key])
 				break
 
 			case 'update':
@@ -253,9 +249,9 @@ module.exports = function (system) {
 	})
 
 	this.get('/tasks', function (req, res) {
-		system.checkAccess(req.user, system.tree.objects.admin.$['Планировщик'].id)
+		system.checkAccess(req.user, system.tree.objects.admin.$('Планировщик').id)
 		let tasks = system.tree.objects.tasks
-		let map = Object.keys(tasks).map(task => ({ id: tasks.$[task].id, name: task, ...tasks[task] }))
+		let map = Object.keys(tasks).map(task => ({ ...tasks.$(task), name: task }))
 		res.json(map)
 	})
 }

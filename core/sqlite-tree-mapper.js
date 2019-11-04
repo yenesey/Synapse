@@ -129,14 +129,11 @@ module.exports = function (db, commonName) {
 
 				switch (key) {
 				case '_': return target
-				case '$': return meta
-				case '_rename': return (name, newName) => {
-					let id = meta[name].id
-					target[newName] = target[name]
-					meta[newName] = meta[name]
-					delete target[name]
-					delete meta[name]
-					return db.run(`update ${commonName}_nodes set name = $name where id = $id`, { $id: id, $name: newName })
+				case '$': return (key) => ({ ...meta[key], ...target[key] })
+				case '_add': return (id, key, value) => {
+					target[key] = value
+					meta[key] = {}
+					meta[key].id = id
 				}
 				}
 				return undefined
@@ -181,9 +178,7 @@ module.exports = function (db, commonName) {
 					return children.reduce((p, child) =>
 						p.then(() => _build(child.id, level + 1)
 							.then(childNode => {
-								node._[child.name] = childNode
-								node.$[child.name] = {}
-								node.$[child.name].id = child.id
+								node._add(child.id, child.name, childNode)
 							})
 						)
 					, Promise.resolve(null)

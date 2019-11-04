@@ -13,7 +13,7 @@ const assert = require('assert')
 
 function createNode (node, level = 0) {
 	return Object.keys(node).map(key => ({
-		id: node.$[key].id,
+		id: node.$(key).id,
 		name: key,
 		description: node[key] && node[key].description ? node[key].description : '',
 		children: (node[key] instanceof Object && level < 1) ? createNode(node[key], level + 1) : undefined
@@ -22,7 +22,7 @@ function createNode (node, level = 0) {
 
 module.exports = function (system) {
 	// -
-	const ADMIN_USERS_ID = system.tree.objects.admin.$['Пользователи'].id
+	const ADMIN_USERS_ID = system.tree.objects.admin.$('Пользователи').id
 
 	function requireAdmin (req, res, next) {
 		system.checkAccess(req.user, ADMIN_USERS_ID)
@@ -71,7 +71,7 @@ module.exports = function (system) {
 
 	this.get('/', requireAdmin, function (req, res) {
 		let users = system.tree.users
-		let map = Object.keys(users).map(user => ({ id: users.$[user].id, login: user, ...users[user] }))
+		let map = Object.keys(users).map(user => ({ ...users.$(user), login: user }))
 			.filter(el => (req.query['show-disabled'] === 'true' || !(el['disabled'])))
 		res.json(map)
 	})
@@ -84,22 +84,23 @@ module.exports = function (system) {
 		let login = req.query.login
 		assert(login, 'В запросе отсутствует ключевой реквизит - login')
 		let users = system.tree.users
-		res.json({ id: users.$[login].id, ...users[login] })
+		res.json(users.$(login))
 	})
 
 	this.put('/user', bodyParser.json(), requireAdmin, function (req, res) { // операция добавления/редактирования пользователя
 		let user = req.body
+		let users = system.tree.users
 		assert(user.login, 'В запросе отсутствует ключевой реквизит - login')
-		if (user.login in system.tree.users) {
+		if (user.login in users) {
 			// обновляем реквизиты
 			for (let key in user) {
-				system.tree.users[user.login][key] = user[key]
+				users[user.login][key] = user[key]
 			}
 		} else {
 			// создаем новую ветку в пользователях
-			system.tree.users[user.login] = user
+			users[user.login] = user
 		}
-		res.json({ id: system.tree.users.$[user.login].id, ...user })
+		res.json(users.$(user.login))
 	})
 
 	/*
