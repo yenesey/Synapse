@@ -14,7 +14,8 @@ module.exports = function (db, commonName) {
 				exists: exists(commonName + '_nodes', 'table'),
 				ddl: [
 					`CREATE TABLE ${commonName}_nodes (id INTEGER PRIMARY KEY ASC AUTOINCREMENT, idp INTEGER REFERENCES ${commonName}_nodes (id) ON DELETE CASCADE, name STRING NOT NULL)`,
-					`CREATE UNIQUE INDEX ${commonName}_nodes_unique ON ${commonName}_nodes (idp, name)`
+					`CREATE UNIQUE INDEX ${commonName}_nodes_unique ON ${commonName}_nodes (idp, name)`,
+					`INSERT INTO ${commonName}_nodes (id, idp, name) values (0, 0, 'root')`
 				]
 			},
 			{
@@ -36,7 +37,7 @@ module.exports = function (db, commonName) {
 					`    FROM \n` +
 					`        ${commonName}_nodes\n` +
 					`    WHERE \n` +
-					`        idp is null\n` +
+					`        idp = 0 and id != idp\n` +
 					`    UNION\n` +
 					`    SELECT \n` +
 					`        n.id,\n` +
@@ -76,97 +77,87 @@ module.exports = function (db, commonName) {
 		)
 	})()
 
-	function addNode (idp, target, key, value) {
-		return db.run(`replace into ${commonName}_nodes (idp, name) values ($idp, $name)`, { $idp: idp, $name: key })
-			.then(id => {
-				if (!(value instanceof Object)) {
-					return db.run(`replace into ${commonName}_values (id, [value]) values ($id, $value)`, { $id: id, $value: value })
-				}
-				return id
-			})
-			.then(id => {
-				if (value instanceof Object) {
-					let node = createProxy({}, id, new Map()) // empty node & empty map
-					// todo: ??? проксировать уже после присвоения. в базу писать по рекурсивному обходу как в _.recurse
-					for (let subKey in value) {
-						node[subKey] = value[subKey] // assign proxified 'node' causes recursive call of 'addNode'
-					}
-					target[key] = node // replace already assigned by just created
-				}
-				return id
-			})
-			.catch(err => {
-				console.log(err) // db.run(`rollback`)
-			})
-	}
-
-	function createProxy (node, id, keystore) {
+	function createProxy (id) {
 		// -
-		return new Proxy(node, {
-			set (target, key, value, receiver) {
-				addNode(id, target, key, value)
-					.then(_id => keystore.set(key, _id))
-					.catch(err => console.log(err.message + ' while setting ' + key))
+		const meta = {}
+		const node = {}
 
+		const addChild = function (id, key, value) {
+			node[key] = value
+			meta[key] = {}
+			meta[key].id = id
+		}
+
+		const proxy = new Proxy(node, {
+			set (target, key, value, receiver) {
+				if (Reflect.has(target, key)) {
+					if (!(value instanceof Object)) {
+						if (value !== target[key]) {
+							db.run(`update ${commonName}_values set value = $value where id = $id`, { $id: meta[key].id, $value: value })
+								.catch(err => console.log(err.message + '\nupdating ' + key))
+						}
+					} else {
+						for (let subKey in value) {
+							receiver[key][subKey] = value[subKey]
+						}
+					}
+				} else {
+					meta[key] = {}
+					meta[key].pending = db.run(`insert into ${commonName}_nodes (idp, name) values ($idp, $name)`, { $idp: id, $name: key })
+						.then(id => {
+							if (!(value instanceof Object)) {
+								return db.run(`insert into ${commonName}_values (id, [value]) values ($id, $value)`, { $id: id, $value: value })
+							} else {
+								let node = createProxy(id).node
+								for (let subKey in value) {
+									node[subKey] = value[subKey] // assign proxified 'node' causes recursive call of 'addNode'
+								}
+								target[key] = node // replace already assigned by just created
+							}
+							return id
+						})
+						.catch(err => console.log(err.message + '\ninserting ' + key))
+				}
 				return Reflect.set(target, key, value)
 			},
 
 			get (target, key, receiver) {
 				if (Reflect.has(target, key)) {
 					let value = target[key]
-					// experimental: createProxy for null values
-					if (value === null) return createProxy({}, keystore.get(key), keystore)
+					if (value === null) return createProxy(meta[key].id).node
 					return value
 				}
-
 				switch (key) {
-				case '_': return target // access not proxified object
-				case '_id': return (key) => keystore.get(key)
-				case '_add': return (key, value) => addNode(id, target, key, value)
-					.then((id) => {
-						keystore.set(String(key), id)
-						return id
-					})
-				case '_rename': return (oldName, newName) => {
-					let id = keystore.get(oldName)
-					if (!id) throw new Error('Key not defined')
-					target[newName] = target[oldName]
-					keystore.set(newName, id)
-					delete target[oldName]
-					keystore.delete(oldName)
-					return db.run(`update ${commonName}_nodes set name = $name where id = $id`, { $id: id, $name: newName }).then(() => newName)
-				}
+				case '_': return target
+				case '$': return (key) => ({ ...target[key], ...meta[key] })
 				}
 				return undefined
 			},
 
 			deleteProperty (target, key) {
 				if (Reflect.has(target, key)) {
-					let id = keystore.get(key)
-					keystore.delete(String(key))
-					db.run(`delete from ${commonName}_nodes where id = $id`, { $id: id })
+					db.run(`delete from ${commonName}_nodes where id = $id`, { $id: meta[key].id })
+						.catch(err => console.log(err.message + ' while deleting ' + key))
+					delete meta[key]
 					return Reflect.deleteProperty(target, key)
 				}
 				return false
 			}
 		})
+		return { node: proxy, addChild: addChild }
 	}
 
-	function build (id = null, depth) {
+	function build (id = 0, depth) {
 	/*
 		recursive build from database. returns Promise.then => Proxy(Object)
 		builds from given node <id>, to given <depth> level
-		if (<id> == null) - builds from root
+		if (<id> == 0) - builds from root
 		if (<depth> is not defined or 0) - builds whole tree deep
 	*/
 		function _build (id, level) {
-			let node = {}
-			let keystore = new Map() // node && keystore works parallel
+			const { node, addChild } = createProxy(id)
 
-			return _ensureStruct.then(() => (id
-				? db(`select * from ${commonName}_nodes where idp = ?`, [id])
-				: db(`select * from ${commonName}_nodes where idp is null`)
-			)
+			return _ensureStruct.then(() => db(`select * from ${commonName}_nodes where idp = ? and id != idp`, [id])
 				.then(children => {
 					if (id && children.length === 0) { // no children means we're at the 'leaf' or single value
 						return db(`select value from ${commonName}_values where id = ?`, [id])
@@ -177,17 +168,13 @@ module.exports = function (db, commonName) {
 							})
 					}
 					if (depth && level >= depth) return
-					level = level + 1
+
 					return children.reduce((p, child) =>
-						p.then(() =>
-							_build(child.id, level)
-								.then(childNode => {
-									keystore.set(String(child.name), child.id) // ensure String because of SQLite type affinity
-									node[child.name] = childNode
-								})
+						p.then(() => _build(child.id, level + 1)
+							.then(childNode => addChild(child.id, child.name, childNode))
 						)
 					, Promise.resolve(null)
-					).then(() => createProxy(node, id, keystore))
+					).then(() => node)
 				})
 			)
 		}

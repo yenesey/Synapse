@@ -9,13 +9,12 @@
 		})
 	}
 */
-const express = require('express')
-const router = express.Router({ strict: true })
 const path = require('path')
 const ntlm = require('express-ntlm')
 
-module.exports = function (system) {
+module.exports = function (system, express) {
 	const config = system.config
+	const router = express.Router({ strict: true })
 
 	function loadModule (name) {
 		const apiModule = require(path.join(__dirname, 'api', name))
@@ -54,8 +53,8 @@ module.exports = function (system) {
 				})(req, res, next)
 			},
 			function (req, res, next) {
-				req.ntlm = {}
-				req.ntlm.UserName = 'bogachev'
+				// req.ntlm = {}
+				// req.ntlm.UserName = 'bogachev'
 				req.user = req.ntlm ? system.getUser(req.ntlm.UserName) : undefined
 				next()
 			}

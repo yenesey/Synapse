@@ -349,7 +349,7 @@ export default {
 <style scoped>
 
 .hover-elevate:hover {
-	transform: scale(1.2);
+	/* transform: scale(1.2);*/
 	color: rgba(195, 75, 75, 0.952) !important;
 }
 

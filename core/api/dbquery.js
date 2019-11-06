@@ -14,7 +14,7 @@ module.exports = function (system) {
 	this.post('/', bodyParser.json({ limit: '5mb' }), function (req, res) {
 		res.socket.setTimeout(Number(config.socket.timeout)) // ответ, возможно будет "долгим"
 
-		system.checkAccess(req.user, system.tree.objects.admin._id('SQL Запрос'))
+		system.checkAccess(req.user, system.tree.objects.admin.$('SQL Запрос').id)
 
 		ora(String(req.body.sql), {}, { maxRows: Number(req.body.maxRows) || 100 })
 			.then(data => res.json(data))

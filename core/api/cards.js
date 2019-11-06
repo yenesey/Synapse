@@ -17,11 +17,12 @@ module.exports = function (system) {
 	// const config = system.config.system
 	const config = system.config
 	const url = 'http://172.16.8.3:8962/solar-loyalty/loyaltyApi.wsdl'
+	const ibso = ora(config.ibs)
+	const t2000 = ora(config.t)
 
 	// ibso("alter session set NLS_DATE_FORMAT='dd.mm.yyyy hh24:mi:ss'")
 	// получение инфы по карте и проверка пароля
 	function card (number, password) {
-		const ibso = ora(config.ibs)
 		if ((typeof number !== 'string') || (typeof password !== 'string'))	{
 			throw Error('Wrong parameter type!')
 		}
@@ -152,7 +153,6 @@ module.exports = function (system) {
 
 	// комплексная выписка по карте
 	this.get('/receipt',	function (req, res) {
-		const ibso = ora(config.ibs,  { keepAlive: true })
 		card(req.query.ednumber, req.query.edpassword).then(card => {
 			if ('error' in card) {
 				res.json(card)
@@ -299,7 +299,6 @@ module.exports = function (system) {
 						console.log(err)
 					})
 			]).then(([saldo, receipt, holds, bonus]) => {
-				ibso.close()
 
 				for (var key in saldo) saldo[key] = round(saldo[key], 2)
 				if (bonus) {
@@ -339,7 +338,6 @@ module.exports = function (system) {
 
 	// баланс по карте из ПЦ
 	this.get('/balance',	function (req, res) {
-		const t2000 = ora(config.t)
 		return card(req.query.ednumber, req.query.edpassword)
 			.then(card => {
 				if ('error' in card) {
@@ -358,7 +356,6 @@ module.exports = function (system) {
 	})
 
 	this.get('/sms-code',	function (req, res) {
-		const t2000 = ora(config.t)
 		var code = ''
 		var possible = '0123456789'
 		for (let i = 0; i < 6; i++) {

@@ -33,8 +33,10 @@ function followPath (node, path) {
 module.exports = function (system) {
 	//
 	this.get('*', function (req, res) {
-		// console.log(req.query)
-		let rg = /^([\w\sа-яА-Я\/|\:\-\!]+)\=*\"?([\w\sа-яА-Я\:\@\/\.\?\-\{\}]*)\"?/
+		// todo: проверку доступа. т.к. admin это целый класс, проверка пока не
+		// system.checkAccess(req.user, system.tree.objects.$('admin').id)
+
+		let rg = /^([\w\sа-яА-Я\/|\:\-\!]+)\=*\"?([\w\sа-яА-Я\:\@\/\.\?\-\{\}]*)\"?/ // eslint-disable-line
 		rg.test(decodeURIComponent(req.url).substring(1))
 
 		let url = RegExp.$1

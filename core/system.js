@@ -124,13 +124,13 @@ system.access = function (user, options = {}) {
 		if (level === 0) {
 			_class = key
 		} else {
-			let id = node._id(key)
+			let id = node.$(key).id
 			let granted = userAcl.includes(id)
 			if (
 				(!('class' in options) || _class === options['class']) &&
 				(!('granted' in options) || granted === options['granted'])
 			)  {
-				let _obj = {	id: id,	name: key, class: _class, ...node[key], granted: granted }
+				let _obj = { id: id, name: key, class: _class, ...node[key], granted: granted }
 				map.push(_obj)
 				if (options.object && id === options.object) {
 					obj = _obj
@@ -144,8 +144,9 @@ system.access = function (user, options = {}) {
 }
 
 system.getUser = function (login) {
-	assert(login in this.tree.users, 'Пользователь ' + login + ' не зарегистрирован')
-	return { id: this.tree.users._id(login), login: login, ...this.tree.users[login] }
+	let { users } = this.tree
+	assert(login in users, 'Пользователь ' + login + ' не зарегистрирован')
+	return { login: login, ...users.$(login) }
 }
 
 system.checkAccess = function (user, object) {
@@ -159,7 +160,7 @@ system.getUsersHavingAccess = function (objectId) {
 	let users = []
 	for (let key in this.tree.users) {
 		let user = this.tree.users[key]
-		if (!user.disabled && user._acl && user._acl.split(',').includes(objectId)) users.push(user)
+		if (!user.disabled && user._acl && user._acl.split(',').includes(String(objectId))) users.push(user)
 	}
 	return users
 }
@@ -169,8 +170,7 @@ module.exports = treeMapper().then(tree => {
 	system.tree = tree
 	system.config = system.tree.config
 	const config = system.config
-
-	// eslint-disable-all`
+	// eslint-disable-all
 	for (var key in config.path) {
 		if (!path.isAbsolute(config.path[key])) { // достраиваем относительные пути до полных
 			config.path._[key] = path.join(ROOT_DIR, config.path[key])

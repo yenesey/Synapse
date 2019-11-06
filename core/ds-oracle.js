@@ -14,20 +14,18 @@ function genPassword (length = 12) {
 	return '!' + crypto.randomBytes(Math.ceil((length - 1) / 2)).toString('hex').slice(0, length - 1)
 }
 
-module.exports = function (config, options = { keepAlive: false }) {
-// config = {user:'<username>', password:'<password>', connectString:'<schema>'}
+module.exports = function (config) {
+	// config = {user:'<username>', password:'<password>', connectString:'<schema>'}
+
 	if (typeof config === 'undefined') {
 		throw new Error(`[ds-oracle]: config not provided`)
 	}
 
 	var connection = null
-	var keepAlive = config.keepAlive || options.keepAlive
-	if (!config.connectString) config.connectString = config.schema
+	if (!config.connectString) config._.connectString = config.schema
 
 	function getConnection () {
-		if (keepAlive && connection !== null) {
-			return Promise.resolve(connection)
-		}
+		if (connection !== null) return Promise.resolve(connection)
 
 		return oracledb.getConnection(config)
 			.then(_conn => {
@@ -61,14 +59,7 @@ module.exports = function (config, options = { keepAlive: false }) {
 		if (connection) {
 			return connection.commit()
 		}
-		return Promise.reject(new Error('there is no active connection'))
-	}
-
-	function execute (sql, binds, options) {
-		return connection.execute(sql, binds, options).then(data => {
-			if (!keepAlive) closeConnection()
-			return data
-		})
+		return Promise.reject(new Error('there is no active connection - nothing to close'))
 	}
 
 	function knownErrors (err) {
@@ -81,18 +72,20 @@ module.exports = function (config, options = { keepAlive: false }) {
 			config.newPassword = genPassword()
 			return getConnection().then(conn => {
 				console.log(`[ds-oracle]: the new password for "${config.user}" is "${config.newPassword}"`)
+				config.oldPassword = config.password
 				config.password = config.newPassword
 				delete config.newPassword
 			})
 		}
-		throw err // если ошибка неизвестна - окончательно должна быть обработана в вызывающем модуле.
+		return Promise.reject(err) // если ошибка неизвестна - окончательно должна быть обработана в вызывающем модуле.
 		// })
 	}
 
-	function exec (sql, binds = {}, options = { maxRows: 50 }) {
+	function exec (sql, binds = {}, options = { maxRows: 10000 }) {
 		return getConnection()
-			.then(() => execute(sql, binds, options))
-			.catch(err => knownErrors(err).then(() => execute(sql, binds, options)))
+			.then(() => connection.execute(sql, binds, options))
+			.catch(err => knownErrors(err))
+			.then(() => connection.execute(sql, binds, options))
 			.then(data => {
 				// data.metaData contains type info when options.extendedMetaData === true
 				return data.rows || data.outBinds

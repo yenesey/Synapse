@@ -102,18 +102,18 @@ module.exports = function (system) {
 									from: `Synapse <synapse@${os.hostname().toLowerCase()}`,
 									to: to,
 									subject: job.description || job.name,
-									//  text:    stdout || ' ',
+									// text:    stdout || '',
 									attachment: files.map(name => ({
 										path: path.join(taskPath, name),
 										type: 'text/html',
 										name: name
 									})
-									).concat([{ data: '<html><pre>' + stdout + '</pre></html>', alternative: true }])
+									).concat([{ data: '<html><pre style="color:teal">' + stdout + '</pre></html>', alternative: true }])
 								})
 							}
 						})
 						.catch(err =>
-							console.log('[jobs] error trying email job results: ' + err.message + ' ' + util.inspect({ id: job.id, task: job.task, name: job.name }))
+							system.errorHandler(err)
 						)
 				}
 			}
@@ -121,13 +121,16 @@ module.exports = function (system) {
 
 		function error (stdout) {
 			try {
-				let emails = system.getUsersHavingAccess(system.tree.objects.groups._id('Администраторы')).map(el => el.email)
-				mail.sendp({
-					from: `Synapse <synapse@${os.hostname().toLowerCase()}`,
-					to: emails.join(','),
-					subject: job.description || job.name,
-					attachment: [{ data: '<html><pre>' + stdout + '</pre></html>', alternative: true }]
-				})
+				let to = system.getUsersHavingAccess(system.tree.objects.groups.$('Администраторы').id)
+					.map(el => el.email).join(',')
+				if (to.length) {
+					mail.sendp({
+						from: `Synapse <synapse@${os.hostname().toLowerCase()}`,
+						to: to,
+						subject: job.description || job.name,
+						attachment: [{ data: '<html><pre>' + stdout + '</pre></html>', alternative: true }]
+					})
+				}
 			} catch (err) {
 				system.errorHandler(err)
 			}
@@ -169,12 +172,12 @@ module.exports = function (system) {
 						function (code) {
 							job.last = system.dateStamp()
 							job.code = code
-							job.state = 'done'
 							if (code !== 0) {
 								crons[key].stop()
 								job.enabled = false
 								job.state = 'error'
 							} else {
+								job.state = 'done'
 								renewNext(job)
 							}
 
@@ -201,13 +204,11 @@ module.exports = function (system) {
 
 			switch (action) {
 			case 'create':
-				let name = String(Date.now()) + String(Math.random())
-				jobs._add(name, payload).then(id => {
-					jobs._rename(name, String(id)).then(key => {
-						schedule(key)
-						broadcast(key, jobs[key])
-					})
-				}).catch(err => system.errorHandler(err))
+				// autoinc key
+				key = String(Object.keys(jobs).reduce((res, key) => Math.max(res, Number(key)), 0) + 1)
+				jobs[key] = payload
+				schedule(key)
+				broadcast(key, jobs[key])
 				break
 
 			case 'update':
@@ -251,9 +252,9 @@ module.exports = function (system) {
 	})
 
 	this.get('/tasks', function (req, res) {
-		system.checkAccess(req.user, system.tree.objects.admin._id('Планировщик'))
+		system.checkAccess(req.user, system.tree.objects.admin.$('Планировщик').id)
 		let tasks = system.tree.objects.tasks
-		let map = Object.keys(tasks).map(task => ({ id: tasks._id(task), name: task, ...tasks[task] }))
+		let map = Object.keys(tasks).map(task => ({ ...tasks.$(task), name: task }))
 		res.json(map)
 	})
 }

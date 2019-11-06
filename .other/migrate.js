@@ -87,14 +87,14 @@ Promise.all([
 		а затем уже вложения каждой ветки с бОльшими id, но лучше это дело проверить
 		*/
 		setTimeout(() => {
-			console.log('config.id  = ' + tree._id('config'))
-			console.log('objects.id = ' + tree._id('objects'))
-			console.log('users.id   = ' + tree._id('users'))
-			console.log('jobs.id    = ' + tree._id('jobs'))
+			console.log('config.id  = ' + tree.$('config').id)
+			console.log('objects.id = ' + tree.$('objects').id)
+			console.log('users.id   = ' + tree.$('users').id)
+			console.log('jobs.id    = ' + tree.$('jobs').id)
 			console.log('Выполнено!')
-			let admin = process.argv[3]
+			let admin = process.argv[2]
 			if (tree.users[admin]) {
-				tree.users[admin]._acl = String(tree.objects.admin._id('Пользователи'))
+				tree.users[admin]._acl = String(tree.objects.admin.$('Пользователи').id)
 				console.log('Права администратора назначены: ', tree.users[admin])
 			} else {
 				console.log('Администратор не указан, или указан неверно. Права не назначены!')
@@ -103,7 +103,7 @@ Promise.all([
 				console.log('Переименовываю synapse.db => synapse.db.save')
 				fs.renameSync('../db/synapse.db', '../db/synapse.db.save')
 				fs.renameSync('../db/newDb.db', '../db/synapse.db')
-			})
+			}).catch(err => console.log('Не удается переименовать файлы баз. Возможно, база открыта где то еще?'))
 
 		}, 1000)
 		

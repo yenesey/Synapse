@@ -125,7 +125,7 @@ require('synapse/system').then(system => {
 			app.use(morgan('tiny', { stream: { write: msg => system.log(msg) } }))
 		}
 
-		const api = require('synapse/api.js')(system)
+		const api = require('synapse/api.js')(system, express)
 		if (config['cft-web-proxy'].on) app.use(api('cft-web-proxy'))
 		if (config.telebot.on) app.use(api('telebot'))
 		if (config.cards.on) app.use(api('cards'))
