@@ -6,7 +6,7 @@
 
 module.exports = async function (param, system) {
 	// -
-	const ora = require('synapse/ds-oracle')(Object.assign({ keepAlive: true }, system.config.ibs))
+	const ora = require('synapse/ds-oracle')(system.config.ibs)
 
 	let rec = await ora(`
 	SELECT
@@ -30,8 +30,8 @@ module.exports = async function (param, system) {
 						from
 							VW_CRIT_DEPN_PLPLUS
 						where
-							REF2 = OV.REF2 -- связь Депозит - Овер
-							and lower(C_10) like '%карт%'
+							REF2 = OV.REF2                     -- связь Депозит - Овер
+							and (lower(C_10) like '%карт%' or lower(C_10) like '%пк%') 
 							and C_9 = 'RUB' and not REF3 is null
 					)
 			)
@@ -105,7 +105,7 @@ module.exports = async function (param, system) {
 							VW_CRIT_DEPN_PLPLUS
 						where
 							REF2 = OV.REF2 -- связь Депозит - Овер
-							and lower(C_10) like '%карт%'
+							and (lower(C_10) like '%карт%' or lower(C_10) like '%пк%') 
 							and C_9 = 'RUB' and not REF3 is null
 					)
 			)
@@ -157,6 +157,7 @@ module.exports = async function (param, system) {
 			'\r\n', '')
 
 	const t2000 = require('synapse/ds-oracle')(system.config.t)
+
 	await t2000(`begin :result := SYSADM.EXCHANGE.F_CreateTask_SMS_Overdraft(:debt); end;`,
 		{
 			debt: debt.toString(),
@@ -176,6 +177,7 @@ module.exports = async function (param, system) {
 		.then(result => {
 			if (result === 0) console.log('АШИПКА!!!')
 		})
+
 
 	if (debt.length) {
 		console.log('[Овердрафты]')
