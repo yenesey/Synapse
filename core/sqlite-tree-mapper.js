@@ -91,7 +91,8 @@ module.exports = function (db, commonName) {
 		const proxy = new Proxy(node, {
 			set (target, key, value, receiver) {
 				if (Reflect.has(target, key)) {
-					if (!(value instanceof Object)) {
+					// if (!(value instanceof Object)) {  -- isn't work in REPL mode for some reason
+					if (typeof value !== 'object') {
 						if (value !== target[key]) {
 							db.run(`update ${commonName}_values set value = $value where id = $id`, { $id: meta[key].id, $value: value })
 								.catch(err => console.log(err.message + '\nupdating ' + key))
@@ -105,7 +106,9 @@ module.exports = function (db, commonName) {
 					meta[key] = {}
 					meta[key].pending = db.run(`insert into ${commonName}_nodes (idp, name) values ($idp, $name)`, { $idp: id, $name: key })
 						.then(id => {
-							if (!(value instanceof Object)) {
+							meta[key].id = id
+							// if (!(value instanceof Object)) { -- isn't work in REPL mode for some reason
+							if (typeof value !== 'object') {
 								return db.run(`insert into ${commonName}_values (id, [value]) values ($id, $value)`, { $id: id, $value: value })
 							} else {
 								let node = createProxy(id).node

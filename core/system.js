@@ -1,8 +1,7 @@
 'use strict'
 /*
-	- системные функции и константы
-    - системная база данных system.db = function(<SQL>, [<params>])
-	- конфигурация системы  config = { system: {..}, .. }
+	- системные функции
+	- конфигурация системы <system.tree>
 */
 
 const path = require('path')
@@ -13,10 +12,10 @@ const fs = require('fs')
 const ROOT_DIR = path.join(__dirname, '..')
 const promisify = util.promisify
 const recurse = require('./lib').recurse
-const db = require('./sqlite')(path.join(ROOT_DIR, 'db/synapse.db')) // основная БД приложения
+const db = require('./sqlite')(path.join(ROOT_DIR, 'db/synapse.db'))
 const treeMapper = require('./sqlite-tree-mapper')(db, 'system')
 // ---------------------------------------------------------------------------
-const system = { db: db }
+const system = {}
 
 system.errorHandler = function (err, req, res, next) {
 	var msg = {

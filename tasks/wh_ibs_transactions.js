@@ -12,35 +12,33 @@ function generateStatement (metaData, table) {
 module.exports = async function (params, system) {
 	const config = system.config
 	const ibso = await oracle.getConnection(config.ibs)
-	const t2000 = await oracle.getConnection({ connectString: 'T2000', schema: 'T2000', user: 'WH', password: 'warehouse' })
-
-	// let select = await t2000.execute(`select * from IBS_ACC_FIN`,{}, { maxRows: 10 })
+	const t2000 = await oracle.getConnection(config.wh)
 
 	let result = await ibso.execute(`
 		select
-			ID, 
-			C_1 ACCOUNT, 
-			REF3 CLIENT_V, 
-			REF20 CLIENT_R, 
-			C_13 DATE_OPEN, 
-			C_16 DATE_CLOSE, 
-			C_4 NAME, 
-			REF31 DEPART, 
-			UPPER(SUBSTR(C_5,1,1)) TYPE, 
-			REF15 USER_OPEN, 
-			REF18 USER_CLOSE, 
-			C_17 REASON_CLOSE,
-			C_38 NOTES,
-			C_19 STATUS
-		from 
-			VW_CRIT_AC_FIN
+			T.ID,
+			T.C_1 CREATED,
+			T.C_2 PROCEEDED,
+			T.C_25 BUSINESS_TYPE,
+			T.C_47 TRANS_DTIME,
+			T.C_34 SLIP_NUMBER,
+			T.C_41 TRG_AMOUNT,
+			T.C_42 TRG_CUR,
+			T.nvl(REF4, -1) CARD_REF,
+			T.REF12 TRN_TYPE_REF,
+			T.C_12 TRN_TYPE,
+			T.C_68 DIRECTION,
+			TT.C_4 TERM_TYPE
+		from
+			VW_CRIT_OWS_TRANSACTION T left join VW_CRIT_ALL_TRANS TT on T.REF12 = TT.ID
+
 		where
-			1=1
-	`, [],  { resultSet: true })
+			C_1 >= TO_DATE('01.08.2019', 'dd.mm.yyyy') and C_1 < TO_DATE('01.09.2019', 'dd.mm.yyyy')
+	`, [], { resultSet: true })
 
 	const rs = result.resultSet
 	let rows, info
-	let statement = generateStatement(result.metaData, 'WH.IBS_ACC_FIN')
+	let statement = generateStatement(result.metaData, 'WH.IBS_TRANSACTIONS')
 
 	do {
 		rows = await rs.getRows(NUM_ROWS)

@@ -44,7 +44,7 @@ _.pxhr({method: 'get', url: 'users/access'})
 .then(user => {
 
 	var menuGroups = user.access.filter(el => el.class === 'menu').sort((a, b) => a.id === b.id ? 0: a.id > b.id ? 1: -1)
-	if (menuGroups.findIndex(el=>el.name === 'default') === -1) 
+	if (menuGroups.findIndex(el => el.name === 'default') === -1) 
 		menuGroups.unshift( {name: 'default', icon: 'chevron_right'} )
 
 	var access = _.keys(user.access, 'class', el=>el.granted && !user.disabled) // берем только те, к которым доступ предоставлен
@@ -110,7 +110,7 @@ _.pxhr({method: 'get', url: 'users/access'})
 		},
 		vuetify: vuetify,
 		store: store,
-		router: new VueRouter({routes: routes}),
+		router: new VueRouter({ routes: routes }),
 		render: (h) => h(App, { 
 				props: {
 					user: user.login, 

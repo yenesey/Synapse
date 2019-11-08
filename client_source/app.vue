@@ -35,18 +35,17 @@ v-app
 		v-spacer
 		v-toolbar-title Synapse
 		v-menu(offset-y='', v-if='admin')
-
 			template(v-slot:activator="{ on }")
 				v-btn(icon v-on="on")
 					v-icon(v-html='admin.icon')
-			v-list
-				v-list-item(router='', :to="'/admin/'+item.path", v-for='(item, index) in admin.children', :key='index')
+			v-list(width=200)
+				v-list-item(router, :to="'/admin/'+item.path", v-for='(item, index) in admin.children', :key='index')
 					v-list-item-icon
 						v-icon {{ item.icon }}
 					v-list-item-title {{ item.name }}
 	v-content(ref='content')
 		div.dragbar(@mousedown='initDrag')
-		v-container(style='padding:1.3rem')
+		v-container(style='padding:.5rem 1.0rem')
 			v-slide-y-transition(mode='out-in')
 				keep-alive
 					router-view(:key='$route.fullPath')

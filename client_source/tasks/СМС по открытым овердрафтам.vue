@@ -1,8 +1,8 @@
 ﻿<template lang="pug">
 	div
-		pre.subheading Для формирования файлов по созданным овердрафтам (либо получившим увеличение)
+		pre.subheading Для формирования файлов по созданным (либо увеличившимся) овердрафтам
 		datepicker(name="date1" label="Дата актуализации")
-		v-checkbox(v-model="putFiles" name="putFiles" label="Выложить файлы на отправку")
+
 </template>
 
 

@@ -1,26 +1,44 @@
 <template lang="pug">
 	div
-		div.resizeable(:style="{height: editorHeight, width: '100%'}")
+		div.resizeable(:style="{height: editorHeight + 'px', width: '100%'}")
 			editor.editor-control(v-model='sql', ref='editor-control')
 			div.resize-bar(@mousedown='initDrag')
 
-				v-btn.action(v-on:click='query', title='Запуск (F9 - в активном редакторе)' style='left: 5px;' ) &#x27A4;
+				v-btn.action(v-on:click='query', title='Запуск (F9 - в активном редакторе)' style='left:5px') &#x27A4;
 
-				label.action(style='right:70px') Row limit: 
-				input.action(v-model='maxRows', style='right:5px; width:50px; border: thin solid #acdbff; padding:2px;line-height: 1.0em;')
+				label.action(style='right:90px') Row limit: 
+				input.action(v-model='maxRows', style='right:5px; width:80px; border: thin solid #acdbff; padding:2px;line-height: 1.0em;')
 
 				template(v-if='tableData.length')
 					label.action(style='left:120px') Итого: {{statusString()}} 
-					v-btn.action(v-on:click='saveResult' style='left:350px') Save .csv
-					label.action(style='left:480px')  Фильтр: 
-					input.action(v-model='search', style='left:540px; border: thin solid #acdbff; padding:2px; line-height: 1.0em;')
-		br
+					v-btn.action(v-on:click='saveResult' style='left:450px') Save .csv
+					label.action(style='left:580px')  Фильтр: 
+					input.action(v-model='search', style='left:640px; border: thin solid #acdbff; padding:2px; line-height: 1.0em;')
+
 		wait(v-if='running')
 		pre(v-if='error', style='font-weight:bold') {{error}}    
-		v-data-table.fixed-header.elevation-1.fixed(v-if='tableData.length', v-model='selected', :headers='headers', :items='tableData', :search='search', hide-actions='')
+
+		v-data-table(
+			v-if='tableData.length'
+			:height='tableHeight'
+			dense 
+			fixed-header
+			disable-pagination
+			hide-default-footer
+			v-model='selected'
+			:headers='headers'
+			:items='tableData'
+			:search='search'
+		)
+			// template(v-slot:default)
+				thead
+					tr(v-for='(h) in headers' )
+						th.text-center.subtitle-1 h
+
 			template(slot='items', slot-scope='props')
 				tr(:active='props.selected', @click='props.selected = !props.selected')
 					td.text-xs-left(v-for='(v, k) in props.item') {{ v }}
+
 			v-alert(slot='no-results', :value='true', color='error', icon='warning')
 				| Your search for &quot;{{ search }}&quot; found no results.
 </template>
@@ -58,7 +76,7 @@ export default {
 			error : "",
 			running : false,
 			time : "",
-			editorHeight : '250px',
+			editorHeight : 250,
 			drag : {	
 				startHeight : 0, 
 				startY : 0
@@ -68,7 +86,10 @@ export default {
 	},
 
 	computed : {
-		headers : function(){
+		tableHeight () {
+			return document.documentElement.clientHeight - this.editorHeight - 150
+		},
+		headers () {
 			var rows = this.tableData;
 		
 			if (rows.length === 0) return [];
@@ -125,7 +146,7 @@ export default {
 		doDrag : function(e) {
 			var height = this.drag.startHeight + e.clientY - this.drag.startY;
 			if (height < 32) height = 32;
-			this.editorHeight = height + 'px';
+			this.editorHeight = height;
 		},
 			
 		stopDrag : function (e) {
@@ -233,11 +254,13 @@ table.v-datatable{
 .action {
 	position: absolute;
 	top: 5px;
+
 	line-height: 1.6rem;
 	/*top: 50%;
 		display: block;
 	transform: translateY(-50%);
 	*/
+	max-height: 22px;
 	height: 22px; 
 	padding: 0px;
 	margin: 0px;
@@ -277,28 +300,6 @@ table.v-datatable{
 	bottom: 32px;
 	width: 100%;
 	position: absolute;
-}
-
-/*----------------------------------------------------*/
-
-.fixed-header table {
-		table-layout: fixed;
-}
-
-.fixed-header th {
-		background-color: #fff; /* just for LIGHT THEME, change it to #474747 for DARK */
-		position: sticky;
-		top: 0;
-		z-index: 10;
-}
-
-.fixed-header tr.datatable__progress th {
-		top: 56px;
-}
-
-.fixed-header .v-table__overflow {
-		overflow: auto;
-		height: 500px;
 }
 
 </style>

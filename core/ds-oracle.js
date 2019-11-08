@@ -66,6 +66,7 @@ module.exports = function (config) {
 		// return closeConnection().then(() => { ?? зачем CLOSE? если и так его нет!!!!
 		console.log('[ds-oracle]: ' + err.message)
 		if (ERR_RECONNECT_LIST.includes(err.errorNum)) {
+			connection = null
 			return getConnection()
 		}
 		if (ERR_PASSWORD_EXPIRED === err.errorNum) {

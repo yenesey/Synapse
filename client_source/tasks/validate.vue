@@ -68,16 +68,6 @@
 
       <datepicker name="date2" label="Месяц" type="month"></datepicker> 
 
-    <br>
-    <H2>fileuploader</H2>
-      <br>
-        <fileuploader
-          name="uploader"
-          label="Файл"
-          style="width:350px"
-          multiple
-        />
-
 	</tab>
 
 	<tab name="Второй">
