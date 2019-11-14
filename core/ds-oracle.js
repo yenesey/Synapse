@@ -33,16 +33,14 @@ module.exports = function (config) {
 				connection.module = 'BANK\\OBR'
 				connection.action = 'Http.View 4139'
 				// connection.callTimeout = config.callTimeout || connection.callTimeout
-				return connection
-				/*
+				// return connection
 				var exec = connection.execute.bind(connection)
 				return Promise.all([
-					exec("alter session set NLS_DATE_FORMAT='yyyy-mm-dd'"), // hh24:mi:ss
+					exec("alter session set NLS_DATE_FORMAT='yyyy-mm-dd hh24:mi:ss'"), // hh24:mi:ss
 					exec("alter session set NLS_TIME_FORMAT='hh24:mi:ss'"),
 					exec("alter session set NLS_TIMESTAMP_FORMAT='yyyy-mm-dd hh24:mi:ss'")
 					//	,exec("BEGIN IBS.EXECUTOR.SET_SYSTEM_CONTEXT(true); END;")
 				]).then(() => connection)
-				*/
 			})
 	}
 
@@ -85,8 +83,9 @@ module.exports = function (config) {
 	function exec (sql, binds = {}, options = { maxRows: 10000 }) {
 		return getConnection()
 			.then(() => connection.execute(sql, binds, options))
-			.catch(err => knownErrors(err))
-			.then(() => connection.execute(sql, binds, options))
+			.catch(err => knownErrors(err)
+				.then(() => connection.execute(sql, binds, options))
+			)
 			.then(data => {
 				// data.metaData contains type info when options.extendedMetaData === true
 				return data.rows || data.outBinds

@@ -22,10 +22,8 @@ function createNode (node, level = 0) {
 
 module.exports = function (system) {
 	// -
-	const ADMIN_USERS_ID = system.tree.objects.admin.$('Пользователи').id
-
 	function requireAdmin (req, res, next) {
-		system.checkAccess(req.user, ADMIN_USERS_ID)
+		system.checkAccess(req.user, system.tree.objects.admin.$('users').id)
 		next()
 	}
 

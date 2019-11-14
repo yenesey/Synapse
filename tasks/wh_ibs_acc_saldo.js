@@ -1,6 +1,6 @@
 ﻿
 const oracle = require('oracledb')
-const NUM_ROWS = 10000
+const NUM_ROWS = 1000
 
 function generateMergeStatement (metaData, table) {
 	let len = metaData.length
@@ -22,6 +22,7 @@ module.exports = async function (params, system) {
 	const warehouse = await oracle.getConnection(config.warehouse)
 
 	// let select = await warehouse.execute(`select * from IBS_ACC_FIN`,{}, { maxRows: 10 })
+
 	let result = await ibso.execute(`
 		select
 			ID, 
@@ -41,22 +42,20 @@ module.exports = async function (params, system) {
 		from 
 			VW_CRIT_AC_FIN
 		where
-			(C_16 is null or C_16 >= SYSDATE - 15)
+			1=1
 	`, [],  { resultSet: true })
 
 	const rs = result.resultSet
 	let rows, info
 	let statement = generateMergeStatement(result.metaData, 'WH.IBS_ACC_FIN')
-	// console.log(statement)
-	let count = 0
+
 	do {
 		rows = await rs.getRows(NUM_ROWS)
 		if (rows.length > 0) {
 			info = await warehouse.executeMany(statement, rows,	{ autoCommit: true })
-			count = count + info.rowsAffected
+			console.log(info)
 		}
 	} while (rows.length === NUM_ROWS)
 
 	await rs.close()
-	system.log('DONE! ', count, ' rows affected ')
 }

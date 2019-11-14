@@ -1,22 +1,24 @@
 <template>
+<v-flex class="xs12">
 	<div @keydown="keyPreview">
 		<tabs @add="add" @rename="rename" @close="close" ref="tabs">
 			<dbquery-form/>
 		</tabs>
 
-    <v-dialog v-model="dialog" width="450">
-      <v-card>
-        <v-card-title class="headline">Внимание!</v-card-title>
-        <v-card-text>Текст запроса будет потерян! Уверены, что хотите закрыть вкладку?</v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="red darken-2" flat @click.native="actualClose">Да</v-btn>
-          <v-btn color="blue darken-2" flat @click.native="dialog = false">Нет</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    	<v-dialog v-model="dialog" width="450">
+    	  <v-card>
+    	    <v-card-title class="headline">Внимание!</v-card-title>
+    	    <v-card-text>Текст запроса будет потерян! Уверены, что хотите закрыть вкладку?</v-card-text>
+    	    <v-card-actions>
+    	      <v-spacer></v-spacer>
+    	      <v-btn color="red lighten-2"  @click.native="actualClose">Да</v-btn>
+    	      <v-btn color="blue lighten-4" @click.native="dialog = false">Нет</v-btn>
+    	    </v-card-actions>
+    	  </v-card>
+    	</v-dialog>
 
 	</div>
+</v-flex>	
 </template>
 
 <script>

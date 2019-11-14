@@ -1,4 +1,4 @@
-﻿
+
 const oracle = require('oracledb')
 const NUM_ROWS = 10000
 
@@ -21,32 +21,22 @@ module.exports = async function (params, system) {
 	const ibso = await oracle.getConnection(config.ibso)
 	const warehouse = await oracle.getConnection(config.warehouse)
 
-	// let select = await warehouse.execute(`select * from IBS_ACC_FIN`,{}, { maxRows: 10 })
 	let result = await ibso.execute(`
 		select
 			ID, 
-			C_1 ACCOUNT, 
-			REF3 CLIENT_V, 
-			REF20 CLIENT_R, 
-			C_13 DATE_OPEN, 
-			C_16 DATE_CLOSE, 
-			C_4 NAME, 
-			REF31 DEPART, 
-			UPPER(SUBSTR(C_5,1,1)) TYPE, 
-			REF15 USER_OPEN, 
-			REF18 USER_CLOSE, 
-			C_17 REASON_CLOSE,
-			C_38 NOTES,
-			C_19 STATUS
+			CLASS_ID, 
+			C_3 NAME
 		from 
-			VW_CRIT_AC_FIN
-		where
-			(C_16 is null or C_16 >= SYSDATE - 15)
-	`, [],  { resultSet: true })
+			VW_CRIT_CLIENT
+		where 
+			1=1
+			--(C.C_11 is null or C.C_11 >= SYSDATE - 15)`,
+	[], { resultSet: true }
+	)
 
 	const rs = result.resultSet
 	let rows, info
-	let statement = generateMergeStatement(result.metaData, 'WH.IBS_ACC_FIN')
+	let statement = generateMergeStatement(result.metaData, 'WH.IBS_CLIENTS')
 	// console.log(statement)
 	let count = 0
 	do {
@@ -59,4 +49,5 @@ module.exports = async function (params, system) {
 
 	await rs.close()
 	system.log('DONE! ', count, ' rows affected ')
+
 }

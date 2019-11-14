@@ -4,20 +4,20 @@ import sched from './scheduler.vue'
 //import dbquery from './dbquery.vue'
 
 export default {
-	'Пользователи' : { 
+	'users' : {
 		icon : 'group',
 		component: users
 	},
-	'Планировщик' : { 
+	'scheduler' : {
 		icon : 'schedule',
 		component: sched
 	},
-	'SQL Запрос' : {
+	'sql' : {
 		icon:'view_list', 
 		component: () => import(/*webpackChunkName:"dbquery(async)"*/'./dbquery.vue')  // can add webpackPrefetch: true
 //		component: dbquery
 	},
-	'Задачи' : { 
+	'tasks' : { 
 		icon : 'timeline',
 		component: tasks
 	}

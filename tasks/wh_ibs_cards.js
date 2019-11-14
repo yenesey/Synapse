@@ -1,4 +1,4 @@
-﻿
+
 const oracle = require('oracledb')
 const NUM_ROWS = 10000
 
@@ -21,32 +21,49 @@ module.exports = async function (params, system) {
 	const ibso = await oracle.getConnection(config.ibso)
 	const warehouse = await oracle.getConnection(config.warehouse)
 
-	// let select = await warehouse.execute(`select * from IBS_ACC_FIN`,{}, { maxRows: 10 })
 	let result = await ibso.execute(`
 		select
-			ID, 
-			C_1 ACCOUNT, 
-			REF3 CLIENT_V, 
-			REF20 CLIENT_R, 
-			C_13 DATE_OPEN, 
-			C_16 DATE_CLOSE, 
-			C_4 NAME, 
-			REF31 DEPART, 
-			UPPER(SUBSTR(C_5,1,1)) TYPE, 
-			REF15 USER_OPEN, 
-			REF18 USER_CLOSE, 
-			C_17 REASON_CLOSE,
-			C_38 NOTES,
-			C_19 STATUS
+			C.ID, 
+			C.REF2 TYPE_REF,
+			C.C_2 TYPE_NAME,
+			C.REF3 CLIENT_REF,
+			CT.C_3 IS_MAIN,
+			CT.C_8 IS_OVERDRAFT,
+
+			C.REF5 ACC_REF,
+			C.C_5 ACC_NUM,
+			C.C_6 ACC_DOG_NUM,
+			C.REF7 ACC_PRODUCT_REF,
+			nvl(DP.C_10, RKO.C_2) ACC_PRODUCT_NAME,
+
+			C.C_10 DATE_BEGIN, -- дата создания
+			C.C_9  DATE_BEGINING, --начала действия
+			C.C_11 DATE_CLOSE, -- закрытия
+			C.C_12 DATE_ENDING, -- окончания действия 
+
+			C.REF14 PRODUCT_REF,
+			C.C_14  PRODUCT_NAME,
+
+			C.STATE_ID STATE,
+			C.C_8 STATE_NAME,
+			C.REF16 PC_STATUS_REF,
+			C.C_16 PC_STATUS,
+
+			C.REF23 DEPART_REF,
+			C.C_23  DEPART_NAME
 		from 
-			VW_CRIT_AC_FIN
+			VW_CRIT_VZ_CARDS C
+				left join VW_CRIT_IP_CARD_TYPE CT on C.REF2 = CT.ID
+				left join VW_CRIT_DEPN_PLPLUS DP on C.REF7 = DP.ID
+				left join VW_CRIT_RKO RKO on C.REF7 = RKO.ID
 		where
-			(C_16 is null or C_16 >= SYSDATE - 15)
-	`, [],  { resultSet: true })
+			(C.C_11 is null or C.C_11 >= SYSDATE - 15)`,
+	[], { resultSet: true }
+	)
 
 	const rs = result.resultSet
 	let rows, info
-	let statement = generateMergeStatement(result.metaData, 'WH.IBS_ACC_FIN')
+	let statement = generateMergeStatement(result.metaData, 'WH.IBS_CARDS')
 	// console.log(statement)
 	let count = 0
 	do {
@@ -59,4 +76,5 @@ module.exports = async function (params, system) {
 
 	await rs.close()
 	system.log('DONE! ', count, ' rows affected ')
+
 }

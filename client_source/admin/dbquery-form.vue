@@ -4,21 +4,35 @@
 			editor.editor-control(v-model='sql', ref='editor-control')
 			div.resize-bar(@mousedown='initDrag')
 
-				v-btn.action(v-on:click='query', title='Запуск (F9 - в активном редакторе)' style='left:5px') &#x27A4;
+				v-btn.action(v-on:click='query', title='Запуск (F9 - в активном редакторе)' style='float:left') &#x27A4;
 
-				label.action(style='right:90px') Row limit: 
-				input.action(v-model='maxRows', style='right:5px; width:80px; border: thin solid #acdbff; padding:2px;line-height: 1.0em;')
+
+				input.action.border(v-model='maxRows')
+				label.action Кол-во строк: 
+				label.action &nbsp;
+
+				v-menu(offset-y='')
+					template(v-slot:activator="{ on }") 
+						input.action.border(v-model='connection' v-on="on")
+					v-list(width=200)
+						v-list-item(v-for='(el) in conns' :key='el'  @click='connection = el')
+							v-list-item-title {{ el }}
+
+				label.action(style='float:right;') Источник: 
 
 				template(v-if='tableData.length')
-					label.action(style='left:120px') Итого: {{statusString()}} 
-					v-btn.action(v-on:click='saveResult' style='left:450px') Save .csv
-					label.action(style='left:580px')  Фильтр: 
-					input.action(v-model='search', style='left:640px; border: thin solid #acdbff; padding:2px; line-height: 1.0em;')
+					label.action(style='float:left') Итого: {{statusString()}}
+					v-btn.action(v-on:click='saveResult' style='float:left') Save .csv
 
-		wait(v-if='running')
+					label.action(style='float:left;') Фильтр:
+					input.action.border(v-model='search' style='float:left; width: 120px;')
+
+
+		wait(v-if='running' style='margin: 10px')
 		pre(v-if='error', style='font-weight:bold') {{error}}    
 
 		v-data-table(
+			style='margin-top:10px'
 			v-if='tableData.length'
 			:height='tableHeight'
 			dense 
@@ -69,8 +83,10 @@ export default {
 	data : function(){
 		return {
 			sql : 'select * from V$NLS_PARAMETERS --показать параметры сессии',
+			conns: null,
+			connection: 'warehouse',
 			editor : null,
-			maxRows: 10,
+			maxRows: 40,
 			tableData : [],
 			search : "",
 			error : "",
@@ -83,6 +99,16 @@ export default {
 			},
 			selected: [],
 		}
+	},
+
+	created () {
+		pxhr({method:'GET', url: 'dbquery/connections'})
+ 	  	   .then(res => {
+ 	  	   		this.conns = res
+ 	  	  	})
+ 	  	 	.catch(err => {
+ 	  	  	 	console.log(err)
+			})
 	},
 
 	computed : {
@@ -119,17 +145,22 @@ export default {
 		}
 
 	},
-
+	
 	components: {
 		editor: editor
 	},
 
+	watch : {
+		sql () {
+			this.save()
+		},
+		connection () {
+			this.save()
+		}
+	},
+
 	mounted : function(){
-		var self = this; 
-		self.$watch('sql', function(){
-			self.save()
-		})
-		self.editor = self.$refs['editor-control'].editor;
+		this.editor = this.$refs['editor-control'].editor;
 	},
 
 	methods: {
@@ -165,10 +196,11 @@ export default {
 			var item = localStorage.getItem( this.url() );
 			if (item)	{
 				try {
-					item = JSON.parse(item);
-					this.sql = item.sql;
-					this.$parent.tab.name = item.tab;
-					this.editorHeight = item.editorHeight || '250px';
+					item = JSON.parse(item)
+					this.sql = item.sql
+					this.$parent.tab.name = item.tab
+					this.editorHeight = item.editorHeight || '250px'
+					this.connection = item.connection
 				}	catch(err){
 					console.log(err)
 				}	
@@ -176,7 +208,7 @@ export default {
 		},
 
 		save : function(){
-			localStorage.setItem(this.url(), JSON.stringify( {tab : this.$parent.name, sql : this.sql, editorHeight: this.editorHeight} ));			
+			localStorage.setItem(this.url(), JSON.stringify( {tab : this.$parent.name, sql : this.sql, editorHeight: this.editorHeight, connection: this.connection} ));			
 		},
 
 		remove : function(){
@@ -218,6 +250,7 @@ export default {
 
 			pxhr({ method:'post', url:'dbquery', timeout : 60000*30, 
 				data: {
+					connection: this.connection,
 					sql : this.sql,
 					maxRows: this.maxRows
 				}
@@ -252,19 +285,21 @@ table.v-datatable{
 */
 
 .action {
-	position: absolute;
-	top: 5px;
-
-	line-height: 1.6rem;
-	/*top: 50%;
-		display: block;
+	padding: 2px;
+	line-height: 1.0em;
+	float: right;
+	margin: 5px;
+	/* top: 50%;
 	transform: translateY(-50%);
 	*/
 	max-height: 22px;
 	height: 22px; 
-	padding: 0px;
-	margin: 0px;
 	text-transform: none;
+}
+
+.border {
+	border: thin solid #acdbff;
+	width: 80px;
 }
 
 .resizeable {

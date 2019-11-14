@@ -116,7 +116,7 @@ module.exports = function (system) {
 		// файл|ldap не указан? значит это запрос в ibso
 
 		// todo: проверка доступа по реквизиту - слишком навороченная и мало понятная штука. переосмыслить!!!
-		let access = system.access(user, { object: system.tree.objects.ibs._id(query.table) })
+		let access = system.access(user, { object: system.tree.objects.ibs.$(query.table).id })
 		if (!access.granted) {
 			res.json({ error: 'Access denied!' })
 			return

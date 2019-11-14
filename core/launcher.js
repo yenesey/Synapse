@@ -56,12 +56,17 @@ module.exports = function (cfg) {
 			argv = argv.replace(/"/g, "'") // --меняем <"> на <'>*
 			options.cwd = cfg.path.xtech
 			if (Number(params.log) !== 0)	options.log = 3
-		} else {
+		} else if (params.task.class === 'tasks') {
 			runtime = 'node'
 			args.push('--harmony')
 			args.push('--trace-warnings')
 			args.push('$launcher.js')
 			options.cwd = path.join(/* path.dirname(require.main.filename) */ process.cwd(), 'tasks')
+			if (Number(params.log) !== 0)	options.log = 4
+		} else if (params.task.class === 'tasks2') {
+			runtime = 'node'
+			args.push('$launcher.js')
+			options.cwd = path.join(/* path.dirname(require.main.filename) */ process.cwd(), 'tasks2')
 			if (Number(params.log) !== 0)	options.log = 4
 		}
 

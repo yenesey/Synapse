@@ -178,12 +178,14 @@ module.exports = async function (param, system) {
 			if (result === 0) console.log('АШИПКА!!!')
 		})
 
+	if (grow.length === 0 && debt.length === 0) console.log('Сегодня технические овердафты отсутствуют')
 
-	if (debt.length) {
+	if (debt.length > 0) {
+		console.log('')
 		console.log('[Овердрафты]')
 		console.log(debt)
 	}
-	if (grow.length) {
+	if (grow.length > 0) {
 		console.log('')
 		console.log('[Увеличение]')
 		console.log(grow)

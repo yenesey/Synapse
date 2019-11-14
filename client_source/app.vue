@@ -45,7 +45,7 @@ v-app
 					v-list-item-title {{ item.name }}
 	v-content(ref='content')
 		div.dragbar(@mousedown='initDrag')
-		v-container(style='padding:.5rem 1.0rem')
+		.content.fluid(style='padding:.5rem 1.0rem')
 			v-slide-y-transition(mode='out-in')
 				keep-alive
 					router-view(:key='$route.fullPath')
@@ -77,10 +77,10 @@ export default {
 	computed : {
 		devServer: () => window.location.port !== '',
 		admin() {
-			return this.routes.find(r=>r.path==='/admin')
+			return this.routes.find(r => r.path === '/admin')
 		},
 		tasks () {
-			var _tasks = this.routes.find(r=>r.path==='/tasks');
+			var _tasks = this.routes.find(r=>r.path === '/tasks');
 			if (_tasks && _tasks.children)
 				return keys(_tasks.children, 'menu' /*menu is objects.class in synapse.db*/ )
 			return {}
@@ -240,13 +240,13 @@ nav .v-list .v-list-group--active {
 	*/
 } 
 
-.container h3 {
+.content h3 {
 	margin-top:0;
 	color:#57768A;
 	font-size: 1.1em; 
 }
 
-.container pre{
+.content pre{
 	font-family: monospace;
 	color: teal; 
 	font-size: 1.15em; 

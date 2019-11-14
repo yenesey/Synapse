@@ -27,7 +27,6 @@ import vuetify from './vuetify'
 	return reg
 })(require.context('./components', false, /\.vue$/))(require.context('./tasks/components', false, /\.vue$/))
 
-
 import taskWrapper from './task.vue'
 import admin from './admin/admin.js'
 import App from './app.vue'
@@ -63,9 +62,9 @@ _.pxhr({method: 'get', url: 'users/access'})
 			// name: 'Админ',
 			icon: 'settings',
 			component: {render: (h) => h('router-view')}, 
-			children: access.admin.map(el=>({
-					name: el.name,
-					path: String(el.id),
+			children: access.admin.map(el => ({
+					name: el.description,
+					path: el.name,
 					icon: admin[el.name].icon,
 					component: admin[el.name].component
 				})
@@ -101,7 +100,31 @@ _.pxhr({method: 'get', url: 'users/access'})
 			})
 		})
 	} 
-
+/*
+	if (access.tasks2  && access.tasks2.length) {
+		routes.push({
+			path: '/tasks2',
+			// name: 'Tasks'
+			icon: 'filter_2',
+			component: {render: (h) => h('router-view')},
+			children: access.tasks2.sort((a, b) => (a.id === b.id ? 0: a.id > b.id ? 1: -1) ).map(el => {
+				let obj = { render: (h) => h('pre', {}, [el.description] ) }
+				return {  
+					name: el.name,
+					path: String(el.id),
+					icon: el.icon,
+					menu: el.menu || 'default',
+					component: {
+						render: (h) => h(
+							el.menu !== 'tools' ? taskWrapper : 'div', 
+							{ props: {  id: el.id,  name: el.name } },  [ h(obj, {slot: 'default'}) ]   
+						) 
+					}
+				}
+			})
+		})
+	}
+*/
 	// запускаем приложение:
 	new Vue({ 
 		el: '#app',

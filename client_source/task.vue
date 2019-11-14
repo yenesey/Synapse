@@ -36,9 +36,9 @@
 					</div>	
 				</div>
 			</div>
-	 </transition>
+	 	</transition>
 	
-		<pre v-if="text" style="font-weight:bold">{{text}}</pre>
+	 	<pre v-if="text" style="line-height: 1.2em;">{{text}}</pre>
 	</div>
 </template>
 

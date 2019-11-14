@@ -252,7 +252,7 @@ module.exports = function (system) {
 	})
 
 	this.get('/tasks', function (req, res) {
-		system.checkAccess(req.user, system.tree.objects.admin.$('Планировщик').id)
+		system.checkAccess(req.user, system.tree.objects.admin.$('scheduler').id)
 		let tasks = system.tree.objects.tasks
 		let map = Object.keys(tasks).map(task => ({ ...tasks.$(task), name: task }))
 		res.json(map)
