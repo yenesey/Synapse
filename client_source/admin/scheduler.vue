@@ -143,7 +143,7 @@ const schema = {
 	print: '',
 	schedule: '* * * * * *',
 	state: 'OK',
-	enabled: false
+	enabled: 0
 }
 
 /*
@@ -176,7 +176,7 @@ export default {
 			tasksLoading: false,
 
 			usersCached: [],
-			emails: [''],
+			emails: {},
 
 			jobs: {}, // {key1: schema, key2: schema, .... keyN: schema}
 			key: '',
@@ -263,14 +263,16 @@ export default {
 			for (let key in data) {
 				// let item = merge(schema, data[key]) // подстраховка от кривой схемы
 				let item = data[key]
-				if (key in jobs) {
-					mutate(jobs[key], item)
-					mutate(jobsShadow[key], item)
-				} else {
-					$set(jobs, key, item)
-					$set(jobsShadow, key, clone(item))
+				if (item) {
+					if (key in jobs) {
+						mutate(jobs[key], item)
+						mutate(jobsShadow[key], item)
+					} else {
+						$set(jobs, key, item)
+						$set(jobsShadow, key, clone(item))
+					}
+					if (this.key === key) job = this.jobs[key]
 				}
-				if (this.key === key) job = this.jobs[key]
 			}
 		},
 

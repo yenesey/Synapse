@@ -45,8 +45,8 @@
 <script>
 import {extName, pxhr} from 'lib';
 import Vue from 'vue';
-import moment from 'moment';
-Vue.prototype.moment = moment;
+import day from 'dayjs';
+Vue.prototype.day = day;
 
 import excel from './assets/file-types/xlsx.png';
 import word from './assets/file-types/docx.png';

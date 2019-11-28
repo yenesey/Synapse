@@ -6,7 +6,8 @@
 
 module.exports = async function (param, system) {
 	// -
-	const ora = require('synapse/ds-oracle')(system.config.ibs)
+	const { oracle } = system.config
+	const ora = require('synapse/ds-oracle')(oracle.ibso)
 
 	let rec = await ora(`
 	SELECT
@@ -156,7 +157,7 @@ module.exports = async function (param, system) {
 			`Уважаемый клиент! Информируем об увеличении задолженности по карте ${el.card} до размера ${el.debt.toFixed(2)}` +
 			'\r\n', '')
 
-	const t2000 = require('synapse/ds-oracle')(system.config.t)
+	const t2000 = require('synapse/ds-oracle')(oracle.t)
 
 	await t2000(`begin :result := SYSADM.EXCHANGE.F_CreateTask_SMS_Overdraft(:debt); end;`,
 		{

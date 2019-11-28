@@ -13,7 +13,7 @@ const assert = require('assert')
 
 function createNode (node, level = 0) {
 	return Object.keys(node).map(key => ({
-		id: node.$(key).id,
+		id: node._[key].id,
 		name: key,
 		description: node[key] && node[key].description ? node[key].description : '',
 		children: (node[key] instanceof Object && level < 1) ? createNode(node[key], level + 1) : undefined
@@ -23,7 +23,7 @@ function createNode (node, level = 0) {
 module.exports = function (system) {
 	// -
 	function requireAdmin (req, res, next) {
-		system.checkAccess(req.user, system.tree.objects.admin.$('users').id)
+		system.checkAccess(req.user, system.tree.objects.admin._.users.id)
 		next()
 	}
 
@@ -69,7 +69,7 @@ module.exports = function (system) {
 
 	this.get('/', requireAdmin, function (req, res) {
 		let users = system.tree.users
-		let map = Object.keys(users).map(user => ({ ...users.$(user), login: user }))
+		let map = Object.keys(users).map(user => ({ id: users._[user].id, ...users[user] , login: user }))
 			.filter(el => (req.query['show-disabled'] === 'true' || !(el['disabled'])))
 		res.json(map)
 	})
@@ -82,7 +82,7 @@ module.exports = function (system) {
 		let login = req.query.login
 		assert(login, 'В запросе отсутствует ключевой реквизит - login')
 		let users = system.tree.users
-		res.json(users.$(login))
+		res.json({id: users._[login].id, ...users[login]})
 	})
 
 	this.put('/user', bodyParser.json(), requireAdmin, function (req, res) { // операция добавления/редактирования пользователя
@@ -98,7 +98,7 @@ module.exports = function (system) {
 			// создаем новую ветку в пользователях
 			users[user.login] = user
 		}
-		res.json(users.$(user.login))
+		res.json({ id: users._[user.login].id, ...users[user.login] })
 	})
 
 	/*

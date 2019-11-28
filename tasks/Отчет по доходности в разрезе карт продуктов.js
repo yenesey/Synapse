@@ -1,32 +1,196 @@
-﻿/*
+﻿/* eslint-disable camelcase */
 
+const path = require('path')
+const dayjs = require('dayjs')
+const XlsxPopulate = require('xlsx-populate')
+
+/**
+* список полей с именами продуктов из вьюхи V_IBS_CARDS_PRODUCTS
 */
-const fs = require("fs")
-const path = require("path")
-const XlsxTemplate = require('xlsx-template')
+const FIELDS = [
+	'visa_platinum',
+	'visa_k_n',
+	'visa_infinite',
+	'visa_gold',
+	'visa_electron',
+	'visa_classic',
+	'mir',
+	'mc_world_elite',
+	'mc_std_paypass',
+	'mc_platinum',
+	'mc_maestro_express',
+	'mc_k_n',
+	'mc_gold',
+	'mc_express',
+	'mc_clock'
+]
+
+/**
+ * Карт. продукты Таврического (для задания набора и порядка полей)
+ */
+const PRODUCTS_TB = [
+	'visa_electron',
+	'visa_classic',
+	'visa_gold',
+	'visa_platinum',
+	'visa_infinite',
+	'visa_k_n',
+	'mc_maestro_express',
+	'mc_express',
+	'mc_std_paypass',
+	'mc_gold',
+	'mc_clock',
+	'mc_k_n',
+	'mir'
+]
+
+/**
+ * Карт. продукты МФК (для задания набора и порядка полей)
+ */
+const PRODUCTS_MFK = [
+	'visa_classic',
+	'visa_gold',
+	'visa_platinum',
+	'visa_infinite',
+	'mc_std_paypass', // 'ex mc_standard'
+	'mc_gold',
+	'mc_platinum',
+	'mc_world_elite'
+]
+
+function fold (res, el) {
+	for (let key in el) res[key] += el[key]
+	return res
+}
+
+function createRow (select) {
+	let initial = () => FIELDS.reduce((all, f) => { all[f] = 0; return all }, {})
+	let row = []
+	let _tb = select.filter(el => el.mfk === 0).reduce(fold, initial())
+	let _mfk =  select.filter(el => el.mfk === 1).reduce(fold, initial())
+	for (let prod of PRODUCTS_TB) {
+		row.push(_tb[prod] || 0)
+	}
+	for (let prod of PRODUCTS_MFK) {
+		row.push(_mfk[prod] || 0)
+	}
+	return row
+}
 
 module.exports = async function (param, system) {
-	const ora = require('synapse/ds-oracle')(system.config.ibs)
+	const { warehouse } = system.config.oracle
+	const oracle = require('synapse/ds-oracle')(warehouse)
 
-	/*const table = await ora(`
-		`
-			{},	
-			{maxRows : 10000}
+	const date1 = dayjs(param.period).startOf('month').toDate()
+	const date2 = dayjs(param.period).endOf('month').toDate()
+
+	/**
+	 * Три первых строчки по количеству карт
+	 */
+	let sum_fields = FIELDS.reduce((all, f, i) => all + `sum(${f}) "${f}"` + (i < FIELDS.length - 1 ? ',' : ''), '')
+	let result = await oracle(`with report as ( 
+		select
+			C.*,
+			(case 
+				when exists (select id from IBS_TRANSACTIONS where CARD_REF = C.ID and CREATED between :date1 and :date2) 
+				then 1 
+				else 0 
+			end) ACT 
+		from 
+			V_CARDS_BY_PRODUCTS C
+		where 
+			(DATE_CLOSE is null or DATE_CLOSE > :date2) and DATE_BEGIN < :date2
+		)       
+		select
+			mfk "mfk", act "act", zp "zp",
+			${sum_fields}	
+		from 
+			report
+		group by
+			mfk, act, zp
+		`,
+	{ date1, date2 }
 	)
 
-	if (!table.length){
-		console.log('Нет данных для вывода по указанным параметрам.');
-		process.exit(0);
-	}
-	*/
-	
-	var sheetData = {
-		period : param.period.split("-").reverse().join("."),
-	}
-	var binData = fs.readFileSync(path.join(__dirname, 'templates', 'Отчет по доходности в разрезе карт продуктов.xlsx'))
-	var template = new XlsxTemplate(binData)
-	template.substitute(1, sheetData)
-	binData = template.generate()
-	fs.writeFileSync(`${param.task.path}/Отчет по доходности в разрезе карт продуктов.xlsx`, binData, 'binary')
+	let amount = createRow(result) // всего
 
+	result = result.filter(el => el.act === 1)  // из них активных
+	let amount_act = createRow(result)
+
+	result = result.filter(el => el.zp === 1) // из них активных по зарплатным
+	let amount_act_zp = createRow(result)
+
+	/**
+	 * Выпущенных на дату
+	 */
+	result = await oracle(`select mfk "mfk", ${sum_fields} from V_CARDS_BY_PRODUCTS
+		where DATE_BEGIN > :date1 and DATE_BEGIN < :date2 and PAN is not null
+		group by mfk
+	`,
+	{ date1, date2 }
+	)
+
+	let emitted = createRow(result)
+
+	/**
+	 * Эмбоссированных на дату
+ 	*/
+
+	result = await oracle(`select mfk "mfk", ${sum_fields} from V_CARDS_BY_PRODUCTS 
+		where DATE_BEGIN > '2019-01-01'	and (DATE_CLOSE is null or DATE_CLOSE > :date2) and PAN is not null
+		group by mfk
+	`,
+	{ date2 }
+	)
+	let embossed = createRow(result)
+
+	/**
+	* Суммы по транзакциям за период
+ 	*/
+
+	sum_fields = FIELDS.reduce((all, f, i) => all + `sum(case when ${f}=1 then T.SUM_NT else 0 END) "${f}"` + (i < FIELDS.length - 1 ? ',\r\n' : ''), '')
+	var sql_amount_trn = `
+		select 
+			C.mfk "mfk",
+			${sum_fields}
+		from 
+			IBS_TRANSACTIONS T inner join V_CARDS_BY_PRODUCTS C on T.CARD_REF = C.ID
+		where 
+			lower(TRN_TYPE) like :bank_other
+			and PROCEEDED >= :date1 and PROCEEDED <= :date2
+		group by mfk	
+	`
+	result = await oracle(sql_amount_trn, { date1, date2, bank_other: '%получ%наше%' })
+	let	trn_bank = createRow(result)
+
+	result = await oracle(sql_amount_trn, { date1, date2, bank_other: '%получ%чуж%' })
+	let	trn_other = createRow(result)
+
+	/*
+	trn_other_rub,
+	trn_other_val,
+	trn_merch,
+	trn_merch_rub,
+	trn_merch_val,
+	trn_merch_return
+	*/
+	let period = param.period.split('-').reverse().join('.')
+
+	XlsxPopulate.fromFileAsync(path.join(__dirname, 'templates', 'Отчет по доходности в разрезе карт продуктов.xlsx'))
+		.then(workbook => {
+			let sheet = workbook.sheet('template').name(period)
+			sheet.cell('C1').find(/period/, match => period)
+
+			sheet.cell('C6').value([amount])
+			sheet.cell('C7').value([amount_act])
+			sheet.cell('C8').value([amount_act_zp])
+
+			sheet.cell('C9').value([emitted])
+			sheet.cell('C11').value([embossed])
+
+			sheet.cell('C19').value([trn_bank])
+			sheet.cell('C21').value([trn_other])
+
+			return workbook.toFileAsync(`${param.task.path}/Отчет по доходности в разрезе карт продуктов.xlsx`)
+		})
 }

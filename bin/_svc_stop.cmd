@@ -1,1 +1,0 @@
-sc \\synapse stop synapse

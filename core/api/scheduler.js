@@ -23,7 +23,7 @@ module.exports = function (system) {
 	const crons = {} // хранилище CronJob-ов. ключи те же что и у jobs
 	const sockets = {} // хранилище Websockets - соединений
 
-	const launcher = require('../launcher.js')(config)
+	const launcher = require('../launcher.js')(config, system.log)
 	const folder = require('../user-folders.js')(config.path.users, config.tasks.history)
 	const mail = email.server.connect(config.mail)
 
@@ -51,8 +51,8 @@ module.exports = function (system) {
 
 	function schedule (key) { // повесить job на расписание
 		if (key in jobs) destroy(key)
-
 		let job = jobs[key]
+		job.state = 'ok'
 		try {
 			// crons[key] инициализируется в объект с методами .start() .stop()
 			crons[key] = new CronJob(job.schedule, task(key), function () {}, Boolean(job.enabled))
@@ -121,7 +121,7 @@ module.exports = function (system) {
 
 		function error (stdout) {
 			try {
-				let to = system.getUsersHavingAccess(system.tree.objects.groups.$('Администраторы').id)
+				let to = system.getUsersHavingAccess(system.tree.objects.groups._['Администраторы'].id)
 					.map(el => el.email).join(',')
 				if (to.length) {
 					mail.sendp({
@@ -149,7 +149,6 @@ module.exports = function (system) {
 				}
 			}
 			// todo: разослать состояние выполнения задачи всем wss
-
 			job.state = 'running'
 
 			broadcast(key, { state: 'running' })
@@ -205,8 +204,8 @@ module.exports = function (system) {
 			switch (action) {
 			case 'create':
 				// autoinc key
-				key = String(Object.keys(jobs).reduce((res, key) => Math.max(res, Number(key)), 0) + 1)
-				jobs[key] = payload
+				// key = String(Object.keys(jobs).reduce((res, key) => Math.max(res, Number(key)), 0) + 1)
+				key = jobs.push(payload) - 1
 				schedule(key)
 				broadcast(key, jobs[key])
 				break
@@ -252,9 +251,9 @@ module.exports = function (system) {
 	})
 
 	this.get('/tasks', function (req, res) {
-		system.checkAccess(req.user, system.tree.objects.admin.$('scheduler').id)
+		system.checkAccess(req.user, system.tree.objects.admin._.scheduler.id)
 		let tasks = system.tree.objects.tasks
-		let map = Object.keys(tasks).map(task => ({ ...tasks.$(task), name: task }))
+		let map = Object.keys(tasks).map(task => ({ id: tasks._.task.id, ...tasks.task, name: task }))
 		res.json(map)
 	})
 }

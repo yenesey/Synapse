@@ -15,6 +15,9 @@ function generateMergeStatement (metaData, table) {
 		'when not matched then insert\n    ' + heads + '\nvalues ' + values
 }
 
+
+https://www.npmjs.com/package/objectmodel
+
 const props = {
 	date: Date,
 	makeFiles: Boolean,

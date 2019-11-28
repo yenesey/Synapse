@@ -44,9 +44,17 @@ _.pxhr({method: 'get', url: 'users/access'})
 
 	var menuGroups = user.access.filter(el => el.class === 'menu').sort((a, b) => a.id === b.id ? 0: a.id > b.id ? 1: -1)
 	if (menuGroups.findIndex(el => el.name === 'default') === -1) 
-		menuGroups.unshift( {name: 'default', icon: 'chevron_right'} )
+		menuGroups.unshift({name: 'default', icon: 'chevron_right'})
 
-	var access = _.keys(user.access, 'class', el=>el.granted && !user.disabled) // берем только те, к которым доступ предоставлен
+	var access = _.keys(user.access, 'class', el => el.granted && !user.disabled) // берем только те, к которым доступ предоставлен
+
+	/**
+	 * router = {
+	 *		path: '',
+	 *		component: '' ,
+	 *		children: [ {...router}, {...router} ]
+	 * }
+	 */
 
 	var routes = [ // маршруты для Vue-router
 		{
@@ -100,31 +108,7 @@ _.pxhr({method: 'get', url: 'users/access'})
 			})
 		})
 	} 
-/*
-	if (access.tasks2  && access.tasks2.length) {
-		routes.push({
-			path: '/tasks2',
-			// name: 'Tasks'
-			icon: 'filter_2',
-			component: {render: (h) => h('router-view')},
-			children: access.tasks2.sort((a, b) => (a.id === b.id ? 0: a.id > b.id ? 1: -1) ).map(el => {
-				let obj = { render: (h) => h('pre', {}, [el.description] ) }
-				return {  
-					name: el.name,
-					path: String(el.id),
-					icon: el.icon,
-					menu: el.menu || 'default',
-					component: {
-						render: (h) => h(
-							el.menu !== 'tools' ? taskWrapper : 'div', 
-							{ props: {  id: el.id,  name: el.name } },  [ h(obj, {slot: 'default'}) ]   
-						) 
-					}
-				}
-			})
-		})
-	}
-*/
+
 	// запускаем приложение:
 	new Vue({ 
 		el: '#app',

@@ -5,15 +5,18 @@
 */
 
 const path = require('path')
+const ROOT_DIR = path.join(__dirname, '..')
+const FORCE_ARRAYS = true
+
 const util = require('util')
 const assert = require('assert')
 const chalk = require('chalk')
 const fs = require('fs')
-const ROOT_DIR = path.join(__dirname, '..')
-const promisify = util.promisify
 const recurse = require('./lib').recurse
-const db = require('./sqlite')(path.join(ROOT_DIR, 'db/synapse.db'))
-const treeMapper = require('./sqlite-tree-mapper')(db, 'system')
+
+const treeStorage = require('sqlite-tree-store')
+const tree = treeStorage(path.join(ROOT_DIR, 'db/synapse.db'), 'system', FORCE_ARRAYS)
+
 // ---------------------------------------------------------------------------
 const system = {}
 
@@ -39,15 +42,14 @@ system.errorHandler = function (err, req, res, next) {
 }
 
 // ---------------------------------------------------------------------------------------------
-
 system.dateStamp = function () {
 	let dt = new Date()
-	//return dt.getFullYear() + '-' + String(dt.getMonth()+1) + '-' + dt.getDate() + ' ' + dt.getHours() + ':' + dt.getMinutes() + ':' + dt.getMilliseconds()
+	// return dt.getFullYear() + '-' + String(dt.getMonth()+1) + '-' + dt.getDate() + ' ' + dt.getHours() + ':' + dt.getMinutes() + ':' + dt.getMilliseconds()
 	return dt.toLocaleDateString('ru', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + dt.toLocaleTimeString('ru', { hour12: false })
 }
 
 system.log = function (...args) {
-	let stamp = this.dateStamp()
+	let stamp = system.dateStamp()
 	console.log(chalk.reset.cyan.bold(stamp) + ' ' +
 		args.reduce((all, arg) => all + ((typeof arg === 'object') ? util.inspect(arg, { colors: true }) : arg), '')
 	)
@@ -123,7 +125,7 @@ system.access = function (user, options = {}) {
 		if (level === 0) {
 			_class = key
 		} else {
-			let id = node.$(key).id
+			let id = node._[key].id
 			let granted = userAcl.includes(id)
 			if (
 				(!('class' in options) || _class === options['class']) &&
@@ -145,7 +147,7 @@ system.access = function (user, options = {}) {
 system.getUser = function (login) {
 	let { users } = this.tree
 	assert(login in users, 'Пользователь ' + login + ' не зарегистрирован')
-	return { login: login, ...users.$(login) }
+	return { login: login, ...users[login] }
 }
 
 system.checkAccess = function (user, object) {
@@ -165,26 +167,19 @@ system.getUsersHavingAccess = function (objectId) {
 }
 
 /// /////////////////////////////////////////////////////////////////////
-module.exports = treeMapper().then(tree => {
-	system.tree = tree
-	system.config = system.tree.config
-	const config = system.config
-	// eslint-disable-all
-	for (var key in config.path) {
-		if (!path.isAbsolute(config.path[key])) { // достраиваем относительные пути до полных
-			config.path._[key] = path.join(ROOT_DIR, config.path[key])
-		}
-	}
-	config.path._.root = ROOT_DIR
 
-	if (config.ssl.cert) {
-		return promisify(fs.readFile)(path.join(ROOT_DIR, 'sslcert', config.ssl.cert))
-			.then(cert => {
-				config.ssl._.certData = cert
-			})
-			.catch(err => system.errorHandler(err))
-			.then(() => system)
+system.tree = tree()
+system.config = system.tree.config
+const config = system.config
+// eslint-disable-all
+for (var key in config.path) {
+	if (!path.isAbsolute(config.path[key])) { // достраиваем относительные пути до полных
+		config.path._[key] = path.join(ROOT_DIR, config.path[key])
 	}
+}
+config.path._.root = ROOT_DIR
+if (config.ssl.cert) {
+	config.ssl._.certData = fs.readFileSync(path.join(ROOT_DIR, 'sslcert', config.ssl.cert))
+}
 
-	return system
-})
+module.exports = system

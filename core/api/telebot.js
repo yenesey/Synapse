@@ -8,9 +8,9 @@ const ora = require('../ds-oracle')
 
 module.exports = function (system) {
 	//
-	const config = system.config
-	const ibso = ora(config.ibs)
-	const t2000 = ora(config.t)
+	const oracle = system.config.oracle
+	const ibso = ora(oracle.ibso)
+	const t2000 = ora(oracle.t)
 
 	// авторизация
 	this.get('/auth', function (req, res) { // /telebot/auth?phone_num=XXXXXXXXXX

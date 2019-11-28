@@ -1,15 +1,14 @@
 ﻿<template lang="pug">
 div
-	datepicker(label="Дата отчета" name="period" type="month" :value="moment().add(-1, 'month').format('YYYY-MM')")
-
+	pre.subheading Отчет по доходности по карт.- продуктам
+	datepicker(label="Дата отчета" name="period" type="month" :value="day().add(-1, 'month').format('YYYY-MM')")
+	v-checkbox(v-model='debug' label='Вывести отладочную инфу')
 </template>
 
 <script>
 export default {
-	methods: {
-		getLabel : function(item){
-			return item.C_1 
-		}
-	}
+	data:()=>({ 
+		debug: false
+	})
 }
 </script>

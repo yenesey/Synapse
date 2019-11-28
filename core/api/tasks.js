@@ -31,7 +31,7 @@ function tryBoolean (string) {
 module.exports = function (system) {
 	const config = system.config
 	const folder = require('../user-folders.js')(config.path.users, config.tasks.history)
-	const launcher = require('../launcher.js')(config)
+	const launcher = require('../launcher.js')(config, system.log)
 
 	function launch (params, req, res) {
 		//	req.connection.on('close', function(){}); //закрытие соединения

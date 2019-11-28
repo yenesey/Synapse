@@ -11,11 +11,12 @@ process.on('unhandledRejection', r => { // по-умолчанию node НЕ с�
 (function () {
 	var task = require('./' + process.argv[2])
 	var param = JSON.parse(process.argv[3])
-	if (task.length === 1) {
+	if (task.length === 2) {
+		let system = require('synapse/system')
+		task(param, system)
+	} else if (task.length === 1) {
 		task(param)
 	} else {
-		require('synapse/system')
-			.then(system => task(param, system))
-			// .catch(err=>{	console.log(err.stack);	process.exit(1) })
+		task()
 	}
 })()

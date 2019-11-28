@@ -76,7 +76,7 @@ module.exports = function (system) {
 	}
 
 	const ldap = require('../ds-ldap')(config.ntlm)
-	const ora = require('../ds-oracle')(config.ibs)
+	const ora = require('../ds-oracle')(config.oracle.ibso)
 	const sqlite = require('../ds-sqlite')()
 
 	this.post('/', bodyParser.json(), function (req, res) {
@@ -116,7 +116,7 @@ module.exports = function (system) {
 		// файл|ldap не указан? значит это запрос в ibso
 
 		// todo: проверка доступа по реквизиту - слишком навороченная и мало понятная штука. переосмыслить!!!
-		let access = system.access(user, { object: system.tree.objects.ibs.$(query.table).id })
+		let access = system.access(user, { object: system.tree.objects.ibs._[query.table].id })
 		if (!access.granted) {
 			res.json({ error: 'Access denied!' })
 			return

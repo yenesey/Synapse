@@ -79,93 +79,90 @@ process.argv.forEach(arg => {
 /*
 -------------------------------------------------------------------------------------
 */
-require('synapse/system').then(system => {
+const system = require('synapse/system')
+const config = system.config
 
-	const config = system.config
+server = process.env.SSL
+	? server = https.Server({ passphrase: String(config.ssl.password), pfx: config.ssl.certData }, app)
+	: server = http.Server(app)
 
-	server = process.env.SSL
-		? server = https.Server({ passphrase: String(config.ssl.password), pfx: config.ssl.certData }, app)
-		: server = http.Server(app)
+server.on('error', err => {
+	system.log(err)
+	process.exit()
+})
 
-	server.on('error', err => {
-		system.log(err)
+process.env.PORT = process.env.PORT || (process.env.SSL ? '443' : '80')
+
+server.listen(process.env.PORT, function () {
+	websockets(app, server)
+	system.info = system.info.bind(this) // for this.address
+	// eslint-disable-next-line no-new
+	new CronJob('00 00 * * *',  function () {
+		console.log(system.info())
+	}, null, true, null, null, true)
+
+	app.use([
+		compression({ threshold: 0 }),
+		express.static(config.path.users, { // каталог с пользовательскими папками
+			setHeaders: function (res, path) {
+				res.attachment(path) // добавляем в каджый заголовок инфу о том, что у нас вложение
+			}
+		})
+	])
+
+	if (process.env.DEV_SERVER) {
+		app.use(require('synapse/dev-middleware'))
+		return
+	}	else {
+		app.use(express.static(path.join(__dirname, 'client')))
+	}
+
+	if (process.env.NODE_ENV === 'development') {
+		// console.log('Backend api mode. Type "rs + [enter]" to restart manually')
+		app.use(cors)
+		app.use(morgan('tiny', { stream: { write: msg => system.log(msg) } }))
+	}
+
+	const api = require('synapse/api.js')(system, express)
+	if (config['cft-web-proxy'].on) app.use(api('cft-web-proxy'))
+	if (config.telebot.on) app.use(api('telebot'))
+	if (config.cards.on) app.use(api('cards'))
+
+	api.useNtlm() // отныне и далее вниз у нас есть userName из AD
+	app.use(api(['users', 'dlookup', 'dbquery', 'tasks', 'system', 'scheduler'])) /* 'forms' */
+	app.use(system.errorHandler)
+})
+
+function close () {
+	system.log('server going down now...')
+	server.close(function () {
+		system.log('all requests finished')
 		process.exit()
 	})
+	setTimeout(function () {
+		server.emit('close')
+	}, 5000)
+}
 
-	process.env.PORT = process.env.PORT || (process.env.SSL ? '443' : '80')
+// ----------------в случае получения сигнала корректно закрываем--------------------
+process.on('SIGHUP', close).on('SIGTERM', close).on('SIGINT', close)
 
-	server.listen(process.env.PORT, function () {
-		websockets(app, server)
-		system.info = system.info.bind(this) // for this.address
-
-		// eslint-disable-next-line no-new
-		new CronJob('00 00 * * *',  function () {
-			console.log(system.info())
-		}, null, true, null, null, true)
-
-		app.use([
-			compression({ threshold: 0 }),
-			express.static(config.path.users, { // каталог с пользовательскими папками
-				setHeaders: function (res, path) {
-					res.attachment(path) // добавляем в каджый заголовок инфу о том, что у нас вложение
-				}
-			})
-		])
-
-		if (process.env.DEV_SERVER) {
-			app.use(require('synapse/dev-middleware'))
-			return
-		}	else {
-			app.use(express.static(path.join(__dirname, 'client')))
-		}
-
-		if (process.env.NODE_ENV === 'development') {
-			// console.log('Backend api mode. Type "rs + [enter]" to restart manually')
-			app.use(cors)
-			app.use(morgan('tiny', { stream: { write: msg => system.log(msg) } }))
-		}
-
-		const api = require('synapse/api.js')(system, express)
-		if (config['cft-web-proxy'].on) app.use(api('cft-web-proxy'))
-		if (config.telebot.on) app.use(api('telebot'))
-		if (config.cards.on) app.use(api('cards'))
-
-		api.useNtlm() // отныне и далее вниз у нас есть userName из AD
-		app.use(api(['users', 'dlookup', 'dbquery', 'tasks', 'system', 'scheduler'])) /* 'forms' */
-		app.use(system.errorHandler)
-	})
-
-	function close () {
-		system.log('server going down now...')
-		server.close(function () {
-			system.log('all requests finished')
-			process.exit()
+if (!process.env.SERVICE) { // если не служба,
+// то будет полезно обработать некоторые нажатия клавиш в консоли
+	let stdin = process.stdin
+	if (typeof stdin.setRawMode === 'function') {
+		stdin.setRawMode(true)
+		stdin.resume()
+		stdin.setEncoding('utf8')
+		stdin.on('data', function (input) {
+			switch (input) {
+			case 'm':
+			case 't':
+			case 'u': console.log(system.info())
+				break
+			case '\u0003': close(); break  // Ctrl+C
+			default: console.log(system.easterEgg())
+			}
 		})
-		setTimeout(function () {
-			server.emit('close')
-		}, 5000)
 	}
-
-	// ----------------в случае получения сигнала корректно закрываем--------------------
-	process.on('SIGHUP', close).on('SIGTERM', close).on('SIGINT', close)
-
-	if (!process.env.SERVICE) { // если не служба,
-	// то будет полезно обработать некоторые нажатия клавиш в консоли
-		let stdin = process.stdin
-		if (typeof stdin.setRawMode === 'function') {
-			stdin.setRawMode(true)
-			stdin.resume()
-			stdin.setEncoding('utf8')
-			stdin.on('data', function (input) {
-				switch (input) {
-				case 'm':
-				case 't':
-				case 'u': console.log(system.info())
-					break
-				case '\u0003': close(); break  // Ctrl+C
-				default: console.log(system.easterEgg())
-				}
-			})
-		}
-	}
-}).catch(console.log)
+}

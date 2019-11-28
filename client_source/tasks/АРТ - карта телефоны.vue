@@ -1,15 +1,15 @@
 ﻿<template lang="pug">
 	div
-		pre.subheading Дата на
-		datepicker(name="date1" label="Дата актуализации")
-		v-checkbox(v-model="putFiles" name="putFiles" label="Выложить файлы на отправку")
+		pre.subheading Для ежедневной выгрузки номеров телефонов клиентов
+		datepicker(name='date' label='Дата' :value='day().format("YYYY-MM-DD")')
+		v-checkbox(v-model='onScreen' label='Вывести на экран')
 </template>
 
 
 <script>
 export default {
 	data:()=>({ 
-		putFiles: false
+		onScreen: true
 	})
 }
 </script>

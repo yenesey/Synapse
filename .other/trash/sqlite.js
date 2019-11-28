@@ -1,24 +1,24 @@
 'use strict'
 
 /*
-	node-sqlite3 wrapper (with promises)
+	just sqlite3 wrapper (with promises)
 	usage:
 		 var sqlite = require('./sqlite.js');
 		 var db = sqlite('c:\\dbfileName.db');
-		 db('select * from users').then((result)=>)
-		 db.run('delete * from users where id = 1').then((delCount)=>)
+		 db('select * from users').then(result => ... )
+		 db.run('delete * from users where id = 1').then(deletedCount => ... )
 */
 const sqlite3 = require('sqlite3').verbose()
 
 module.exports = function (fileName) {
 	// -
-	let db = new sqlite3.Database(fileName, function (err) {
+	const db = new sqlite3.Database(fileName, function (err) {
 		if (err) {
 			err.message += ' ' + fileName // -- пусть инфы будет немножко больше
 			throw err
 		}
 	})
-	// db.loadExtension(path.join( __dirname, 'sqlite3_unicode.sqlext') , err=>{if (err) console.log('db.loadExtension:' + err)})
+	// db.loadExtension(path.join( __dirname, 'sqlite3_unicode.sqlext') , err=>{if (err) {}))
 	db.run('PRAGMA foreign_keys=ON')
 
 	const _default = function (sql, params) {

@@ -39,7 +39,7 @@ module.exports = function (config) {
 					exec("alter session set NLS_DATE_FORMAT='yyyy-mm-dd hh24:mi:ss'"), // hh24:mi:ss
 					exec("alter session set NLS_TIME_FORMAT='hh24:mi:ss'"),
 					exec("alter session set NLS_TIMESTAMP_FORMAT='yyyy-mm-dd hh24:mi:ss'")
-					//	,exec("BEGIN IBS.EXECUTOR.SET_SYSTEM_CONTEXT(true); END;")
+					//,exec("BEGIN IBS.EXECUTOR.SET_SYSTEM_CONTEXT(true); END;")
 				]).then(() => connection)
 			})
 	}

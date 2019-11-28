@@ -6,19 +6,20 @@
 
 const ora = require('../ds-oracle')
 const soap = require('soap')
+const oracledb = require('oracledb')
 
 function dateFromStringDDMMYYYY (str) {
 	let date = str.split('.').reverse()
 	return new Date(date)
 }
 
-module.exports = function (system) {
+module.exports = async function (system) {
 
-	// const config = system.config.system
-	const config = system.config
+	const oracle = system.config.oracle
 	const url = 'http://172.16.8.3:8962/solar-loyalty/loyaltyApi.wsdl'
-	const ibso = ora(config.ibs)
-	const t2000 = ora(config.t)
+	const ibso = ora(oracle.ibso)
+	const t2000 = ora(oracle.t)
+	// const warehouse = await oracledb.getConnection(oracle.warehouse)
 
 	// ibso("alter session set NLS_DATE_FORMAT='dd.mm.yyyy hh24:mi:ss'")
 	// получение инфы по карте и проверка пароля
@@ -26,40 +27,48 @@ module.exports = function (system) {
 		if ((typeof number !== 'string') || (typeof password !== 'string'))	{
 			throw Error('Wrong parameter type!')
 		}
-		return ibso(`
-		select 
-			vc.ID as "id",
-			vc.C_1 as "card",
---			vc.REF4 as "vz_account_id",
---			vc.C_8 as "state",
-			vc.REF5 as "acc_id",
-			vc.C_5 as "acc",
-			cl.C_13 as "password",
-			cl.C_1 as "fio",
-			vct.C_3 as "is_main",
-			dp.C_9 as "val",
-			dp.C_10 as "depo",
-			ovr.REF5 as "over_acc_id",
-			ovr.C_8 as "over_max",
-			(select listagg(C_1, ',') within group(order by null) from vw_crit_vz_cards where REF4 = vc.REF4 and ID != vc.ID)	as "card_add",
-			(select listagg(ID, ',') within group(order by null) from vw_crit_vz_cards where REF4 = vc.REF4 and ID != vc.ID)	as "card_add_ids"
-		from
-			VW_CRIT_VZ_CLIENT cl,
-			VW_CRIT_IP_CARD_TYPE vct,
-			VW_CRIT_VZ_CARDS vc,
-			VW_CRIT_DEPN dp 
-		left join 
-			VW_CRIT_OVER_OPEN ovr on ovr.REF3 = dp.ID
-		where 
-			vc.C_8 != 'Закрыта' and
-			vc.REF2 = vct.ID and
-			cl.ID = vc.REF24 and 
-			dp.REF3 = vc.REF5 and ` +
-			(number.length === 20
-				? `vc.C_5='${number}' and vct.C_3 = 1`  // если дан 20-зн счет, проверяем кодовое слово главной (==1) карты
-				: `vc.C_1='${number}'`
+		return Promise.all([
+			t2000(`select id from WH.IBS_CARDS where C_PAN = :pan `, { pan: number }),
+			t2000(`select id from WH.IBS_ACC_FIN where ACCOUNT = :acc `, { acc: number })
+		]).then(result => {
+			let cardId = result[0].length ? result[0][0].ID : undefined
+			let accId = result[1].length ? result[1][0].ID : undefined
+
+			return ibso(`
+			select 
+				vc.ID as "id",
+				'${number}' as "card",
+				vc.REF4 as "vz_account_id",
+				vc.C_8 as "state",
+				vc.REF5 as "acc_id",
+				vc.C_5 as "acc",
+				cl.C_13 as "password",
+				cl.C_1 as "fio",
+				vct.C_3 as "is_main",
+				dp.C_9 as "val",
+				dp.C_10 as "depo",
+				ovr.REF5 as "over_acc_id",
+				ovr.C_8 as "over_max",
+				(select listagg(C_1, ',') within group(order by null) from vw_crit_vz_cards where REF4 = vc.REF4 and ID != vc.ID)	as "card_add",
+				(select listagg(ID, ',') within group(order by null) from vw_crit_vz_cards where REF4 = vc.REF4 and ID != vc.ID)	as "card_add_ids"
+			from
+				VW_CRIT_VZ_CLIENT cl,
+				VW_CRIT_IP_CARD_TYPE vct,
+				VW_CRIT_VZ_CARDS vc,
+				VW_CRIT_DEPN dp 
+			left join 
+				VW_CRIT_OVER_OPEN ovr on ovr.REF3 = dp.ID
+			where 
+				vc.C_8 != 'Закрыта' and
+				vc.REF2 = vct.ID and
+				cl.ID = vc.REF24 and 
+				dp.REF3 = vc.REF5 and ` + (
+				number.length === 20
+					? `vc.REF5 = :id and vct.C_3 = 1`  // если дан 20-зн счет, проверяем кодовое слово главной (==1) карты
+					: `vc.ID= :id`
+			), { id: cardId || accId }
 			)
-		).then(info => {
+		}).then(info => {
 			if (info.length === 0) {
 				return  { error: 'Карта/счет не найден' }
 			}
