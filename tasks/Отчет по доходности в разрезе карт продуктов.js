@@ -63,6 +63,9 @@ function fold (res, el) {
 	return res
 }
 
+/**
+ *  createRow суммирует объекты select поле-в-поле через fold
+ */
 function createRow (select) {
 	let initial = () => FIELDS.reduce((all, f) => { all[f] = 0; return all }, {})
 	let row = []
@@ -83,6 +86,7 @@ module.exports = async function (param, system) {
 
 	const date1 = dayjs(param.period).startOf('month').toDate()
 	const date2 = dayjs(param.period).endOf('month').toDate()
+	// console.log(date1, date2)
 
 	/**
 	 * Три первых строчки по количеству карт
@@ -122,9 +126,10 @@ module.exports = async function (param, system) {
 
 	/**
 	 * Выпущенных на дату
+	 * DATE_BEGIN between to_date('01.08.2019', 'dd.mm.yyyy') and to_date('31.08.2019', 'dd.mm.yyyy')
 	 */
 	result = await oracle(`select mfk "mfk", ${sum_fields} from V_CARDS_BY_PRODUCTS
-		where DATE_BEGIN > :date1 and DATE_BEGIN < :date2 and PAN is not null
+		where (DATE_BEGIN >= :date1 and  DATE_BEGIN < :date2) and PAN is not null
 		group by mfk
 	`,
 	{ date1, date2 }
@@ -137,7 +142,7 @@ module.exports = async function (param, system) {
  	*/
 
 	result = await oracle(`select mfk "mfk", ${sum_fields} from V_CARDS_BY_PRODUCTS 
-		where DATE_BEGIN > '2019-01-01'	and (DATE_CLOSE is null or DATE_CLOSE > :date2) and PAN is not null
+		where DATE_BEGIN <= :date2 and (DATE_CLOSE is null or DATE_CLOSE >= :date2) and PAN is not null
 		group by mfk
 	`,
 	{ date2 }
@@ -151,29 +156,57 @@ module.exports = async function (param, system) {
 	sum_fields = FIELDS.reduce((all, f, i) => all + `sum(case when ${f}=1 then T.SUM_NT else 0 END) "${f}"` + (i < FIELDS.length - 1 ? ',\r\n' : ''), '')
 	var sql_amount_trn = `
 		select 
-			C.mfk "mfk",
+			C.MFK "mfk",
+			T.PC_CUR "cur",
 			${sum_fields}
 		from 
 			IBS_TRANSACTIONS T inner join V_CARDS_BY_PRODUCTS C on T.CARD_REF = C.ID
 		where 
 			lower(TRN_TYPE) like :bank_other
-			and PROCEEDED >= :date1 and PROCEEDED <= :date2
-		group by mfk	
+			and (PROCEEDED between :date1 and :date2)
+		group by MFK, PC_CUR
 	`
 	result = await oracle(sql_amount_trn, { date1, date2, bank_other: '%получ%наше%' })
 	let	trn_bank = createRow(result)
 
 	result = await oracle(sql_amount_trn, { date1, date2, bank_other: '%получ%чуж%' })
 	let	trn_other = createRow(result)
+	let	trn_other_rub = createRow(result.filter(el => el.cur === 'RUB')) // из них рубли
+	let	trn_other_val = createRow(result.filter(el => el.cur !== 'RUB')) // из них валюта
 
-	/*
-	trn_other_rub,
-	trn_other_val,
-	trn_merch,
-	trn_merch_rub,
-	trn_merch_val,
-	trn_merch_return
-	*/
+	/**
+	* Объем транзакций в торговых сетях
+ 	*/
+
+	var sql_trn_merch = `
+		select 
+			C.MFK "mfk",
+			T.PC_CUR "cur",
+			${sum_fields}
+		from 
+		 	IBS_TRANSACTIONS T inner join V_CARDS_BY_PRODUCTS C on T.CARD_REF = C.ID
+		where 
+			(lower(TRN_TYPE) like '%безналичная покупка%' or lower(TRN_TYPE) like '%эмиссия. операция квази-кэш%')
+		 	and (PROCEEDED between :date1 and :date2)
+		group by MFK, PC_CUR
+ 	`
+	result = await oracle(sql_trn_merch, { date1, date2 })
+	let	trn_merch = createRow(result)
+	let trn_merch_rub = createRow(result.filter(el => el.cur === 'RUB')) // из них рубли
+	let trn_merch_val = createRow(result.filter(el => el.cur !== 'RUB')) // из них валюта
+	result = await oracle(`
+		select 
+			C.MFK "mfk",
+			${sum_fields}
+		from 
+			 IBS_TRANSACTIONS T inner join V_CARDS_BY_PRODUCTS C on T.CARD_REF = C.ID
+		where 
+			(lower(TRN_TYPE) like '%возврат по без%' or lower(TRN_TYPE) like '%эмиссия. реверсал на операцию безналичной покупки%')
+			 and (PROCEEDED between :date1 and :date2)
+		group by MFK
+	 `, { date1, date2 }
+	)
+	let trn_merch_return = createRow(result)
 	let period = param.period.split('-').reverse().join('.')
 
 	XlsxPopulate.fromFileAsync(path.join(__dirname, 'templates', 'Отчет по доходности в разрезе карт продуктов.xlsx'))
@@ -190,6 +223,13 @@ module.exports = async function (param, system) {
 
 			sheet.cell('C19').value([trn_bank])
 			sheet.cell('C21').value([trn_other])
+			sheet.cell('C22').value([trn_other_rub])
+			sheet.cell('C23').value([trn_other_val])
+
+			sheet.cell('C25').value([trn_merch])
+			sheet.cell('C26').value([trn_merch_rub])
+			sheet.cell('C27').value([trn_merch_val])
+			sheet.cell('C38').value([trn_merch_return])
 
 			return workbook.toFileAsync(`${param.task.path}/Отчет по доходности в разрезе карт продуктов.xlsx`)
 		})

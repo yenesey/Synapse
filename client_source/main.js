@@ -39,8 +39,11 @@ function getWebsocketUrl () {
 if (typeof baseUrl !== 'undefined') _.baseUrl = baseUrl // eslint-disable-line
 
 _.pxhr({method: 'get', url: 'users/access'})
-.catch(err => ({login: 'Нет доступа!', access: [], err: err})) 
 .then(user => {
+	if (user.success === false) {
+		user.login = 'Нет доступа!'
+		user.access = []
+	}
 
 	var menuGroups = user.access.filter(el => el.class === 'menu').sort((a, b) => a.id === b.id ? 0: a.id > b.id ? 1: -1)
 	if (menuGroups.findIndex(el => el.name === 'default') === -1) 

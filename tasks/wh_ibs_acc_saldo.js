@@ -1,29 +1,27 @@
-﻿const { processData } = require('./wh_util')
+﻿
+const dayjs = require('dayjs')
+const { processData } = require('./wh_util')
 
-module.exports = function (params, system) {
+module.exports = function (params) {
+	params.date = '2019-12-01'
+	const dateOn = dayjs(params.date).startOf('day').toDate()
+
 	return processData(`
 		select
-			ID, 
-			C_1 ACCOUNT, 
-			REF3 CLIENT_V, 
-			REF20 CLIENT_R, 
-			C_13 DATE_OPEN, 
-			C_16 DATE_CLOSE, 
-			C_4 NAME, 
-			REF31 DEPART, 
-			UPPER(SUBSTR(C_5,1,1)) TYPE, 
-			REF15 USER_OPEN, 
-			REF18 USER_CLOSE, 
-			C_17 REASON_CLOSE,
-			C_38 NOTES,
-			C_19 STATUS
+			ID ACC_ID,
+			:dateOn DATE_ON,
+			f.a_saldo_short(:dateOn, ID, 'c', 0) SALDO,
+			f.a_saldo_short(:dateOn, ID, 'c', 1) SALDO_NT,
+			f.a_turn_short(:dateOn, :dateOn + 86399 / 86400, ID, 1, 0) TURN_DT,
+			f.a_turn_short(:dateOn, :dateOn + 86399 / 86400, ID, 1, 1) TURN_DT_NT,
+			f.a_turn_short(:dateOn, :dateOn + 86399 / 86400, ID, 0, 0) TURN_KT,
+			f.a_turn_short(:dateOn, :dateOn + 86399 / 86400, ID, 0, 1) TURN_KT_NT
 		from 
 			VW_CRIT_AC_FIN
 		where
 			1=1
-	`,
-	{},
-	'WH.IBS_ACC_SALDO',
-	{ merge: false }
+			and (C_16 is null or C_16 >= :dateOn - 10)
+			-- and ID = 4092525553
+	`, { dateOn }, 'WH.IBS_ACC_SALDO', { merge: true, keys: ['ACC_ID', 'DATE_ON'] }
 	)
 }

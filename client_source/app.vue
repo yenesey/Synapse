@@ -1,6 +1,6 @@
 <template lang="pug"> 
 v-app
-	v-navigation-drawer.blue.lighten-4(app :width='navWidth' :value='navVisible' :clipped='navClipped' style='z-index:10' ref='nav')
+	v-navigation-drawer.blue.lighten-4(app :width='navWidth' :value='navVisible' :clipped='navClipped' style='z-index:10;' ref='nav')
 		v-list.blue.lighten-4
 			v-list-item.elevation-1(@click='navigate("/")' )
 				v-list-item-icon
@@ -25,7 +25,7 @@ v-app
 						v-icon(v-text="'chevron_right'") //task.icon || group.icon || 
 					v-list-item-title {{task.name || 'noname'}}
 
-	v-app-bar.blue.lighten-4.elevation-1(app, :clipped-left='navClipped', height='48px', style='z-index:9'  ref='toolbar')
+	v-app-bar.blue.lighten-4.elevation-1(app, :clipped-left='navClipped', height='48px', style='z-index:9;'  ref='toolbar')
 		v-app-bar-nav-icon(@click.stop="toggleNav('Visible')")
 		v-btn(icon @click.stop="toggleNav('Clipped')" v-show='navVisible')
 			v-icon web

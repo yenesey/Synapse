@@ -1,6 +1,6 @@
 ﻿const { processData } = require('./wh_util')
 
-module.exports = function (params, system) {
+module.exports = function () {
 	processData(`
 		select
 			ID,             

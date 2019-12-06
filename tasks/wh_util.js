@@ -1,18 +1,7 @@
 ﻿const path = require('path')
 const oracledb = require('oracledb')
 const treeStore = require('sqlite-tree-store')
-
-const _tree = treeStore('../db/synapse.db', 'system', true)
-function byPath (path, id = 0) {
-	let node = _tree(id, 1)
-	let name = path.slice(0, 1)
-	if (name && name in node) {
-		return byPath(path.slice(1), node._[name].id)
-	} else {
-		return _tree(id, 0)
-	}
-}
-const config = byPath('config.oracle'.split('.'))
+const oracle = treeStore('../db/synapse.db', 'system')(['config', 'oracle'])
 
 const NUM_ROWS = 10000
 // ----------------------------------------------------------------------------------
@@ -24,18 +13,16 @@ function getInsertStatement (metaData, tableName) {
 	return 'insert into\n' + tableName + ' ' + heads + '\nvalues ' + values
 }
 
-function getMergeStatement (metaData, tableName) {
-	let len = metaData.length
-	let heads = metaData.reduce((result, el, index) => result + el.name + (index < len - 1 ? ', ' : ')'), '(')
-	let values = metaData.reduce((result, el, index) => result + ':' + String(index + 1) + (index < len - 1 ? ',' : ')'), '(')
-	let pairs = metaData.reduce((result, el, index) => result + '    :' + String(index + 1) + ' ' + el.name + (index < len - 1 ? ',\n' : ''), '')
-	let pairsRev = metaData.slice(1).reduce((result, el, index) => result +	'    ' + el.name + ' = :' + String(index + 2) + (index < len - 2 ? ',\n' : ''), '')
-
-	return 'merge into\n    ' + tableName + '\n' +
-		'using (\nselect ' + pairs + ' from dual\n)' + ' val on (\n    ' + tableName +
-		'.ID = val.ID\n)\nwhen matched then\n' +
-		'update set\n' + pairsRev + '\n' +
-		'when not matched then insert\n    ' + heads + '\nvalues ' + values
+function getMergeStatement (metaData, tableName, keys = ['ID']) {
+	let pairs = metaData.map((el, index) => ({ name: el.name, placeholder: ':' + (index + 1) }))
+	return 'merge into ' + tableName + '\n' +
+		'using (\n  select\n' +
+			pairs.filter(el => keys.includes(el.name)).map(el => '    '  + el.placeholder + ' ' + el.name).join(',\n') + ' from dual\n' +
+		'   ) vals on (' +
+			keys.map(el => tableName + '.' + el + ' = vals.' + el).join(' and ') + ')\n' +
+		'when matched then\n  update set\n' +
+			pairs.filter(el => !keys.includes(el.name)).map(el => '    ' + el.name + ' = ' + el.placeholder).join(',\n') + '\n' +
+		'when not matched then\n  insert (' + pairs.map(el => el.name).join(',') + ')\n  values (' + pairs.map(el => el.placeholder).join(',') + ')'
 }
 
 function getModuleName () {
@@ -44,7 +31,7 @@ function getModuleName () {
 }
 
 function checkStructure (testing) {
-	const wh = treeStore('wh_data.db', 'src_structs', true)()
+	const wh = treeStore('wh_data.db', 'structs', true)()
 	const { equals, diff } = require('synapse/lib')
 
 	let moduleName = getModuleName()
@@ -65,7 +52,6 @@ function checkStructure (testing) {
 			}
 		}
 
-		el._.nullable = Boolean(el.nullable)
 		if (!equals(el, testing[i])) {
 			return {
 				pass: false,
@@ -79,8 +65,8 @@ function checkStructure (testing) {
 }
 
 function getConnection (dest) {
-	if (dest in config) {
-		return oracledb.getConnection(config[dest])
+	if (dest in oracle) {
+		return oracledb.getConnection(oracle[dest])
 	}
 	return Promise.reject(new Error('wrong connection alias'))
 }
@@ -97,7 +83,9 @@ async function processData (SQL, bindVars = {}, whDestinationTable, options = { 
 	let rs = result.resultSet
 	let rows, info
 	let statementFunc = options.merge ? getMergeStatement : getInsertStatement
-	let statement = statementFunc(result.metaData, whDestinationTable)
+	let statement = statementFunc(result.metaData, whDestinationTable, options.keys)
+	// console.log(statement)
+
 	let count = 0
 	do {
 		rows = await rs.getRows(NUM_ROWS)
@@ -107,7 +95,7 @@ async function processData (SQL, bindVars = {}, whDestinationTable, options = { 
 		}
 	} while (rows.length === NUM_ROWS)
 	await rs.close()
-	console.log((options.merge ? 'merge' : 'insertion') + ' complete! ', count, ' rows affected ')
+	console.log((options.merge ? 'merge' : 'insertion') + ' completed! ', count, ' rows affected ')
 	return count
 }
 
