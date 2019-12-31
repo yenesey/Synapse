@@ -1,6 +1,7 @@
 import users from './users.vue'
 import tasks from './tasks.vue'
 import sched from './scheduler.vue'
+import system from './system.vue'
 //import dbquery from './dbquery.vue'
 
 export default {
@@ -20,5 +21,9 @@ export default {
 	'tasks' : { 
 		icon : 'timeline',
 		component: tasks
+	},
+	'system' : { 
+		icon : 'build',
+		component: system
 	}
 }

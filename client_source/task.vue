@@ -1,6 +1,6 @@
 <template>
 	<div>
-		<h3>{{name}}</h3>
+		<h3 style="margin-top:.5em">{{description || name}}</h3>
 		<form action="" method="post" enctype="multipart/form-data" ref="form">
 			<slot></slot> <!--// ...подставляется контент из ./tasks -->
 			<input type="hidden" name="_dontcare"> <!--// багфикс для IE, который в некоторых случаях отправляет поврежденную форму -->
@@ -55,7 +55,7 @@ import dbase from './assets/file-types/dbf.png';
 import blank from './assets/file-types/blank.svg';
                              
 export default {
-	props : ['id', 'name'],
+	props : ['id', 'name', 'description'],
 
 	data : function(){
 		return { //начальное состояние
@@ -126,7 +126,7 @@ export default {
 				url: self.url(), 
 				data: formData,
 				progress: self.onProgress,
-				timeout : 60000*30 //полчаса!!!
+				timeout : 3600000 * 4 // 4 часа
 			})
 			.then(function(res){
 				var json = JSON.parse(res.substr(res.lastIndexOf('\n')+1));

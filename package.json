@@ -16,7 +16,8 @@
     "ignore": [
       "client_source/*",
       "client/*",
-      "tasks/*"
+      "tasks/*",
+      "tasks2/*"
     ],
     "events": {
       "restart": ""
@@ -31,7 +32,6 @@
     "chalk": "^2.4.2",
     "compression": "^1.7.4",
     "cron": "^1.7.2",
-    "cron-parser": "^2.13.0",
     "dayjs": "^1.8.16",
     "docxtemplater": "^3.14.3",
     "emailjs": "2.2.0",
@@ -42,11 +42,12 @@
     "iconv-lite": "^0.5.0",
     "ini": "1.3.5",
     "morgan": "1.9.1",
+    "node-cron": "^2.0.3",
     "oracledb": "^4.0.1",
     "request": "2.88.0",
     "sleep": "^6.1.0",
     "soap": "^0.29.0",
-    "sqlite-tree-store": "^1.1.2",
+    "sqlite-tree-store": "^1.1.6",
     "winax": "^1.12.0",
     "xlsx-populate": "^1.20.1",
     "xmlbuilder": "^13.0.2"

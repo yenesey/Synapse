@@ -2,62 +2,36 @@
 
 /*
 	api для просмотра и редактирования дерева системы
-
-	/system - выводит все системное дерево
-	/system/config  - выводит конфигуру
-	/system/objects/newNode={} - создает новую ветку
-	/system/counter=100 - создает простое значение
-	/system/objects! - удаляет ветку или значение
 */
 
-function safeParse (str) {
-	try {
-		return JSON.parse(str)
-	} catch (err) {
-		return str
-	}
-}
+const { uuidv4 } = require('../lib')
+const sockets = {}
 
-function followPath (node, path) {
-	if (path.length === 1 && path[0] === '') return node
-	for (let key of path) {
-		if (!!node && (key in node)) {
-			node = node[key]
-		} else {
-			return undefined
-		}
-	}
-	return node
+function createNode (node) {
+	return Object.keys(node).map(key => ({
+		id: node._[key].id,
+		name: key,
+		description: node[key] && node[key].description ? node[key].description : '',
+		children: ([Object, Array].includes(node[key].constructor)) ? createNode(node[key]) : undefined
+	}))
 }
 
 module.exports = function (system) {
 	//
-	this.get('*', function (req, res) {
-		// todo: проверку доступа. т.к. admin это целый класс, проверка пока не
-		// system.checkAccess(req.user, system.tree.objects.$('admin').id)
-
-		let rg = /^([\w\sа-яА-Я\/|\:\-\!]+)\=*\"?([\w\sа-яА-Я\:\@\/\.\?\-\{\}]*)\"?/ // eslint-disable-line
-		rg.test(decodeURIComponent(req.url).substring(1))
-
-		let url = RegExp.$1
-		let value = RegExp.$2
-		let path = url.split('/')
-		let last = path.slice(-1).pop()
-		let node = null
-		console.log(url, value)
-
-		if (value) { // есть выражение за знаком '='
-			path.pop()
-			node = followPath(system.tree, path)
-			node[last] = safeParse(value)
-		} else if (last.charAt(last.length - 1) === '!') {
-			path.pop()
-			let [key, _value] = last.split('!')
-			node = followPath(system.tree, path)
-			delete node[key]
-		} else {
-			node = followPath(system.tree, url.split('/'))
+	this.ws('/', (ws, req) => {
+		// todo: сделать аутентификацию. например. первое сообщение должно содержать некий токен, иначе немедленное закрытие соединения
+		let id = uuidv4()
+		sockets[id] = ws
+		ws.onerror = system.log
+		// ws.onmessage = (m) => traverseIncomingActions(m.data, id)
+		ws.onclose = (m) => {
+			delete sockets[id]
 		}
-		res.json(node)
+		try {
+			let tree = createNode(system.config)
+			ws.send(JSON.stringify(tree))
+		} catch (e) {
+			console.log(e)
+		}
 	})
 }

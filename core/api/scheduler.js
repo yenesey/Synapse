@@ -11,7 +11,6 @@ const util = require('util')
 const path = require('path')
 const os  = require('os')
 const day = require('dayjs')
-const parser = require('cron-parser')
 const fsp = require('../fsp')
 const uuidv4 = require('../lib').uuidv4
 
@@ -44,9 +43,9 @@ module.exports = function (system) {
 	}
 	*/
 
-	function renewNext (job) {
-		let interval = parser.parseExpression(job.schedule)
-		if (job.enabled) job.next = day(new Date(interval.next().toString())).format('YYYY-MM-DD HH:mm')
+	function renewNext (key) {
+		let job = jobs[key]
+		if (job.enabled) job.next = day(crons[key].nextDate()).format('YYYY-MM-DD HH:mm')
 	}
 
 	function schedule (key) { // повесить job на расписание
@@ -177,7 +176,7 @@ module.exports = function (system) {
 								job.state = 'error'
 							} else {
 								job.state = 'done'
-								renewNext(job)
+								renewNext(key)
 							}
 
 							broadcast(key, {
@@ -216,7 +215,7 @@ module.exports = function (system) {
 				for (let k in payload) job[k] = payload[k]
 				destroy(key)
 				schedule(key)
-				renewNext(job)
+				renewNext(key)
 				broadcast(key, { ...payload, next: job.next })
 				break
 

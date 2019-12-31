@@ -2,7 +2,7 @@
 
 /* для задачи Контроль отчетности */
 
-const moment = require('moment'),
+const dayjs = require('dayjs'),
 	os = require('os'),
 	fs = require('fs'),
 	path = require('path'),
@@ -39,9 +39,9 @@ module.exports = function (system) {
 			.then(res => res.map(item => item.date))
 			.then(holiday => {   
 				// не выполняем оповещение в выходные и праздничные дни
-				if(holiday.indexOf(moment().add(offsetTime,'hours').format('YYYY-MM-DD')) == -1)         
+				if(holiday.indexOf(dayjs().add(offsetTime,'hours').format('YYYY-MM-DD')) == -1)         
 					getForms(null, true)
-					.then( forms => sendMessage('now', 'control1', forms.filter(el => el.datePlan == moment().add(offsetTime,'hours').startOf('day').format('YYYY-MM-DD')), true, false) )
+					.then( forms => sendMessage('now', 'control1', forms.filter(el => el.datePlan == dayjs().add(offsetTime,'hours').startOf('day').format('YYYY-MM-DD')), true, false) )
 			})
 		},
 		start: true,
@@ -259,7 +259,7 @@ module.exports = function (system) {
 		})
 
 	function addLog(user, table, record, newVal, oldVal) {
-		var nowDate = moment().add(offsetTime, 'hours').format('YYYY-MM-DD HH:mm:ss')
+		var nowDate = dayjs().add(offsetTime, 'hours').format('YYYY-MM-DD HH:mm:ss')
 		if (oldVal.id)
 			if (newVal.id) {
 				// изменена запись
@@ -343,7 +343,7 @@ module.exports = function (system) {
 
 							switch (item.period) {
 								case 'декадная': {
-									var dateRep = (item.dateRep == null) ? moment().add(offsetTime, 'hours').startOf(period) : moment(item.dateRep).add(1, period);
+									var dateRep = (item.dateRep == null) ? dayjs().add(offsetTime, 'hours').startOf(period) : dayjs(item.dateRep).add(1, period);
 
 									if (dateRep.date() >= 2 && dateRep.date() <= 10) dateRep.date(11);
 									if (dateRep.date() >= 12 && dateRep.date() <= 20) dateRep.date(21);
@@ -352,7 +352,7 @@ module.exports = function (system) {
 									break;
 								}
 								case 'полугодовая': {
-									var dateRep = (item.dateRep == null) ? moment().add(offsetTime, 'hours').startOf(period) : moment(item.dateRep).add(2, period);
+									var dateRep = (item.dateRep == null) ? dayjs().add(offsetTime, 'hours').startOf(period) : dayjs(item.dateRep).add(2, period);
 
 									if (dateRep.quarter() == 2) dateRep.quarter(1);
 									if (dateRep.quarter() == 4) dateRep.quarter(3);
@@ -360,7 +360,7 @@ module.exports = function (system) {
 									break;
 								}
 								default: {
-									var dateRep = (item.dateRep == null) ? moment().add(offsetTime, 'hours').startOf(period) : moment(item.dateRep).add(1, period);
+									var dateRep = (item.dateRep == null) ? dayjs().add(offsetTime, 'hours').startOf(period) : dayjs(item.dateRep).add(1, period);
 
 									// если пропускать период, смещаем дату 
 									if (period == 'day') {
@@ -402,12 +402,12 @@ module.exports = function (system) {
 							var period = periods[itemNew.period];
 
 							// если плановая дата уже прошла - создаем еще одну запись 
-							while (itemNew.datePlan < moment().add(offsetTime, 'hours').format('YYYY-MM-DD')) {
+							while (itemNew.datePlan < dayjs().add(offsetTime, 'hours').format('YYYY-MM-DD')) {
 								var itemNew = Object.assign({}, itemNew);
 
 								switch (itemNew.period) {
 									case 'декадная': {
-										var dateRep = (itemNew.dateRep == null) ? moment().add(offsetTime, 'hours').startOf(period) : moment(itemNew.dateRep).add(1, period);
+										var dateRep = (itemNew.dateRep == null) ? dayjs().add(offsetTime, 'hours').startOf(period) : dayjs(itemNew.dateRep).add(1, period);
 
 										if (dateRep.date() >= 2 && dateRep.date() <= 10) dateRep.date(11);
 										if (dateRep.date() >= 12 && dateRep.date() <= 20) dateRep.date(21);
@@ -416,7 +416,7 @@ module.exports = function (system) {
 										break;
 									}
 									case 'полугодовая': {
-										var dateRep = (itemNew.dateRep == null) ? moment().add(offsetTime, 'hours').startOf(period) : moment(itemNew.dateRep).add(2, period);
+										var dateRep = (itemNew.dateRep == null) ? dayjs().add(offsetTime, 'hours').startOf(period) : dayjs(itemNew.dateRep).add(2, period);
 
 										if (dateRep.quarter() == 2) dateRep.quarter(1);
 										if (dateRep.quarter() == 4) dateRep.quarter(3);
@@ -424,7 +424,7 @@ module.exports = function (system) {
 										break;
 									}
 									default: {
-										var dateRep = (itemNew.dateRep == null) ? moment().add(offsetTime, 'hours').startOf(period) : moment(itemNew.dateRep).add(1, period);
+										var dateRep = (itemNew.dateRep == null) ? dayjs().add(offsetTime, 'hours').startOf(period) : dayjs(itemNew.dateRep).add(1, period);
 
 										// если пропускать период, смещаем дату 
 										if (period == 'day') {
@@ -464,7 +464,7 @@ module.exports = function (system) {
 
 						// сдвигаем дни с учетом праздников и выходных
 						function diffHoliday(dBegin, dEnd) {
-							var diff = holiday.reduce((holiday, el) => ((moment(el) <= dEnd) && (moment(el) >= dBegin)) ? holiday + 1 : holiday, 0);
+							var diff = holiday.reduce((holiday, el) => ((dayjs(el) <= dEnd) && (dayjs(el) >= dBegin)) ? holiday + 1 : holiday, 0);
 							if (diff > 0)
 								diff = diff + diffHoliday(dEnd.clone().add(1, 'day'), dEnd.clone().add(diff, 'day'))
 
@@ -509,7 +509,7 @@ module.exports = function (system) {
 								type: doc.getElementsByTagName('РеквОЭС')[0].getAttribute('ВидОтчета'),
 								dep: doc.getElementsByTagName('РеквОЭС')[0].getAttribute('КодОрг'),
 								dateRep: doc.getElementsByTagName('РеквОЭС')[0].getAttribute('ОтчДата'),
-								rezDate: moment(doc.getElementsByTagName('ИЭС1')[0].getAttribute('ДатаВремяКонтроля')).format('YYYY-MM-DD HH:mm:ss'),
+								rezDate: dayjs(doc.getElementsByTagName('ИЭС1')[0].getAttribute('ДатаВремяКонтроля')).format('YYYY-MM-DD HH:mm:ss'),
 								rezCode: doc.getElementsByTagName('ИЭС1')[0].getAttribute('КодРезКонтроля'),
 								rezText: doc.getElementsByTagName('ИЭС1')[0].getAttribute('РезКонтроля'),
 								errText: ''
@@ -529,7 +529,7 @@ module.exports = function (system) {
 								type: doc.getElementsByTagName('РеквОЭС')[0].getAttribute('ВидОтчета'),
 								dep: doc.getElementsByTagName('РеквОЭС')[0].getAttribute('КодОрг'),
 								dateRep: doc.getElementsByTagName('РеквОЭС')[0].getAttribute('ОтчДата'),
-								rezDate: moment(doc.getElementsByTagName('ДанныеОЭС')[0].getAttribute('ДатаВремяКонтроля')).format('YYYY-MM-DD HH:mm:ss'),
+								rezDate: dayjs(doc.getElementsByTagName('ДанныеОЭС')[0].getAttribute('ДатаВремяКонтроля')).format('YYYY-MM-DD HH:mm:ss'),
 								rezCode: doc.getElementsByTagName('ДанныеОЭС')[0].getAttribute('КодРезКонтроля'),
 								rezText: doc.getElementsByTagName('ДанныеОЭС')[0].getAttribute('РезКонтроля'),
 								errText: ''
@@ -558,8 +558,8 @@ module.exports = function (system) {
 									rezCode: null,
 									rezText: RegExp.$7
 								}
-								rec.rezDate = moment(rec.date, 'YYYYMMDDHHmmss').format('YYYY-MM-DD HH:mm:ss');
-								rec.dateRep = moment(rec.dateRep, 'YYYYMMDD').format('YYYY-MM-DD');
+								rec.rezDate = dayjs(rec.date, 'YYYYMMDDHHmmss').format('YYYY-MM-DD HH:mm:ss');
+								rec.dateRep = dayjs(rec.dateRep, 'YYYYMMDD').format('YYYY-MM-DD');
 								if (!isNaN(rec.rezText.substr(0, 1))) {
 									rec.rezCode = rec.rezText.substr(0, 1);
 									rec.rezText = rec.rezText.substr(4)
@@ -576,7 +576,7 @@ module.exports = function (system) {
 				}
 
 				function addKvit(dir, rec) {
-					var nowDate = moment().add(offsetTime, 'hours').format('YYYY-MM-DD HH:mm:ss')
+					var nowDate = dayjs().add(offsetTime, 'hours').format('YYYY-MM-DD HH:mm:ss')
 					// создаем запись в журнале отправки
 					db(`REPLACE INTO logSend VALUES ('${nowDate}','${rec.file}',${rec.ies},'${rec.code}',${rec.period ? "'"+rec.period+"'" : null},'${rec.type}','${rec.dep}','${rec.dateRep}','${rec.rezDate}',${rec.rezCode},'${rec.rezText}')`)
 						// оповещение об ошибке
@@ -616,13 +616,13 @@ module.exports = function (system) {
 			.then(users => {
 				forms.map(el => {
 					if (type == 'now')
-						var subject = 'Сегодня срок сдачи формы отчетности ' + el.code + ' на ' + moment(el.dateRep).format('DD.MM.YYYY');
+						var subject = 'Сегодня срок сдачи формы отчетности ' + el.code + ' на ' + dayjs(el.dateRep).format('DD.MM.YYYY');
 
 					if (type == 'expired')
-						var subject = 'Не отправлена форма отчетности ' + el.code + ' на ' + moment(el.dateRep).format('DD.MM.YYYY');
+						var subject = 'Не отправлена форма отчетности ' + el.code + ' на ' + dayjs(el.dateRep).format('DD.MM.YYYY');
 
 					if (type == 'error')
-						var subject = 'Получена квитанция с ошибкой по форме отчетности ' + el.code + ' на ' + moment(el.dateRep).format('DD.MM.YYYY');
+						var subject = 'Получена квитанция с ошибкой по форме отчетности ' + el.code + ' на ' + dayjs(el.dateRep).format('DD.MM.YYYY');
 
 					if (mail) {
 						// формируем сообщение        
@@ -658,7 +658,7 @@ module.exports = function (system) {
 						//      var server = email.server.connect(system.config.mail);
 
 						// создаем запись в журнале оповещений
-						db(`INSERT INTO logAlert VALUES ('${moment().add(offsetTime,'hours').format('YYYY-MM-DD HH:mm:ss')}', 'email', '${messageMail.to ? messageMail.to : ''}', '${messageMail.subject}', null)`)
+						db(`INSERT INTO logAlert VALUES ('${dayjs().add(offsetTime,'hours').format('YYYY-MM-DD HH:mm:ss')}', 'email', '${messageMail.to ? messageMail.to : ''}', '${messageMail.subject}', null)`)
 							.then(function (row) {
 								// отправка сообщения
 								server.send(messageMail, function (err) {
@@ -684,7 +684,7 @@ module.exports = function (system) {
 						// формируем сообщение  
 						var messageSMS = {
 							to: el[control].name.map(user => users.filter(item => item.name == user)[0].phone).join(','),
-							msg: encodeURI(`Не отправлена ${el.code} на ${moment(el.dateRep).format('DD.MM.YYYY')} ${el.control1.name.map(item => item.split(" ")[0]).join(",")}`),
+							msg: encodeURI(`Не отправлена ${el.code} на ${dayjs(el.dateRep).format('DD.MM.YYYY')} ${el.control1.name.map(item => item.split(" ")[0]).join(",")}`),
 							test: 1,
 							json: 1
 						};
@@ -695,7 +695,7 @@ module.exports = function (system) {
 							url = `${url}&${key}=${messageSMS[key]}`
 
 						// создаем запись в журнале оповещений
-						db(`INSERT INTO logAlert VALUES ('${moment().add(offsetTime,'hours').format('YYYY-MM-DD HH:mm:ss')}', 'sms', '${messageSMS.to ? messageSMS.to : ''}', '${messageSMS.msg ? decodeURI(messageSMS.msg) : ''}', null)`)
+						db(`INSERT INTO logAlert VALUES ('${dayjs().add(offsetTime,'hours').format('YYYY-MM-DD HH:mm:ss')}', 'sms', '${messageSMS.to ? messageSMS.to : ''}', '${messageSMS.msg ? decodeURI(messageSMS.msg) : ''}', null)`)
 							.then(function (row) {
 								// отправка сообщения
 								request.post({
@@ -742,7 +742,7 @@ module.exports = function (system) {
 		try {
 			['control1', 'control2', 'control3'].map(control => {
 				if (form[control].shedule) {
-					var shedule = moment(form[control].shedule, 'HH:mm').format('mm HH-22 * * *');
+					var shedule = dayjs(form[control].shedule, 'HH:mm').format('mm HH-22 * * *');
 					// если данные не изменились, ничего не делаем
 					if (!(crons[form.id + control] && crons[form.id + control].cronTime.source == shedule)) {
 						// удаляем старое задание
@@ -756,9 +756,9 @@ module.exports = function (system) {
 													.then(res => res.map(item => item.date))
 													.then(holiday => {   
 														// не выполняем оповещение в выходные и праздничные дни
-														if(holiday.indexOf(moment().add(offsetTime,'hours').format('YYYY-MM-DD')) == -1)         
+														if(holiday.indexOf(dayjs().add(offsetTime,'hours').format('YYYY-MM-DD')) == -1)         
 															getForms(form.id, true)
-															.then( forms => sendMessage('expired', control, forms.filter(el => el.datePlan <= moment().add(offsetTime,'hours').startOf('day').format('YYYY-MM-DD')), true, true) )  
+															.then( forms => sendMessage('expired', control, forms.filter(el => el.datePlan <= dayjs().add(offsetTime,'hours').startOf('day').format('YYYY-MM-DD')), true, true) )  
 													})
 												},
 												start: true,

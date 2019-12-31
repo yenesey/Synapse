@@ -14,8 +14,8 @@
       --service      - запустить как службу (влияет на обработку сигналов прерывания и закрытия процесса)
 
   запуск через "npm run":
-    \> npm run dev-backend  - бэкенд для разработки
-    \> npm run dev-frontend - фронтенд для разработки
+    \> npm run dev-back  - бэкенд для разработки
+    \> npm run dev-front - фронтенд для разработки
 
     \> npm run build      - сборка статического клиентского приложения (bundle) для production
 
@@ -24,18 +24,15 @@
   ------------------------------------------------------------------------------------------------
 */
 
-const path    = require('path')
+const path = require('path')
 const CronJob = require('cron').CronJob
-const morgan  = require('morgan')
-const https   = require('https')
-const http    = require('http')
+const morgan = require('morgan')
+const https = require('https')
+const http = require('http')
 const compression = require('compression')
 const express = require('express')
-const app     = express()
 const websockets = require('express-ws')
-const { toBool } = require('synapse/lib')
-
-var server = null
+const app = express()
 
 // Cross Origin Resource Sharing for 'development' mode
 function cors (req, res, next) {
@@ -82,9 +79,9 @@ process.argv.forEach(arg => {
 const system = require('synapse/system')
 const config = system.config
 
-server = process.env.SSL
-	? server = https.Server({ passphrase: String(config.ssl.password), pfx: config.ssl.certData }, app)
-	: server = http.Server(app)
+const server = process.env.SSL
+	? https.Server({ passphrase: String(config.ssl.password), pfx: config.ssl.certData }, app)
+	: http.Server(app)
 
 server.on('error', err => {
 	system.log(err)

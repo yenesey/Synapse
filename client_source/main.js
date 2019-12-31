@@ -90,11 +90,11 @@ _.pxhr({method: 'get', url: 'users/access'})
 			// name: 'Tasks',
 			icon: 'timeline',
 			component: {render: (h) => h('router-view')},
-			children: access.tasks.sort((a, b) => (a.id === b.id ? 0: a.id > b.id ? 1: -1) ).map(el => {
+			children: access.tasks.sort((a, b) => (a.name === b.name ? 0: a.name > b.name ? 1: -1) ).map(el => {
 				let task = allTasks.keys().find(key => key.substr(0, key.lastIndexOf('.')) === './' + el.name)
 				let obj = (task)
 					? allTasks(task).default
-					: { render: (h) => h('pre', {}, [el.description] ) }
+					: { /*render: (h) => h('pre', {}, [el.description] )*/ }
 
 				return {  
 					name: el.name,
@@ -104,7 +104,7 @@ _.pxhr({method: 'get', url: 'users/access'})
 					component: {
 						render: (h) => h(
 							el.menu !== 'tools' ? taskWrapper : 'div', 
-							{ props: {  id: el.id,  name: el.name } },  [ h(obj, {slot: 'default'}) ]   
+							{ props: {  id: el.id,  name: el.name, description: el.description } },  [ h(obj, {slot: 'default'}) ]   
 						) 
 					}
 				}

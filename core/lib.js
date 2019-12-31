@@ -162,7 +162,6 @@ _.recurse =	function (node, deep, callback) {
 	return recurse(node, 0, deep)
 }
 
-
 // END----------- работа со справочниками ключ-значение (то есть с объектами)
 
 _.rightPad =	function (str, padStr, toSize) {
@@ -250,15 +249,17 @@ _.mapValues = function (obj, map) { // map for <obj> array like way
 }
 
 // -----------------------------------------------------------------------
+/**
+ * склонение слова по целому (integer) числу
+ * @param {string[]} word ["корень", "окончание для одного", "двух-четрыех", "пять и более"] пример: ["мат", "ь", "ери", "ерей"]
+ * @param {number} num число
+ * @return {string} слово с окончанием
+ */
 _.declByNum = function (word, num) {
-// склонение слова по целому (integer) числу
-// word = ["корень", "окончание для одного", "двух-четрыех", "пять и более"]
-// пример ["мат", "ь", "ери",	"ерей"]
-	num = Math.abs(num - num % 1) // дробь отбрасываем! (не возмущайся, что 1.99 превращается в 1)
-	var idx = (num % 100 > 4 && num % 100 < 20) ? 2 : [2, 0, 1, 1, 1, 2][(num % 10 < 5) ? num % 10 : 5]
-	return word[0] + word[1 + idx]	// слово	+	окончание
+	num = Math.floor(num)
+	let i = (num % 100 > 4 && num % 100 < 20) ? 2 : [2, 0, 1, 1, 1, 2][(num % 10 < 5) ? num % 10 : 5]
+	return word[0] + word[1 + i]
 }
-
 // -----------------------------------------------------------------------
 /**
  * Combine multiple middleware together.

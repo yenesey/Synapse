@@ -71,7 +71,7 @@ function getConnection (dest) {
 	return Promise.reject(new Error('wrong connection alias'))
 }
 
-async function processData (SQL, bindVars = {}, whDestinationTable, options = { merge: false }) {
+async function importData (SQL, bindVars = {}, whDestinationTable, options = { merge: false }) {
 	let warehouse = await getConnection('warehouse')
 	let ibso = await getConnection('ibso')
 	let result = await ibso.execute(SQL, bindVars, { resultSet: true, extendedMetaData: true })
@@ -101,5 +101,5 @@ async function processData (SQL, bindVars = {}, whDestinationTable, options = { 
 
 module.exports = {
 	getConnection,
-	processData
+	importData
 }

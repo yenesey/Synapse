@@ -1,4 +1,4 @@
-﻿const { getConnection, processData } = require('./wh_util')
+﻿const { getConnection, importData } = require('./wh_util')
 
 module.exports = async function () {
 	let warehouse = await getConnection('warehouse')
@@ -6,8 +6,8 @@ module.exports = async function () {
 	let maxId = await warehouse.execute(`select max(id) maxId from IBS_TRANSACTIONS`).then(r => r.rows[0][0] || 0)
 	console.log('Loading from ID = ', maxId)
 
-	await processData(`
-		select
+	await importData(
+		`select
 			T.ID,
 			T.C_1 CREATED,
 			T.C_2 PROCEEDED,
@@ -42,6 +42,8 @@ module.exports = async function () {
 		where
 			-- T.C_1 >= TO_DATE('01.10.2019', 'dd.mm.yyyy')
 			T.ID > :maxId
-	`, { maxId: maxId }, 'WH.IBS_TRANSACTIONS')
-
+		`,
+		{ maxId: maxId },
+		'WH.IBS_TRANSACTIONS'
+	)
 }

@@ -47,7 +47,7 @@ module.exports = function (system, express) {
 					internalservererror: function (req, res, next) {
 						system.errorHandler(new Error('NTLM auth error'), req, res, next)
 					},
-					debug: function () { var args = Array.prototype.slice.apply(arguments); console.log.apply(null, args) },
+					// debug: function () { var args = Array.prototype.slice.apply(arguments); console.log.apply(null, args) },
 					domain: config.ntlm.domain,
 					domaincontroller: config.ntlm.dc
 				})(req, res, next)

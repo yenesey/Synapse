@@ -90,23 +90,15 @@ v-flex.xs12
 					tr(:style='{"background-color": $vuetify.theme.currentTheme.neutral}')
 						th.text-center.body-1 Запланированные задачи
 
-			v-simple-table.ma-1(dense fixed-header)
+			v-simple-table.ma-1(dense fixed-header height=720)
 				template(v-slot:default)
 					thead
 						tr
-							th.text-center.subtitle-1 #key
-							th.text-center.subtitle-1 Задача
-							th.text-center.subtitle-1 Описание
-							th.text-center.subtitle-1 Выполнено
-							th.text-center.subtitle-1 Следующ
-							th.text-center.subtitle-1 Вкл
-							th.text-center.subtitle-1 Вручную
-							th.text-center.subtitle-1 Вывод
-							th.text-center
-								v-icon delete
+							th.text-center.subtitle-1(v-for='(h, i) in heads', :key='i' @click='sortBy(h, i)' :class="{ active: sortHead === h }") {{h}}
+								span.arrow(v-show='sortHead === h' :class="sortOrder > 0 ? 'asc' : 'dsc'")
 					tbody
-						tr(v-for='(obj, key) in jobs', :key='key', @click='selectJob(key)', :class='{}' v-if='obj.state!=="deleted"')
-							td.text-center {{key}}
+						tr(v-for='(obj, index) in jobs', :key='index', @click='selectJob(index)', :class='{}' v-if='obj && obj.state !== "deleted"')
+							td.text-center {{index}}
 							td(style='color:teal') {{obj.name}}
 							td
 								v-text-field.body-2(v-model='obj.description', dense, full-width, hide-details, autocomplete='off')
@@ -116,14 +108,14 @@ v-flex.xs12
 							td(style='padding-left:25px; padding-right:0px')
 								v-switch(v-model='obj.enabled', dense, hide-details)
 							td.text-center
-								v-btn(text icon  @click='runJob(key)')
+								v-btn(text icon  @click='runJob(index)')
 									v-icon.hover-elevate(v-if='obj.state !== "running"') play_arrow
 									v-icon.rotate360(v-if='obj.state === "running"') cached
 							td.text-center
 								v-icon(size='22', v-if='Object.keys(obj.emails).length') mail_outline
 								v-icon(size='22', v-if='obj.print') local_printshop
 							td.text-center
-								v-btn(text icon @click='deleteJob(key)')
+								v-btn(text icon @click='deleteJob(index)')
 									v-icon.hover-elevate delete
 
 </template>
@@ -148,12 +140,12 @@ const schema = {
 
 /*
 	На сервере и клиенте задачи хранятся в структуре вида:
-	jobs = {
-		key1: {...schema}, 
-		key2: {...schema}, 
+	jobs = [
+		{...schema}, 
+		{...schema}, 
 		......
-		keyN: {...schema}
-	}
+		{...schema}
+	]
 
 	Направление Сервер --> Клиент
 	При соединении с сервером, клиенту прилетает весь список jobs. Далее, в процессе взаимодействия, от
@@ -174,11 +166,14 @@ export default {
 			taskSearch: '',
 			tasks: [],
 			tasksLoading: false,
-
 			usersCached: [],
 			emails: {},
 
-			jobs: {}, // {key1: schema, key2: schema, .... keyN: schema}
+			jobs: [], // {key1: schema, key2: schema, .... keyN: schema}
+			heads: [ '#key', 'Задача', 'Описание', 'Выполнено', 'Следующ', 'Вкл', 'Вручную', 'Вывод', 'Убрать' ],
+			sortHead: '',
+			sortOrder: 1,
+
 			key: '',
 			job: clone(schema), // указатель на выбранный в таблице job
 			wssReadyState: 0
@@ -199,6 +194,7 @@ export default {
 	},
 
 	mounted () {
+		window.tst = this.jobs
 		let ws = new WebSocket(this.$root.getWebsocketUrl() + '/scheduler')
 		ws.onerror = console.log
 		ws.onclose = (m) => { this.wssReadyState = ws.readyState }
@@ -306,7 +302,7 @@ export default {
 			job.task = task.id
 			job.name = task.name
 			job.argv = this.fetchParams(task.id)
-			this.send({ action: 'create', key: null,  payload: job })
+			this.send({ action: 'create', key: null, payload: job })
 			this.key = null
 			this.job  = job
 		},
@@ -338,6 +334,12 @@ export default {
 			this.job = clone(schema)
 		},
 
+		sortBy (h, i) {
+			this.sortOrder = this.sortOrder * -1
+			this.sortHead = h
+			console.log(this.sortOrder)
+		},
+
 		formatEmail (item) {	
 			return (typeof item === 'object')
 				? item.name + '<' + item.email + '>'
@@ -349,6 +351,21 @@ export default {
 </script>
 
 <style scoped>
+
+.arrow.asc:before {
+	position: absolute;
+	padding: 0 0.1em 0 0.1em;
+	content:"\1f829";
+	transition: transform .2s ease;
+}
+
+.arrow.dsc:before {
+	position: absolute;
+	padding: 0 0.1em 0 0.1em;
+	content:"\1f829";
+	transition: transform .2s ease;
+	transform: rotate(180deg);
+}
 
 .hover-elevate:hover {
 	/* transform: scale(1.2);*/

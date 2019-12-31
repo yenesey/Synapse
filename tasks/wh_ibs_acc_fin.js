@@ -1,8 +1,8 @@
-﻿const { processData } = require('./wh_util')
+﻿const { importData } = require('./wh_util')
 
 module.exports = function () {
-	processData(`
-		select
+	importData(
+		`select
 			ID, 
 			C_1 ACCOUNT, 
 			REF3 CLIENT_V, 
@@ -20,6 +20,10 @@ module.exports = function () {
 		from 
 			VW_CRIT_AC_FIN
 		where
+			--1=1
 			(C_16 is null or C_16 >= SYSDATE - 15)
-	`, {},  'WH.IBS_ACC_FIN', { merge: true })
+		`, 	{},
+		'WH.IBS_ACC_FIN',
+		{ merge: true }
+	)
 }

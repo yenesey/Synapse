@@ -1,8 +1,8 @@
-﻿const { processData } = require('./wh_util')
+﻿const { importData } = require('./wh_util')
 
 module.exports = function () {
-	processData(`
-		select
+	importData(
+		`select
 			ID,             
   			STATE_ID STATE,
   			C_1 DATE_DOC,
@@ -20,8 +20,8 @@ module.exports = function () {
 		where
 			(C_10 is not null and C_10 >= SYSDATE - 15)
 		`,
-	{},
-	'WH.IBS_MAIN_DOCUM',
-	{ merge: true }
+		{},
+		'WH.IBS_MAIN_DOCUM',
+		{ merge: true }
 	)
 }

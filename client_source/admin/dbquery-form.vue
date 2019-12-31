@@ -60,7 +60,7 @@
 <script>
 // @keydown.native="editorKey" //	div(style='width:auto; padding: 2px 6px;color:#57768A;')
 import {declByNum, pxhr} from 'lib';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import editor from './editor/ace-editor.js';
 
 //сохранение любого контента в файл
@@ -246,7 +246,7 @@ export default {
 			self.running = true;
 			self.tableData = [];
 			self.error = "";
-			var start = moment();			
+			var start = dayjs();			
 
 			pxhr({ method:'post', url:'dbquery', timeout : 60000*30, 
 				data: {
@@ -261,7 +261,7 @@ export default {
 					self.error = res.error 
 				} else {				
 					self.tableData = res; 
-					self.time = moment(moment() - start).format("mm:ss.SSS");
+					self.time = dayjs(dayjs() - start).format("mm:ss.SSS");
 				}
 			})
 			.catch(function(err){

@@ -31,7 +31,7 @@
 </template>
 
 <script>
-import moment from 'moment';
+import dayjs from 'dayjs';
 
 export default {
 	props: ['name', 'type', 'value', 'label'],
@@ -78,7 +78,7 @@ export default {
 	methods:{
 		today(){
 			this.menu = false; 
-			this.date= moment().format('YYYY-MM-DD');
+			this.date= dayjs().format('YYYY-MM-DD');
 		},
 
 		clear(){

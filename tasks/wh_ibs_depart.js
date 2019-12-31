@@ -1,8 +1,8 @@
-﻿const { processData } = require('./wh_util')
+﻿const { importData } = require('./wh_util')
 
 module.exports = function (params) {
-	processData(`
-		SELECT /*+ FIRST_ROWS(1) */
+	importData(
+		`SELECT /*+ FIRST_ROWS(1) */
 			ID,         
 			C_1 as CODE ,        
 			C_3 as DEP_NAME,
@@ -14,9 +14,9 @@ module.exports = function (params) {
 			IBS.VW_CRIT_DEPART
 			WHERE (CLASS_ID = 'DEPART')  
 			ORDER BY C_1`
-	,
-	{},
-	'WH.IBS_DEPART',
-	{ merge: true, rewriteStructure: true }
+		,
+		{},
+		'WH.IBS_DEPART',
+		{ merge: true, rewriteStructure: true }
 	)
 }

@@ -121,7 +121,7 @@ var config = {
 	devtool: 'source-map',
 
 	plugins: [ 
-		new webpack.ContextReplacementPlugin(/moment[/\\]locale$/, /^\.\/(ru)$/), //--берем только русскую локаль
+		// new webpack.ContextReplacementPlugin(/moment[/\\]locale$/, /^\.\/(ru)$/), //--берем только русскую локаль
 		new HtmlWebpackPlugin({
 			inject: true,
 			favicon:  resolve('client_source/assets', 'favicon.ico'),
