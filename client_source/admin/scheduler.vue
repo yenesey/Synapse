@@ -10,7 +10,7 @@ v-flex.xs12
 				template(v-slot:default)
 					thead
 						tr(:style='{"background-color": $vuetify.theme.currentTheme.neutral }')
-							th.body-1.text-center(colspan='2' v-if='key') Редактировать задачу{{` [key:${key}]`}}
+							th.body-1.text-center(colspan='2' v-if='job.id') Редактировать задачу{{` [id:${job.id}]`}}
 							th.body-1.text-center(colspan='2' v-else) Создать задачу
 					tbody
 						tr
@@ -35,11 +35,11 @@ v-flex.xs12
 									label='Выбрать задачу',
 								)
 
-						tr(v-for='(value, key) in job.argv', :key='key')
+						tr(v-for='(value, id) in job.argv', :key='id')
 							td
-								label {{key}}
+								label {{id}}
 							td
-								v-text-field(dense single-line hide-details v-model='job.argv[key]', autocomplete='off')
+								v-text-field(dense single-line hide-details v-model='job.argv[id]', autocomplete='off')
 						tr
 							th(colspan='2') Расписание
 						tr
@@ -60,7 +60,7 @@ v-flex.xs12
 									
 						tr
 							td(colspan='2', style='vertical-align: text-top')
-								v-row.ma-0(v-for='(obj, key) in job.emails' :key='key')
+								v-row.ma-0(v-for='(obj, id) in job.emails' :key='id')
 									v-autocomplete(
 										dense
 										hide-details	
@@ -68,7 +68,7 @@ v-flex.xs12
 										autocomplete='off'
 										hide-no-data,
 										item-disabled='__'
-										v-model='job.emails[key]',
+										v-model='job.emails[id]',
 										:items='usersCached',
 										item-text='email',
 										item-value='email'
@@ -77,7 +77,7 @@ v-flex.xs12
 											v-list-item-content
 												v-list-item-subtitle(v-html='el.item.name')
 												v-list-item-subtitle(v-html='el.item.email')
-									v-btn(text icon @click='$delete(job.emails, key)')
+									v-btn(text icon @click='$delete(job.emails, id)')
 										v-icon.hover-elevate remove_circle
 			
 						tr
@@ -94,38 +94,45 @@ v-flex.xs12
 				template(v-slot:default)
 					thead
 						tr
-							th.text-center.subtitle-1(v-for='(h, i) in heads', :key='i' @click='sortBy(h, i)' :class="{ active: sortHead === h }") {{h}}
-								span.arrow(v-show='sortHead === h' :class="sortOrder > 0 ? 'asc' : 'dsc'")
+							th.text-center.subtitle-1(
+								v-for='(h, idx) in heads'
+								:key='idx'
+								@click='clickHead(h, idx)'
+								:class='{ active: sortHead === idx }'
+								:style='{ cursor: ("key" in h) ? "pointer" : "default" }'
+							) {{h.name}}
+								span.arrow(v-show='sortHead === idx' :class="sortOrder > 0 ? 'asc' : 'dsc'")
 					tbody
-						tr(v-for='(obj, index) in jobs', :key='index', @click='selectJob(index)', :class='{}' v-if='obj && obj.state !== "deleted"')
-							td.text-center {{index}}
-							td(style='color:teal') {{obj.name}}
+						tr(v-for='(job, index) in jobs', :key='job.id', @click='selectJob(job)', :class='{}' v-if='job && job.state !== "deleted"')
+							td.text-center {{ job.id }}
+							td(style='color:teal') {{job.name}}
 							td
-								v-text-field.body-2(v-model='obj.description', dense, full-width, hide-details, autocomplete='off')
-							td {{obj.last}}
-							td {{obj.next}}
+								v-text-field.body-2(v-model='job.description', dense, full-width, hide-details, autocomplete='off')
+							td {{job.last}}
+							td {{job.next}}
 								
 							td(style='padding-left:25px; padding-right:0px')
-								v-switch(v-model='obj.enabled', dense, hide-details)
+								v-switch(v-model='job.enabled',  @mousedown='selectJob(job)' dense, hide-details)
 							td.text-center
-								v-btn(text icon  @click='runJob(index)')
-									v-icon.hover-elevate(v-if='obj.state !== "running"') play_arrow
-									v-icon.rotate360(v-if='obj.state === "running"') cached
+								v-btn(text icon  @click='runJob(job.id)')
+									v-icon.hover-elevate(v-if='job.state !== "running"') play_arrow
+									v-icon.rotate360(v-if='job.state === "running"') cached
 							td.text-center
-								v-icon(size='22', v-if='Object.keys(obj.emails).length') mail_outline
-								v-icon(size='22', v-if='obj.print') local_printshop
+								v-icon(size='22', v-if='Object.keys(job.emails).length') mail_outline
+								v-icon(size='22', v-if='job.print') local_printshop
 							td.text-center
-								v-btn(text icon @click='deleteJob(index)')
+								v-btn(text icon @click='deleteJob(job.id)')
 									v-icon.hover-elevate delete
 
 </template>
 
 <script>
 
-import {debounce, diff, clone, mutate, merge, pxhr} from 'lib'
+import { pxhr, debounce, diff, clone, mutate } from 'lib'
 
 const schema = {
 	task: null,
+	name: '',
 	description: '',
 	next: '',
 	last: '',
@@ -138,8 +145,20 @@ const schema = {
 	enabled: 0
 }
 
+const heads = [ 
+	{ key: 'id', name: '#id' },
+	{ key: 'name', name: 'Задача' },
+	{ key: 'description', name: 'Описание' },
+	{ key: 'last', name: 'Выполнено' },
+	{ key: 'next', name: 'Следующ' },
+	{ key: 'enabled', name: 'Вкл' },
+	{ name: 'Вручную'},
+	{ name: 'Вывод'},
+	{ name: 'Убрать'}
+]
+
 /*
-	На сервере и клиенте задачи хранятся в структуре вида:
+	На сервере задачи хранятся в структуре вида:
 	jobs = [
 		{...schema}, 
 		{...schema}, 
@@ -148,13 +167,16 @@ const schema = {
 	]
 
 	Направление Сервер --> Клиент
-	При соединении с сервером, клиенту прилетает весь список jobs. Далее, в процессе взаимодействия, от
-	сервера прилетают только одиночные пары {key: {...schema}}, причем ...schema содержит только измененные поля
+	При соединении с сервером, клиенту прилетает весь список (массив) jobs. 
+	Индекс каждого job'a в массиве клиент самостоятельно инкапсулирует (добавляет к схеме): {id: index, ...schema},
+	чтобы не потерять эту связь при сортировках таблицы
+
+	Далее, в процессе взаимодействия, от
+	сервера прилетают только одиночные пары {id: {...schema}}, причем ...schema содержит только измененные поля
 
 	Направление Клиент --> Сервер
-	Клиент отправляет контракты вида { action: '', key: '',  payload: {...schema} }. 
+	Клиент отправляет контракты вида { action: string, id: number,  payload: {...schema} }. 
 	action  ∈ {'create', 'update', 'delete', 'run' ...},
-	key     ∈ { jobs.key1, ... jobs.keyN },
 	payload ∈ {...schema}  - причем ...schema содержит только изменные поля
 */
 
@@ -169,32 +191,24 @@ export default {
 			usersCached: [],
 			emails: {},
 
-			jobs: [], // {key1: schema, key2: schema, .... keyN: schema}
-			heads: [ '#key', 'Задача', 'Описание', 'Выполнено', 'Следующ', 'Вкл', 'Вручную', 'Вывод', 'Убрать' ],
-			sortHead: '',
+			heads: heads,
+			sortHead: 0,
 			sortOrder: 1,
 
-			key: '',
+			jobs: [], // {key1: schema, key2: schema, .... keyN: schema}
 			job: clone(schema), // указатель на выбранный в таблице job
-			wssReadyState: 0
-		}
-	},
 
-	watch: {
-		job: {
-			handler : 'jobChanged',
-			deep: true
+			wssReadyState: 0
 		}
 	},
 
 	created () {
 		this.socket = null,
-		this.jobsShadow = {},
 		this.lazyUpdate = null
 	},
 
 	mounted () {
-		window.tst = this.jobs
+		// window.tst = this
 		let ws = new WebSocket(this.$root.getWebsocketUrl() + '/scheduler')
 		ws.onerror = console.log
 		ws.onclose = (m) => { this.wssReadyState = ws.readyState }
@@ -206,22 +220,29 @@ export default {
 		}
 		this.socket = ws
 
- 	  	pxhr({method:'GET', url: 'scheduler/tasks'})
- 	  	   .then(res => {
- 	  	   		this.tasks = res
- 	  	  	})
- 	  	 	.catch(err => {
- 	  	  	 	console.log(err)
+		pxhr({method:'GET', url: 'scheduler/tasks'})
+			.then(res => {
+				this.tasks = res
 			})
-		
- 	  	pxhr({method:'GET', url: 'users?show-disabled=false'})
- 	  	   .then(res => {
- 	  	   		this.usersCached = res
- 	  	  	})
- 	  	 	.catch(err => {
- 	  	  	 	console.log(err)
- 	  	  	})
+			.catch(err => {
+				console.log(err)
+			})
+	
+		pxhr({method:'GET', url: 'users?show-disabled=false'})
+			.then(res => {
+				this.usersCached = res
+			})
+			.catch(err => {
+				console.log(err)
+			})
 
+	},
+
+	watch: {
+		job: {
+			handler : 'jobChanged',
+			deep: true
+		}
 	},
 
 	computed: {
@@ -235,18 +256,21 @@ export default {
 			this.socket.send(JSON.stringify( msg ))
 		},
 
-		createLazyUpdate (key) {
-			return  debounce( function () {
-				let _diff = diff(this.jobsShadow[key], this.jobs[key])
+		createLazyUpdate (job) {
+			let shadow = clone(job)
+			return debounce( function () {
+				let _diff = diff(shadow, job)
 				if (_diff) {
-					mutate(this.jobsShadow[key], this.jobs[key])
-					this.send({ action: 'update', key: key, payload: _diff })
+					this.send({ action: 'update', id: job.id, payload: _diff })
+					shadow = clone(job)
 				}	
 			}, 3000)  // ms
 		},
 		
 		jobChanged (_new, _old) {
-			if (this.lazyUpdate) this.lazyUpdate()
+			if (this.lazyUpdate) {
+				this.lazyUpdate()
+			}
 			if (_new === _old) { // меняется значение внутри самого job'a
 			} else { // меняется job целиком
 			}
@@ -255,25 +279,27 @@ export default {
 		traverseIncomingJobs (data) {
 			// принимаем входящие данные
 			// важный момент: существующие ключи обновляются но не перезаписываются
-			let {job, jobs, jobsShadow, $set} = this
-			for (let key in data) {
-				// let item = merge(schema, data[key]) // подстраховка от кривой схемы
-				let item = data[key]
+			let { 
+				jobs //, $set 
+			} = this
+			for (let id in data) {
+				//let item = merge(schema, data[id]) // подстраховка от кривой схемы
+				let item = data[id]
 				if (item) {
-					if (key in jobs) {
-						mutate(jobs[key], item)
-						mutate(jobsShadow[key], item)
+					item.id = id // инкапсулируем "серверный индекс" в id, чтобы не потерять при манипуляциях (сортировках)
+					let existing = jobs.find(el => el.id === id)
+					if ( existing ) {
+						mutate(existing, item)
 					} else {
-						$set(jobs, key, item)
-						$set(jobsShadow, key, clone(item))
+						// $set(jobs, id, item)
+						jobs.push(item)
 					}
-					if (this.key === key) job = this.jobs[key]
 				}
 			}
 		},
 
 		fetchParams (id) {
-			// извлекаем argv = {key: value} непосредственно из текста рендер-функции Vue-компонента
+			// извлекаем argv = {id: value} непосредственно из текста рендер-функции Vue-компонента
 			var rg = new RegExp('"?name"?: ?"([^\n]*?)",?\n?(?:\\s*"?value"?: ?"?(?:_vm\.|[a-z]\.)?([^\n]*?)"?,?(?:,?\\w*:|}|\n))?', 'g')
 			var res
 			//находим нужную задачу по id
@@ -302,42 +328,49 @@ export default {
 			job.task = task.id
 			job.name = task.name
 			job.argv = this.fetchParams(task.id)
-			this.send({ action: 'create', key: null, payload: job })
-			this.key = null
-			this.job  = job
+			this.send({ action: 'create', id: null, payload: job })
+			this.job = job
 		},
 
-		selectJob (key) { // select row in table
-			if (this.key === key || !(key in this.jobs)) return
-			let job = this.jobs[key]
+		selectJob (job) { // select row in table
+			if (!job || job === this.job) return
 			this.taskSearch = job.name
 			job.argv = Object.assign(this.fetchParams(job.task), job.argv)
-			this.key = key
-			this.job = job // note: 'jobChanged' on nextTick  -!!!если бы работало не так, пришлось бы инкапсулировать key в job!!!
+			this.job = job // note: 'jobChanged' on nextTick
 
 			this.emails = Object.keys(job.emails)
 			if (this.emails.length === 0) this.emails = ['']
-
-			this.lazyUpdate = this.createLazyUpdate(key)
+			this.lazyUpdate = this.createLazyUpdate(job)
 		},
 
-		runJob (key) {
-			this.send({ action: 'run', key: key })
+		runJob (id) {
+			this.send({ action: 'run', id: id })
 		},
 		
-		deleteJob (key) {
-			this.send({ action: 'delete', key: key })
-			this.$delete(this.jobs, key)
-			this.$delete(this.jobsShadow, key)
+		deleteJob (id) {
+			this.send({ action: 'delete', id: id })
+			let index = this.jobs.findIndex((job) => job.id === id)
+			this.$delete(this.jobs, index)
+			// this.$delete(this.jobsShadow, index)
 			this.task = null
-			this.key = ''
 			this.job = clone(schema)
 		},
 
-		sortBy (h, i) {
-			this.sortOrder = this.sortOrder * -1
-			this.sortHead = h
-			console.log(this.sortOrder)
+		clickHead (h, i) {
+			if ('key' in this.heads[i]) {
+				this.sortOrder = this.sortOrder * -1
+				this.sortHead = i
+				let key = this.heads[this.sortHead].key
+				let sortOrder = this.sortOrder
+				this.jobs.sort((a, b) => {
+					if (a[key] > b[key]) {
+						return 1 * sortOrder
+					} else if (a[key] < b[key]) {
+						return -1 * sortOrder
+					}
+					return 0
+				})
+			}	
 		},
 
 		formatEmail (item) {	
@@ -355,14 +388,14 @@ export default {
 .arrow.asc:before {
 	position: absolute;
 	padding: 0 0.1em 0 0.1em;
-	content:"\1f829";
+	content:"\25B2";
 	transition: transform .2s ease;
 }
 
 .arrow.dsc:before {
 	position: absolute;
 	padding: 0 0.1em 0 0.1em;
-	content:"\1f829";
+	content:"\25B2";
 	transition: transform .2s ease;
 	transform: rotate(180deg);
 }

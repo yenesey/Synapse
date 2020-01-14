@@ -51,7 +51,7 @@ v-app
 					router-view(:key='$route.fullPath')
 	v-footer(app='')
 		v-icon account_balance
-		span Denis Bogachev © 2016-2018 
+		span Denis Bogachev © 2016-2020 
 </template>
 
 <script>

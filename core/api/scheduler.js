@@ -196,39 +196,39 @@ module.exports = function (system) {
 
 	// небольшой бэкенд ниже
 
-	function traverseIncomingActions (data, id) {
+	function traverseIncomingActions (data, connectionId) {
 		try {
-			let { action, key, payload } = JSON.parse(data)
+			let { action, id, payload } = JSON.parse(data)
 
 			switch (action) {
 			case 'create':
-				// autoinc key
-				// key = String(Object.keys(jobs).reduce((res, key) => Math.max(res, Number(key)), 0) + 1)
-				key = jobs.push(payload) - 1
-				schedule(key)
-				broadcast(key, jobs[key])
+				// autoinc id
+				// id = String(Object.ids(jobs).reduce((res, id) => Math.max(res, Number(id)), 0) + 1)
+				id = jobs.push(payload) - 1
+				schedule(id)
+				broadcast(id, jobs[id])
 				break
 
 			case 'update':
-				if (!(key in jobs)) return
-				let job = jobs[key]
+				if (!(id in jobs)) return
+				let job = jobs[id]
 				for (let k in payload) job[k] = payload[k]
-				destroy(key)
-				schedule(key)
-				renewNext(key)
-				broadcast(key, { ...payload, next: job.next })
+				destroy(id)
+				schedule(id)
+				renewNext(id)
+				broadcast(id, { ...payload, next: job.next })
 				break
 
 			case 'delete':
-				if (!(key in jobs)) return
-				destroy(key)
-				delete jobs[key]
-				broadcast(key, { state: 'deleted' }, [id])
+				if (!(id in jobs)) return
+				destroy(id)
+				delete jobs[id]
+				broadcast(id, { state: 'deleted' }, [connectionId])
 				break
 
 			case 'run':
-				if (!(key in jobs)) return
-				task(key)()
+				if (!(id in jobs)) return
+				task(id)()
 				break
 			}
 		} catch (err) {
@@ -252,7 +252,7 @@ module.exports = function (system) {
 	this.get('/tasks', function (req, res) {
 		system.checkAccess(req.user, system.tree.objects.admin._.scheduler.id)
 		let tasks = system.tree.objects.tasks
-		let map = Object.keys(tasks).map(task => ({ id: tasks._.task.id, ...tasks.task, name: task }))
+		let map = Object.keys(tasks).map(task => ({ id: tasks._[task].id, ...tasks.task, name: task }))
 		res.json(map)
 	})
 }

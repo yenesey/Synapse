@@ -1,11 +1,30 @@
-//////////////////////////////////////////////////////////
-//  Ключевые моменты, которые нужно знать для понимания как это работает:
-//  1. Vue, Vuex, VueRouter
-//  2. vue-loader для webpack (-->require.context)
-//  3. render: function(h)
-//
+/**
+ * Точка входа webpack и запуск Vue app
+ */
 
-import 'babel-polyfill'
+/**
+ * <<<Полифилы для поддержки IE11>>>
+ * NOTE: Опция useBuiltIns: 'usage' для babel-loader не используется, потому что Vuetify не
+ * собирается динамически; используется уже собранный бандл vuetify.min.js. От динамической сборки отказался по многим причинам.
+ * А это значит, что у сборщика нет информации, какие фичи нужно 'подтянуть', и опция 'usage' бесполезна
+ * С отказом от поддержки IE эту секцию можно будет выпилить
+ */
+import 'core-js/features/promise'
+import 'core-js/features/symbol'
+import 'core-js/features/set'
+import 'core-js/features/map'
+import 'core-js/features/math/cbrt'
+import 'core-js/features/array/from'
+import 'core-js/features/array/includes'
+import 'core-js/features/array/find'
+import 'core-js/features/array/index'
+import 'core-js/features/object/keys'
+import 'core-js/features/object/values'
+import 'core-js/features/object/assign'
+import 'core-js/features/string/starts-with'
+import 'core-js/features/string/repeat'
+
+
 import _ from 'lib' // note: lib is aliased in webpack.config.js
 import store from './store' // Vuex store
 
@@ -94,7 +113,7 @@ _.pxhr({method: 'get', url: 'users/access'})
 				let task = allTasks.keys().find(key => key.substr(0, key.lastIndexOf('.')) === './' + el.name)
 				let obj = (task)
 					? allTasks(task).default
-					: { /*render: (h) => h('pre', {}, [el.description] )*/ }
+					: { render: (h) => h('pre', {}, /*[el.description]*/ ) }
 
 				return {  
 					name: el.name,

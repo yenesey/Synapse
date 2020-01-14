@@ -50,56 +50,22 @@ var config = {
 				use: 'vue-loader'
 			},
 			{
-				exclude: /node_modules\/(?!(vuetify)\/)|node_modules\/(?!(brace)\/)|core/,
-				//exclude: /node_modules|core/,
+				exclude: /node_modules|core/,
 				test: /\.js$/,
 				use: {
 					loader: 'babel-loader',
 					options: {
 						cacheDirectory: true,
-						//presets: ['env'],
 						presets: [
-							[
-								'@vue/app',
-								{
-									'useBuiltIns': 'entry'
-								}
-							]
+							['@babel/preset-env', {
+								useBuiltIns: 'entry', // 'usage'
+								corejs: 3,
+								// include: ['es.promise', 'es.string.starts-with', 'es.math.cbrt', 'es.symbol']
+							}]
 						]
 					}
 				}
 			},
-			/*
-			/* 
-			// Это для vuetify-loader. Чтобы грузить [только] используемые компоненты 
-			// automatic a-la-carte совместно с опцией 
-			//     import Vuetify from 'vuetify/lib'  (!lib!)
-			// Пробовал, экономия места незначительная, а настроек нужно дофига. 
-			// Сборка дольше т.к. вся либа компилится, и со шрифтами танцы. 
-			// На текущий момент (2019-10-06) не рекомендую...
-			{
-				test: /\.css$/,
-				use: 'css-loader'
-			},
-			{
-				test: /\.s(c|a)ss$/,
-				use: [
-					'vue-style-loader',
-					'css-loader',
-					{
-						loader: 'sass-loader',
-						// Requires sass-loader@^8.0.0
-						options: {
-							implementation: require('sass'),
-							sassOptions: {
-								fiber: require('fibers'),
-								indentedSyntax: true // optional
-							}
-						}
-					}
-				]
-			},
-			*/
 			{
 				test: /\.(sa|sc|c)ss$/,
 				use: ['vue-style-loader', 'css-loader', 'sass-loader']
