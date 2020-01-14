@@ -4,22 +4,27 @@
 	миграция старой базы на новую
 	[settings], [objects], [objects_meta], [users] -> в [system_nodes][system_values]
 
-	\> node migrate <'admin-login'>
+	\> node migrate <admin-login>
 */
 
+const sqlite = require('better-sqlite3')
 const path = require('path')
 const dbDir = path.join(require.main.path, '../db')
-const db = require('synapse/sqlite')(dbDir + '/synapse.db')
-const newDb = require('synapse/sqlite')(dbDir + '/newDb.db')
-const treeMap = require('synapse/sqlite-tree-mapper')(newDb, 'system')
+
+const db = sqlite(dbDir + '/synapse.db')
+const newDb = sqlite(dbDir + '/newDb.db')
+
+const treeStore = require('sqlite-tree-store')
+const treeMap = treeStore(newDb, 'system')
+
 const fs = require('fs')
 
 Promise.all([
 	treeMap(),
-	db('SELECT * FROM settings'),
-	db('SELECT *, (select meta from objects_meta where object = objects.id) as meta	FROM objects'),
-	db('SELECT * FROM users'),
-	db('SELECT * FROM jobs')
+	db.prepare('SELECT * FROM settings').all(),
+	db.prepare('SELECT *, (select meta from objects_meta where object = objects.id) as meta	FROM objects').all(),
+	db.prepare('SELECT * FROM users').all(),
+	db.prepare('SELECT * FROM jobs').all()
 ])
 	.then(([tree, settings, objects, users, jobs]) => {
 		// Мапим конфиг в объект
@@ -68,45 +73,39 @@ Promise.all([
 		tree.users = oldUsers // Сохраняем пользователей (users.id=3)
 
 		// Мапим jobs
-		var oldJobs = jobs.reduce((all, job) => {
-			all[job.id] = {}
+		var oldJobs = jobs.map((job) => {
+			let ret = {}
 			for (let key in job) {
-				all[job.id][key] = job[key]
+				ret[key] = job[key]
 			}
 			let params = JSON.parse(job.params)
-			all[job.id]['params'] = {}
-			if ('argv' in params) all[job.id]['argv'] = params['argv']
+			ret['params'] = {}
+			if ('argv' in params) ret['argv'] = params['argv']
 			if ('pp' in params) {
-				all[job.id]['emails'] = params['pp']['email']
-				all[job.id]['print'] = params['pp']['print']
+				ret['emails'] = params['pp']['email']
+				ret['print'] = params['pp']['print']
 			}
-			return all
-		}, {})
+			return ret
+		})
 		tree.jobs = oldJobs // (jobs.id=4)
 
-		/*
-		Поскольку все присвоения tree. = {}  в реале стартуют практически одновременно, а затем уже
-		бегут асинхронно вниз по "дереву" то в теории сначала будут созданы корневые разделы
-		config.id = 1, objects.id = 2, users.id = 3 ....
-		а затем уже вложения каждой ветки с бОльшими id, но лучше это дело проверить
-		*/
-		setTimeout(() => {
-			console.log('config.id  = ' + tree.$('config').id)
-			console.log('objects.id = ' + tree.$('objects').id)
-			console.log('users.id   = ' + tree.$('users').id)
-			console.log('jobs.id    = ' + tree.$('jobs').id)
-			console.log('Выполнено!')
-			let admin = process.argv[2]
-			if (tree.users[admin]) {
-				tree.users[admin]._acl = String(tree.objects.admin.$('Пользователи').id)
-				console.log('Права администратора назначены: ', tree.users[admin])
-			} else {
-				console.log('Администратор не указан, или указан неверно. Права не назначены!')
-			}
-			Promise.all([db.close(), newDb.close()]).then(() => {
-				console.log('Переименовываю synapse.db => synapse.db.save')
-				fs.renameSync(dbDir + '/synapse.db', dbDir + '/synapse.db.save')
-				fs.renameSync(dbDir + '/newDb.db',  dbDir + '/synapse.db')
-			}).catch(err => console.log('Не удается переименовать файлы баз. Возможно, база открыта где то еще?'))
-		}, 1000)
+
+		console.log('config.id  = ' + tree._.config.id)
+		console.log('objects.id = ' + tree._.objects.id)
+		console.log('users.id   = ' + tree._.users.id)
+		console.log('jobs.id    = ' + tree._.jobs.id)
+		console.log('Выполнено!')
+		let admin = process.argv[2]
+		if (tree.users[admin]) {
+			tree.users[admin]._acl = String(tree.objects.admin._['Пользователи'].id)
+			console.log('Права администратора назначены: ', tree.users[admin])
+		} else {
+			console.log('Администратор не указан, или указан неверно. Права не назначены!')
+		}
+		Promise.all([db.close(), newDb.close()]).then(() => {
+			console.log('Переименовываю synapse.db => synapse.db.save')
+			fs.renameSync(dbDir + '/synapse.db', dbDir + '/synapse.db.save')
+			fs.renameSync(dbDir + '/newDb.db',  dbDir + '/synapse.db')
+		}).catch(err => console.log('Не удается переименовать файлы баз. Возможно, база открыта где то еще?'))
+
 	}).catch(console.log)
