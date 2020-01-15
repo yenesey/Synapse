@@ -1,15 +1,24 @@
 <template>
 	<v-card>
-	  <v-card-title>
-		<v-icon style="font-size: 48px; padding-right: 15px; color: teal">{{selectIcon}}</v-icon>
-		<span style="font-size: 36px; color: blue"><b>{{selectIcon}}</b></span>
-		<div style="width:100%;height:2px;background:linear-gradient(to left, #CBE1F5, #74afd2); margin-top:1em; "></div>
-	  </v-card-title>
-	  <v-card-text >
-		<div v-for="_icon in getAllIcons()" :key='_icon' style="user-select: none; display: inline-block;" >
-		  <v-icon class="allIcons" @click.native="selectIcon = _icon">{{_icon}}</v-icon><br>
-		</div>
-	  </v-card-text>
+		<v-card-title>
+			<v-icon style="font-size: 48px; padding-right: 15px; color: teal">{{ selectIcon }}</v-icon>
+			<span style="font-size: 36px; color: blue"><b>{{ selectIcon }}</b></span>
+			<div style="width:100%;height:2px;background:linear-gradient(to left, #CBE1F5, #74afd2); margin-top:1em;"/>
+		</v-card-title>
+		<v-card-text >
+			<div 
+				v-for="_icon in getAllIcons()"
+				:key='_icon'
+				style="user-select: none; display: inline-block;"
+			>
+				<v-icon
+					class="allIcons"
+					@click.native="selectIcon = _icon"
+				>{{ _icon }}
+				</v-icon>
+				<br>
+			</div>
+		</v-card-text>
 	</v-card>
 </template>
 
@@ -22,12 +31,12 @@ export default {
 		return {
 			taskId:null,
 			access: null,	
-		  	dialog: false,
-		  	taskMeta: {},
-		  	taskMenu: '',
-		  	taskMenuName: '',
-		  	taskIcon: '',
-		  	selectIcon: ''
+			dialog: false,
+			taskMeta: {},
+			taskMenu: '',
+			taskMenuName: '',
+			taskIcon: '',
+			selectIcon: ''
 		}
 	},
 	mounted () {
@@ -38,11 +47,11 @@ export default {
 			return icons
 		},
 		labelMenu (item) {
-	  		if(typeof(item) == 'object') {
+			if(typeof(item) == 'object') {
 				this.taskMenu = item.name;
 				return  JSON.parse(item.meta).description; 
-	  		}
-	  		else return  item
+			}
+			else return  item
 		},
 		labelSelect (item) {
 			return item.name

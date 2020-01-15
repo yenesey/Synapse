@@ -211,8 +211,8 @@ export default {
 		// window.tst = this
 		let ws = new WebSocket(this.$root.getWebsocketUrl() + '/scheduler')
 		ws.onerror = console.log
-		ws.onclose = (m) => { this.wssReadyState = ws.readyState }
-		ws.onopen = (m) => { this.wssReadyState = ws.readyState }
+		ws.onclose = () => { this.wssReadyState = ws.readyState }
+		ws.onopen = () => { this.wssReadyState = ws.readyState }
 		ws.onmessage = (m) => {
 			let data
 			try { data = JSON.parse(m.data) } catch (err) {	console.log(err) }

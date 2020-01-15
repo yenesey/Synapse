@@ -11,7 +11,7 @@ module.exports = async function (params, system) {
 		select 
 			C.ID "card_id",
 			REGEXP_SUBSTR(CT.C_4,'[78]?9[0-9]{9}$') "phone"
-   	from 
+   		from 
 			VW_CRIT_VZ_CARDS C
 		 		inner join
 		 			VW_CRIT_CL_PRIV CL on C.REF3 = CL.ID

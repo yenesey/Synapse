@@ -11,12 +11,13 @@
 				label.action Кол-во строк: 
 				label.action &nbsp;
 
-				v-menu(offset-y='')
+				v-menu(offset-y='' transition='slide-y-transition' v-if='conns')
 					template(v-slot:activator="{ on }") 
-						input.action.border(v-model='connection' v-on="on")
-					v-list(width=200)
-						v-list-item(v-for='(el) in conns' :key='el'  @click='connection = el')
-							v-list-item-title {{ el }}
+						input.action.border(v-model='conns[connIndex]' v-on="on")
+					v-list(width=200 rounded)
+						v-list-item-group(v-model='connIndex' color='rgb(117, 132, 146)')
+							v-list-item(v-for='(el) in conns' :key='el')
+								v-list-item-title {{ el }}
 
 				label.action(style='float:right;') Источник: 
 
@@ -79,12 +80,14 @@ var saveFile = function(content, type, filename){
 }
 
 export default {
+	props: {
+		conns: Array
+	},
 
 	data : function(){
 		return {
 			sql : 'select * from V$NLS_PARAMETERS --показать параметры сессии',
-			conns: null,
-			connection: 'warehouse',
+			connIndex: 0,
 			editor : null,
 			maxRows: 40,
 			tableData : [],
@@ -101,16 +104,6 @@ export default {
 		}
 	},
 
-	created () {
-		pxhr({method:'GET', url: 'dbquery/connections'})
- 	  	   .then(res => {
- 	  	   		this.conns = res
- 	  	  	})
- 	  	 	.catch(err => {
- 	  	  	 	console.log(err)
-			})
-	},
-
 	computed : {
 		tableHeight () {
 			return document.documentElement.clientHeight - this.editorHeight - 150
@@ -121,7 +114,7 @@ export default {
 			if (rows.length === 0) return [];
 			var heads = Object.keys(rows[0]).map(el=>({
 				text: el,
-			 //   align: (typeof this.tableData[0][el] === 'string')?'right':'left',
+				//  align: (typeof this.tableData[0][el] === 'string')?'right':'left',
 				sortable: true,
 				width : 50,
 				class : 'flex',
@@ -154,7 +147,7 @@ export default {
 		sql () {
 			this.save()
 		},
-		connection () {
+		connIndex () {
 			this.save()
 		}
 	},
@@ -200,7 +193,7 @@ export default {
 					this.sql = item.sql
 					this.$parent.tab.name = item.tab
 					this.editorHeight = item.editorHeight || '250px'
-					this.connection = item.connection
+					this.connIndex = item.connIndex || 0
 				}	catch(err){
 					console.log(err)
 				}	
@@ -208,7 +201,7 @@ export default {
 		},
 
 		save : function(){
-			localStorage.setItem(this.url(), JSON.stringify( {tab : this.$parent.name, sql : this.sql, editorHeight: this.editorHeight, connection: this.connection} ));			
+			localStorage.setItem(this.url(), JSON.stringify( {tab : this.$parent.name, sql : this.sql, editorHeight: this.editorHeight, connIndex: this.connIndex} ));			
 		},
 
 		remove : function(){
@@ -250,7 +243,7 @@ export default {
 
 			pxhr({ method:'post', url:'dbquery', timeout : 60000*30, 
 				data: {
-					connection: this.connection,
+					connection: this.conns[this.connIndex],
 					sql : this.sql,
 					maxRows: this.maxRows
 				}

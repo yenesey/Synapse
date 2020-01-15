@@ -1,8 +1,19 @@
 'use strict'
 /*
   Серверная часть компонента dlookup
+  NOTE: УСТАРЕЛО! - оставлено для совместимости
 */
 const bodyParser = require('body-parser')
+
+const sqlite = require('better-sqlite3')
+const dbs = {} // кэш баз sqlite
+
+function sqliteq(query) { // query = {db:'<db file name>', sql:'select...'}
+	if (!(query.db in dbs))	{
+		dbs[query.db] = sqlite(query.db)
+	}
+	return dbs[query.db].prepare(query.sql).all()
+}
 
 function iif (entry, pre, pos) {
 	// макро для вставки строки (entry) с заданными (опционально) префиксом и постфиксом
@@ -45,39 +56,10 @@ function _sql (query) {
 		iif(query.order, ' ORDER BY ')
 }
 
-function _ldap (query) {
-	var lookIn = query.lookIn.replace(/%/g, "*").split(",").map(el => el.trim());
-
-	return {
-		fields: query.lookIn.replace(/%|\s/g, '').split(','),
-		query: query.request !== '%' 
-			? lookIn.reduce((all, field) => {
-				/(\*)?([\w|\d]+)(\*)?/.test(field)
-				return (all || '') + '(' + RegExp.$2 + '=' + RegExp.$1 + query.request + RegExp.$3 + ')'
-			}, '|') : ''
-	}
-}
-
 module.exports = function (system) {
 	// -
 	const config = system.config
-
-	function ibso (user, constraint) { // constraint = [{JSON}... {JSON}] в ibso используется для ограничения по реквизиту
-		if (!constraint) return Promise.resolve('')
-		if (!(constraint instanceof Array)) constraint = [constraint]
-
-		return constraint.reduce((clause, obj) => {
-			let access =  system.access(user, {	class: obj.class })
-			let lst = access.filter(el => el.granted).map(el => el.name)
-			return clause + (clause ? ' AND ' : ' ') +	'(' +
-					lst.reduce((all, next) => all + (all ? ' OR ' : '') + obj.column + ' ' + obj.operator + ' \'' + next + '\'', obj.column + ' is null') +
-			')'
-		}, '')
-	}
-
-	const ldap = require('../ds-ldap')(config.ntlm)
 	const ora = require('../ds-oracle')(config.oracle.ibso)
-	const sqlite = require('../ds-sqlite')()
 
 	this.post('/', bodyParser.json(), function (req, res) {
 		//
@@ -102,34 +84,19 @@ module.exports = function (system) {
 		if (query.where) query.where = query.where.replace(/%userId%/g, user.id)
 
 		if (query.db) {
-			if (query.db === 'ldap:') {
-				return ldap(_ldap(query))
-					.then(result => res.json(result))
-			} // если дан файл db, считаем что это локальный sqlite
-			return sqlite({
-				sql: _sql(query),
-				db: query.db
-			})
-				.then(result => res.json(result))
+			res.json(
+				sqliteq({ sql: _sql(query),	db: query.db })
+			)
+			return
 		}
 
 		// файл|ldap не указан? значит это запрос в ibso
-
-		// todo: проверка доступа по реквизиту - слишком навороченная и мало понятная штука. переосмыслить!!!
 		let access = system.access(user, { object: system.tree.objects.ibs._[query.table].id })
 		if (!access.granted) {
 			res.json({ error: 'Access denied!' })
 			return
 		}
 
-		let clause = ibso(user, access.constraint)
-		if (clause) {
-			if ('where' in query) {
-				query.where += ' AND ' + clause
-			} else {
-				query.where = clause
-			}
-		}
 		return ora(_sql(query))
 			.then(data => res.json(data))
 			.catch(err => system.errorHandler(err, req, res))

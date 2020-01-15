@@ -1,14 +1,12 @@
 <script>
-'use strict';
-import {
-	pxhr
-} from 'lib';
-import Autocomplete from './autocomplete.vue';
+'use strict'
+import { pxhr } from 'lib'
+import Autocomplete from './autocomplete.vue'
 
 export default {
 
 	props: {
-		'db': String, //имя базы sqlite, или псевдоним 'ldap:', если не указано - oracle
+		'db': String, //имя базы sqlite, если не указано - oracle
 		'table': String, //имя таблицы или вьюхи
 		'fields': String, //поля, которые нужно вернуть
 		'result': String, //поле - результат для form submission

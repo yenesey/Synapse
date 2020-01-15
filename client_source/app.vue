@@ -34,7 +34,7 @@ v-app
 			v-toolbar-title <-- dev-server -->
 		v-spacer
 		v-toolbar-title Synapse
-		v-menu(offset-y='', v-if='admin')
+		v-menu(offset-y, v-if='admin', transition='slide-y-transition')
 			template(v-slot:activator="{ on }")
 				v-btn(icon v-on="on")
 					v-icon(v-html='admin.icon')
@@ -59,14 +59,14 @@ import { keys } from 'lib'
 import { mapState } from 'vuex'
 
 export default {
-	name : 'app_view',
-	props : {
-		user : String,
-		status : String,
-		routes : Array,
-		menuGroups : Array
+	name: 'app_view',
+	props: {
+		user: String,
+		status: String,
+		routes: Array,
+		menuGroups: Array
 	},
-	data() {
+	data () {
 		return {
 			drag: {
 				startX: 0, 
@@ -74,9 +74,9 @@ export default {
 			}
 		}
 	},
-	computed : {
+	computed: {
 		devServer: () => window.location.port !== '',
-		admin() {
+		admin () {
 			return this.routes.find(r => r.path === '/admin')
 		},
 		tasks () {
@@ -88,7 +88,7 @@ export default {
 		...mapState(['navWidth', 'navVisible', 'navClipped'])
 	},
 	methods: {
-		navigate(to){
+		navigate (to) {
 			if (to !== this.$root.$router.currentRoute.fullPath) this.$root.$router.push(to)
 		},
 
@@ -97,7 +97,7 @@ export default {
 			this.$store.commit(key, !this[key])
 		},
 
-		initDrag: function(e){
+		initDrag (e) {
 			var doc = document.documentElement
 			doc.style.cursor = 'col-resize'
 			doc.addEventListener('mousemove', this.doDrag, false)
@@ -111,13 +111,13 @@ export default {
 			e.preventDefault()
 		},
 			
-		doDrag: function(e) {
+		doDrag (e) {
 			var width = this.drag.startWidth - (this.drag.startX - e.clientX)
 			if (width < 100) width = 100
 			this.$store.commit('navWidth', width)
 		},
 
-		stopDrag : function (e) {
+		stopDrag (e) {
 			var doc = document.documentElement
 			doc.style.cursor = 'default'
 			doc.removeEventListener('mousemove', this.doDrag, false)
@@ -305,7 +305,7 @@ table.synapse th {
 }
 
 table.synapse td {
-	 background-color:transparent;
+	background-color:transparent;
 }
 
 table.synapse th, table.synapse td {

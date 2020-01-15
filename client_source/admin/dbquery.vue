@@ -1,41 +1,49 @@
 <template>
-<v-flex class="xs12">
-	<div @keydown="keyPreview">
-		<tabs @add="add" @rename="rename" @close="close" ref="tabs">
-			<dbquery-form/>
-		</tabs>
+	<v-flex class="xs12">
+		<div @keydown="keyPreview">
+		  	<tabs @add="add" @rename="rename" @close="close" ref="tabs">
+				<dbquery-form :conns='conns' />
+		  	</tabs>
 
-    	<v-dialog v-model="dialog" width="450">
-    	  <v-card>
-    	    <v-card-title class="headline">Внимание!</v-card-title>
-    	    <v-card-text>Текст запроса будет потерян! Уверены, что хотите закрыть вкладку?</v-card-text>
-    	    <v-card-actions>
-    	      <v-spacer></v-spacer>
-    	      <v-btn color="red lighten-2"  @click.native="actualClose">Да</v-btn>
-    	      <v-btn color="blue lighten-4" @click.native="dialog = false">Нет</v-btn>
-    	    </v-card-actions>
-    	  </v-card>
-    	</v-dialog>
+		  	<v-dialog v-model="dialog" width="450">
+				<v-card>
+				  	<v-card-title class="headline">Внимание!</v-card-title>
+				  	<v-card-text>Текст запроса будет потерян! Уверены, что хотите закрыть вкладку?</v-card-text>
+					<v-card-actions>
+						<v-spacer></v-spacer>
+						<v-btn color="red lighten-2"  @click.native="actualClose">Да</v-btn>
+						<v-btn color="blue lighten-4" @click.native="dialog = false">Нет</v-btn>
+				  	</v-card-actions>
+				</v-card>
+		  	</v-dialog>
 
-	</div>
-</v-flex>	
+		</div>
+	</v-flex>	
 </template>
 
 <script>
 
-import dbq from './dbquery-form.vue';
+import {pxhr} from 'lib'
+import dbq from './dbquery-form.vue'
 
 export default {
-	data : function(){
+	data () {
 		return {
+			conns: null,
 			dialog: false,
 			toClose : null
 		}
 	},
 
-  components : {
-    'dbquery-form': dbq
-  },
+	created () {
+		pxhr({method:'GET', url: 'dbquery/connections'})
+			.then(res => {
+				this.conns = res
+			})
+			.catch(err => {
+				console.log(err)
+			})
+	},
 
 	mounted : function(){ //при появлении в DOM
 		var tabs = this.$refs.tabs;
@@ -58,6 +66,11 @@ export default {
 	deactivated : function(){
 		document.removeEventListener('keydown', this.keyPreview);
 	},
+
+	components : {
+		'dbquery-form': dbq
+	},
+
 	methods: {
 		keyPreview : function(event){
 			if (event.keyCode===120){  // 120 = F9
