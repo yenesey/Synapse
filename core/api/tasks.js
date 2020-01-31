@@ -58,15 +58,15 @@ module.exports = function (system) {
 				if (res.connection.writable) {
 					if (code === 0) {
 						fsp.ls(req.task.path)
-							.then(items => items.filter(item => !item.folder).map(file => file.name))
+							.then(items => items.filter(item => !item.isDirectory).map(file => file.name))
 							.then(files =>
 								res.end('\n' +
-							JSON.stringify({
-								status: 'done',
-								message: 'Выполнено',
-								path: path.relative(config.path.users, req.task.path),
-								files: files
-							})
+									JSON.stringify({
+										status: 'done',
+										message: 'Выполнено',
+										path: path.relative(config.path.users, req.task.path),
+										files: files
+									})
 								)
 							)
 							.catch(() =>

@@ -69,7 +69,7 @@ module.exports = function (system) {
 
 	this.get('/', requireAdmin, function (req, res) {
 		let users = system.tree.users
-		let map = Object.keys(users).map(user => ({ id: users._[user].id, ...users[user] , login: user }))
+		let map = Object.keys(users).map(user => ({ id: users._[user].id, ...users[user], login: user }))
 			.filter(el => (req.query['show-disabled'] === 'true' || !(el['disabled'])))
 		res.json(map)
 	})
@@ -82,7 +82,7 @@ module.exports = function (system) {
 		let login = req.query.login
 		assert(login, 'В запросе отсутствует ключевой реквизит - login')
 		let users = system.tree.users
-		res.json({id: users._[login].id, ...users[login]})
+		res.json({ id: users._[login].id, ...users[login] })
 	})
 
 	this.put('/user', bodyParser.json(), requireAdmin, function (req, res) { // операция добавления/редактирования пользователя

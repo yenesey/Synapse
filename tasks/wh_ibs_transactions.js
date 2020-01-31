@@ -4,6 +4,7 @@ module.exports = async function () {
 	let warehouse = await getConnection('warehouse')
 	// -
 	let maxId = await warehouse.execute(`select max(id) maxId from IBS_TRANSACTIONS`).then(r => r.rows[0][0] || 0)
+	// let maxId = 4327198491
 	console.log('Loading from ID = ', maxId)
 
 	await importData(
@@ -34,7 +35,10 @@ module.exports = async function () {
 			TT.C_6 PC,
 			TB.C_1 TRN_HANDLING_TYPE,
 			TB.C_3 DT_CARD,
-			TB.C_4 DT_TERM
+			TB.C_4 DT_TERM,
+			T.C_54 PAN,
+			T.C_26 CHAN_CODE
+
 		from
 			VW_CRIT_OWS_TRANSACTION T 
 				left join VW_CRIT_ALL_TRANS TT on T.REF12 = TT.ID
@@ -45,5 +49,6 @@ module.exports = async function () {
 		`,
 		{ maxId: maxId },
 		'WH.IBS_TRANSACTIONS'
+		/*, { merge: true } */
 	)
 }

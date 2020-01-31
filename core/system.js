@@ -6,16 +6,14 @@
 
 const path = require('path')
 const ROOT_DIR = path.join(__dirname, '..')
-const FORCE_ARRAYS = true
 
 const util = require('util')
 const assert = require('assert')
 const chalk = require('chalk')
 const fs = require('fs')
-const recurse = require('./lib').recurse
 
-const treeStorage = require('sqlite-tree-store')
-const tree = treeStorage(path.join(ROOT_DIR, 'db/synapse.db'), 'system', FORCE_ARRAYS)
+const recurse = require('./lib').recurse
+const treeStore = require('sqlite-tree-store')(path.join(ROOT_DIR, 'db/synapse.db'), 'system')
 
 // ---------------------------------------------------------------------------
 const system = {}
@@ -168,18 +166,24 @@ system.getUsersHavingAccess = function (objectId) {
 
 /// /////////////////////////////////////////////////////////////////////
 
-system.tree = tree()
-system.config = system.tree.config
-const config = system.config
+const tree = treeStore()
+const config = tree.config
+
 // eslint-disable-all
-for (var key in config.path) {
+for (let key in config.path) {
 	if (!path.isAbsolute(config.path[key])) { // достраиваем относительные пути до полных
 		config.path._[key] = path.join(ROOT_DIR, config.path[key])
 	}
 }
 config.path._.root = ROOT_DIR
-if (config.ssl.cert) {
-	config.ssl._.certData = fs.readFileSync(path.join(ROOT_DIR, 'sslcert', config.ssl.cert))
+config.ssl._.cert = path.join(ROOT_DIR, 'sslcert', config.ssl.cert)
+
+if (!config.ssl.certData && fs.existsSync(config.ssl.cert)) {
+	config.ssl.certData = fs.readFileSync(config.ssl.cert)
+	console.log(chalk.yellow.bold('Note: certificate is loaded into [synapse.db]:config.ssl.certData'))
 }
+
+system.tree = tree
+system.config = tree.config
 
 module.exports = system

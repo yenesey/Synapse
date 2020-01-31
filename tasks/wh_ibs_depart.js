@@ -17,6 +17,6 @@ module.exports = function (params) {
 		,
 		{},
 		'WH.IBS_DEPART',
-		{ merge: true, rewriteStructure: true }
+		{ merge: true }
 	)
 }

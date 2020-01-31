@@ -53,20 +53,20 @@
 import dayjs from 'dayjs';
 
 export default {
-	data:()=>({
-    dates01: ['2019-01-05'],
-    dates02: [],
-    dates03: [],
-    dates04: [],
+	data: () => ({
+		dates01: ['2019-01-05'],
+		dates02: [],
+		dates03: [],
+		dates04: [],
 		picker : null,
-    dialog: false,
-    label : [],
-    option : [],		 
-    		items: [
-    				{ text:'Первый пункт', value : 1 },
-    				{ text:'Второй пункт', value : 2 },
-            { text:'Третий пункт', value : 3 }
-           ] 	
+		dialog: false,
+		label : [],
+		option : [],		 
+		items: [
+			{ text:'Первый пункт', value : 1 },
+			{ text:'Второй пункт', value : 2 },
+			{ text:'Третий пункт', value : 3 }
+		] 	
 	}),
 
 
@@ -75,16 +75,16 @@ export default {
 			this.C_1 = event.C_1;
 			this.C_2 = event.C_2;
 		},
-    getList(item) {
-      return `${item.C_2} (${item.C_1})` 
-    },
-    getValue(item) {
-      return item.C_1
-    },
-		getDep : function(item){
+		getList(item) {
+			return `${item.C_2} (${item.C_1})` 
+		},
+		getValue(item) {
+			return item.C_1
+		},
+		getDep: function(item){
 			console.log(item) 
 		},
-		getLabel : function(item){
+		getLabel: function(item){
 			return item.C_3 
 		}
 	}

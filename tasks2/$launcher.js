@@ -9,7 +9,7 @@
 
 	var task = require(fileName)
 
-	var json = '{"date":"2020-01-15","makeFiles":false,"outputPath":"./synapse", "department":"1234"}'
+	var json = '{"date":"2020-01-15","makeFiles":false,"outputPath":"./synapse", "department":555}'
 
 	var params = JSON.parse(json, function (k, v) {
 		if (k === '') return v
@@ -18,7 +18,7 @@
 		case Date: return new F(v)
 		case Boolean: return Boolean(v)
 		case String: return v
-		case 'LOOKUP': return 'dep_id=' + v
+		case 'DLOOKUP': return 'dep_id=' + v
 		default: return v
 		}
 	})

@@ -47,7 +47,7 @@
     "request": "2.88.0",
     "sleep": "^6.1.0",
     "soap": "^0.29.0",
-    "sqlite-tree-store": "^1.1.6",
+    "sqlite-tree-store": "^1.1.7",
     "winax": "^1.12.0",
     "xlsx-populate": "^1.20.1",
     "xmlbuilder": "^13.0.2"

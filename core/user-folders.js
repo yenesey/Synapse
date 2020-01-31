@@ -3,16 +3,16 @@
 */
 'use strict'
 
+const day = require('dayjs')
 const path = require('path')
 const fsp = require('./fsp')
-const day = require('dayjs')
 
 // -------------------------------------------------------------
 module.exports = function (basePath, maxFolders) {
 	function mkdirUniq (basePath, relativePath, counter) {
 		counter = counter || 0
 		var relativePathCorr = relativePath + (counter ? '_' + counter : '')
-		return fsp.mkdir(basePath, relativePathCorr)
+		return fsp.mkdir(path.join(basePath, relativePathCorr))
 			.catch(err => {
 				if (err.code === 'EEXIST') return false
 				else throw err
@@ -30,10 +30,10 @@ module.exports = function (basePath, maxFolders) {
 
 		return mkdirUniq(basePath, relativePath)
 			.then(createdPath => { newPath = createdPath })
-			.then(() => fsp.mkdir(newPath, 'upload'))
+			.then(() => fsp.mkdir(path.join(newPath, 'upload')))
 			.then(() =>
 				fsp.ls(userPath) // --список элементов в пользовательской папке
-					.then(items => items.filter(item => item.folder)) // --только папки
+					.then(items => items.filter(item => item.isDirectory)) // --только папки
 					.then(items => items.sort((a, b) => a.modified === b.modified ? 0 : a.modified < b.modified ? 1 : -1)) // --сортируем, новые вверху списка
 					.then(items => items.filter((item, index) => index >= maxFolders)) // --выбираем папки, за пределами заданного количества
 					.then(items => Promise.all(

@@ -25,38 +25,38 @@ function getMergeStatement (metaData, tableName, keys = ['ID']) {
 		'when not matched then\n  insert (' + pairs.map(el => el.name).join(',') + ')\n  values (' + pairs.map(el => el.placeholder).join(',') + ')'
 }
 
+/*
 function getModuleName () {
 	let moduleName = path.basename(require.main.children[0].filename)
 	return moduleName.substr(0, moduleName.length - path.extname(moduleName).length)
 }
+*/
 
-function checkStructure (testing) {
+function checkStructure (tableName, metaData) {
 	const wh = treeStore('wh_data.db', 'structs', true)()
 	const { equals, diff } = require('synapse/lib')
 
-	let moduleName = getModuleName()
-
-	if (!(moduleName in wh)) {
-		wh[moduleName] = testing
+	if (!(tableName in wh)) {
+		wh[tableName] = metaData
 		return { pass: true }
 	}
 
-	let original = wh[moduleName]
-	for (let i in testing) {
-		let el = original.find(_el => _el && _el.name === testing[i].name)
+	let original = wh[tableName]
+	for (let i in metaData) {
+		let el = original.find(_el => _el && _el.name === metaData[i].name)
 		if (!el) {
 			return {
 				pass: false,
-				at: testing[i],
+				at: metaData[i],
 				reason: 'field not exists in original'
 			}
 		}
 
-		if (!equals(el, testing[i])) {
+		if (!equals(el, metaData[i])) {
 			return {
 				pass: false,
-				at: testing[i],
-				reason: diff(el, testing[i])
+				at: metaData[i],
+				reason: diff(el, metaData[i])
 			}
 		}
 	}
@@ -74,8 +74,9 @@ function getConnection (dest) {
 async function importData (SQL, bindVars = {}, whDestinationTable, options = { merge: false }) {
 	let warehouse = await getConnection('warehouse')
 	let ibso = await getConnection('ibso')
+	// let ibso = await getConnection('tavr_d')
 	let result = await ibso.execute(SQL, bindVars, { resultSet: true, extendedMetaData: true })
-	let check = checkStructure(result.metaData)
+	let check = checkStructure(whDestinationTable, result.metaData)
 	if (!check.pass) {
 		console.log('Structure check failed at ', check.at, ' reason: ',  check.reason)
 		return 0
@@ -84,6 +85,7 @@ async function importData (SQL, bindVars = {}, whDestinationTable, options = { m
 	let rows, info
 	let statementFunc = options.merge ? getMergeStatement : getInsertStatement
 	let statement = statementFunc(result.metaData, whDestinationTable, options.keys)
+
 	// console.log(statement)
 
 	let count = 0
