@@ -21,8 +21,8 @@ module.exports = function () {
 		from 
 			VW_CRIT_AC_FIN
 		where
-		--	1=1
-			(C_16 is null or C_16 >= SYSDATE - 15)
+			1=1
+		--	(C_16 is null or C_16 >= SYSDATE - 15)
 		`, 	{},
 		'WH.IBS_ACC_FIN',
 		{ merge: true }

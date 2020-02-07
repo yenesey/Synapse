@@ -15,29 +15,15 @@ module.exports = async function (param, system) {
 		OV.C_13 "debt",
 		OV.C_2 "fio",
 		(select
-			SUBSTR(VZ.C_1, 1, 4) ||'.......'|| SUBSTR(VZ.C_1, 13, 4)
+			VZ.C_1
 		from 
 			VW_CRIT_VZ_CARDS VZ
 		where 
-			VZ.ID = (
-				select max(ID) from 
-					VW_CRIT_VZ_CARDS
-				where
-					C_8 = 'Рабочая'
-				    and lower(C_2) like '%главная%' 
-				    and REF5 = (
-						select 
-							max(REF3)
-						from
-							VW_CRIT_DEPN_PLPLUS
-						where
-							REF2 = OV.REF2                     -- связь Депозит - Овер
-							and (lower(C_10) like '%карт%' or lower(C_10) like '%пк%') 
-							and C_9 = 'RUB' and not REF3 is null
-					)
-			)
+			VZ.REF5 = OV.REF10
+			and VZ.C_8 = 'Рабочая'
+		  and lower(VZ.C_2) like '%главная%' 
 		) "card",
-		 NVL(
+		NVL(
 		(
 			select regexp_replace(PROP.C_7,'[^[[:digit:]|\,]]*') from 
 				VW_CRIT_VZ_CARDS CARD,
@@ -89,27 +75,13 @@ module.exports = async function (param, system) {
 		OV.C_13 "debt",
 		OV.C_2 "fio",
 		(select
-			SUBSTR(VZ.C_1, 1, 4) ||'.......'|| SUBSTR(VZ.C_1, 13, 4)
+			VZ.C_1
 		from 
 			VW_CRIT_VZ_CARDS VZ
 		where 
-			VZ.ID = (
-				select max(ID) from 
-					VW_CRIT_VZ_CARDS
-				where
-					C_8 = 'Рабочая'
-				    and lower(C_2) like '%главная%'
-				    and REF5 = (
-						select 
-							max(REF3)
-						from
-							VW_CRIT_DEPN_PLPLUS
-						where
-							REF2 = OV.REF2 -- связь Депозит - Овер
-							and (lower(C_10) like '%карт%' or lower(C_10) like '%пк%') 
-							and C_9 = 'RUB' and not REF3 is null
-					)
-			)
+			VZ.REF5 = OV.REF10
+			and VZ.C_8 = 'Рабочая'
+		  and lower(VZ.C_2) like '%главная%' 
 		) "card",
 		NVL(
 		(

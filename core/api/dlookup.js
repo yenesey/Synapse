@@ -91,7 +91,7 @@ module.exports = function (system) {
 		}
 
 		// файл|ldap не указан? значит это запрос в ibso
-		let access = system.access(user, { object: system.tree.objects.ibs._[query.table].id })
+		let access = system.access(user, { object: system.db.objects.ibs._[query.table].id })
 		if (!access.granted) {
 			res.json({ error: 'Access denied!' })
 			return

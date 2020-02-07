@@ -17,7 +17,7 @@ module.exports = function (system) {
 
 	this.post('/', bodyParser.json({ limit: '5mb' }), function (req, res) {
 		res.socket.setTimeout(Number(system.config.socket.timeout)) // ответ, возможно будет "долгим"
-		system.checkAccess(req.user, system.tree.objects.admin._.sql.id)
+		system.checkAccess(req.user, system.db.objects.admin._.sql.id)
 
 		conns[req.body.connection](String(req.body.sql), {}, { maxRows: Number(req.body.maxRows) || 100 })
 			.then(data => res.json(data))
@@ -25,7 +25,7 @@ module.exports = function (system) {
 	})
 
 	this.get('/connections', function (req, res) {
-		system.checkAccess(req.user, system.tree.objects.admin._.sql.id)
+		system.checkAccess(req.user, system.db.objects.admin._.sql.id)
 		let map = Object.keys(oracle).map(el => el) // ({ name: el })
 		res.json(map)
 	})

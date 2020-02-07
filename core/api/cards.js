@@ -6,7 +6,7 @@
 
 const ora = require('../ds-oracle')
 const soap = require('soap')
-const oracledb = require('oracledb')
+// const oracledb = require('oracledb')
 
 function dateFromStringDDMMYYYY (str) {
 	let date = str.split('.').reverse()
@@ -375,7 +375,7 @@ module.exports = async function (system) {
 			`begin :result := SYSADM.EXCHANGE.F_CreateTaskInSMS(:phone, :text, 'smsCode', true); end;`,
 			{
 				phone: req.query.phone,
-				text: 'Kod proverki nomera telefona: ' + code,
+				text: 'Код проверки номера телефона:' + code,
 				result: t2000.GET_NUMBER
 			}
 		).then(data => {

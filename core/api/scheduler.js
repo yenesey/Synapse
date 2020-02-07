@@ -17,7 +17,7 @@ const uuidv4 = require('../lib').uuidv4
 module.exports = function (system) {
 // -
 	const config = system.config
-	const jobs = system.tree.jobs
+	const jobs = system.db.jobs
 
 	const crons = {} // хранилище CronJob-ов. ключи те же что и у jobs
 	const sockets = {} // хранилище Websockets - соединений
@@ -94,7 +94,7 @@ module.exports = function (system) {
 				let to = Object.values(job.emails).join(',')
 				if (to.length) {
 					fsp.ls(taskPath)
-						.then(items => items.filter(item => !item.folder).map(file => file.name))
+						.then(items => items.filter(item => !item.isDirectory).map(file => file.name))
 						.then(files => {
 							if (files) {
 								return mail.sendp({
@@ -120,7 +120,7 @@ module.exports = function (system) {
 
 		function error (stdout) {
 			try {
-				let to = system.getUsersHavingAccess(system.tree.objects.groups._['Администраторы'].id)
+				let to = system.getUsersHavingAccess(system.db.objects.groups._['Администраторы'].id)
 					.map(el => el.email).join(',')
 				if (to.length) {
 					mail.sendp({
@@ -250,8 +250,8 @@ module.exports = function (system) {
 	})
 
 	this.get('/tasks', function (req, res) {
-		system.checkAccess(req.user, system.tree.objects.admin._.scheduler.id)
-		let tasks = system.tree.objects.tasks
+		system.checkAccess(req.user, system.db.objects.admin._.scheduler.id)
+		let tasks = system.db.objects.tasks
 		let map = Object.keys(tasks).map(task => ({ id: tasks._[task].id, ...tasks.task, name: task }))
 		res.json(map)
 	})

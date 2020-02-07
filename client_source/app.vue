@@ -2,19 +2,21 @@
 v-app
 	v-navigation-drawer.blue.lighten-4(app :width='navWidth' :value='navVisible' :clipped='navClipped' style='z-index:10;' ref='nav')
 		v-list.blue.lighten-4
-			v-list-item.elevation-1(@click='navigate("/")' )
+			v-list-item.two-line.elevation-1(@click='navigate("/")' )
 				v-list-item-icon
 					v-icon account_circle
-				v-list-item-title.user {{user}}
-
+				v-list-item-content
+					v-list-item-title.user {{user}}
+					v-list-item-subtitle(v-if='routes.length === 1') Запросите доступ
 			v-divider
-
-			v-list-group(v-for='(group, index) in menuGroups' :key='index' :prepend-icon='group.icon || "chevron_right"')
+			
+			v-list-group(v-if='routes.length > 1' v-for='(group, index) in menuGroups' :key='index' :prepend-icon='group.icon || "chevron_right"')
 				v-list-item-title(
 					slot='activator',
 					@click="navigate('/tasks')",
 					ripple
 				) {{group.name === 'default' ? 'Общее' : group.description || group.name}}
+
 				v-list-item.ml-4(
 					v-for='task in tasks[group.name]',
 					:key='task.path',
@@ -29,7 +31,7 @@ v-app
 		v-app-bar-nav-icon(@click.stop="toggleNav('Visible')")
 		v-btn(icon @click.stop="toggleNav('Clipped')" v-show='navVisible')
 			v-icon web
-		template(v-if='devServer')
+		template(v-if='isDevelopmentMode')
 			v-spacer
 			v-toolbar-title <-- dev-server -->
 		v-spacer
@@ -75,7 +77,7 @@ export default {
 		}
 	},
 	computed: {
-		devServer: () => window.location.port !== '',
+		isDevelopmentMode: () => window.location.port !== '',
 		admin () {
 			return this.routes.find(r => r.path === '/admin')
 		},

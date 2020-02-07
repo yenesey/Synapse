@@ -9,7 +9,9 @@
 const bodyParser = require('body-parser')
 const ActiveDirectory = require('activedirectory')
 const promisify = require('util').promisify
-const assert = require('assert')
+
+const assert = require('assert') // todo: !!! самостоятельно пришел к мысли
+// что НАВЕРНОЕ не очень хорошо использовать механизм исключений там, где можно сделать просто проверку логического условия
 
 function createNode (node, level = 0) {
 	return Object.keys(node).map(key => ({
@@ -23,7 +25,7 @@ function createNode (node, level = 0) {
 module.exports = function (system) {
 	// -
 	function requireAdmin (req, res, next) {
-		system.checkAccess(req.user, system.tree.objects.admin._.users.id)
+		system.checkAccess(req.user, system.db.objects.admin._.users.id)
 		next()
 	}
 
@@ -68,26 +70,26 @@ module.exports = function (system) {
 	})
 
 	this.get('/', requireAdmin, function (req, res) {
-		let users = system.tree.users
+		let users = system.db.users
 		let map = Object.keys(users).map(user => ({ id: users._[user].id, ...users[user], login: user }))
 			.filter(el => (req.query['show-disabled'] === 'true' || !(el['disabled'])))
 		res.json(map)
 	})
 
 	this.get('/objects', requireAdmin, function (req, res) {
-		res.json(createNode(system.tree.objects))
+		res.json(createNode(system.db.objects))
 	})
 
 	this.get('/user', requireAdmin, function (req, res) {
 		let login = req.query.login
 		assert(login, 'В запросе отсутствует ключевой реквизит - login')
-		let users = system.tree.users
+		let users = system.db.users
 		res.json({ id: users._[login].id, ...users[login] })
 	})
 
 	this.put('/user', bodyParser.json(), requireAdmin, function (req, res) { // операция добавления/редактирования пользователя
 		let user = req.body
-		let users = system.tree.users
+		let users = system.db.users
 		assert(user.login, 'В запросе отсутствует ключевой реквизит - login')
 		if (user.login in users) {
 			// обновляем реквизиты
@@ -100,30 +102,4 @@ module.exports = function (system) {
 		}
 		res.json({ id: users._[user.login].id, ...users[user.login] })
 	})
-
-	/*
-	this.put('/map', bodyParser.json(), function (req, res) {
-		// операция выдачи/прекращения доступа к заданному объекту
-		assert(req.ntlm, 'Не удалось определить пользователя. NTLM?')
-		system.checkAccess(req.user, ADMIN_USERS)
-		let user = system.getUser(req.body.user)
-		if (user._acl_ === null) user._acl_ = {}
-		if (req.body.granted) {
-			user._acl_[req.body.objectId] = null
-		} else {
-			delete user._acl_[req.body.objectId]
-		}
-		res.json({ id: req.body.objectId })
-	})
-	*/
-
-	/*
-	this.get('/members', function (req, res) {
-		system.users(parseInt(req.query.object, 10) || 0).then(result => res.json(result))
-	})
-
-	this.get('/tasks', function (req, res) {
-		system.tasks(parseInt(req.query.object, 10) || 0).then(result => res.json(result))
-	})
-	*/
 }

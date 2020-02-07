@@ -1,7 +1,7 @@
 'use strict'
 /*
 	- системные функции
-	- конфигурация системы <system.tree>
+	- конфигурация системы <system.db>
 */
 
 const path = require('path')
@@ -113,13 +113,13 @@ system.access = function (user, options = {}) {
 	let userAcl = String(user._acl).split(',').map(el => Number(el))
 	/*
 	if ('object' in options) {
-		return { granted: userAcl.includes(options.object),  this.tree.objects._id() }
+		return { granted: userAcl.includes(options.object),  this.db.objects._id() }
 	}
 	*/
 	let map = []
 	let obj
 	let _class
-	let objFound = recurse(this.tree.objects, 1, (node, key, level) => {
+	let objFound = recurse(this.db.objects, 1, (node, key, level) => {
 		if (level === 0) {
 			_class = key
 		} else {
@@ -143,9 +143,10 @@ system.access = function (user, options = {}) {
 }
 
 system.getUser = function (login) {
-	let { users } = this.tree
-	assert(login in users, 'Пользователь ' + login + ' не зарегистрирован')
-	return { login: login, ...users[login] }
+	let { users } = this.db
+	// assert(login in users, 'Пользователь ' + login + ' не зарегистрирован')
+	if (login in users)	return { login: login, ...users[login] }
+	return null
 }
 
 system.checkAccess = function (user, object) {
@@ -157,8 +158,8 @@ system.checkAccess = function (user, object) {
 
 system.getUsersHavingAccess = function (objectId) {
 	let users = []
-	for (let key in this.tree.users) {
-		let user = this.tree.users[key]
+	for (let key in this.db.users) {
+		let user = this.db.users[key]
 		if (!user.disabled && user._acl && user._acl.split(',').includes(String(objectId))) users.push(user)
 	}
 	return users
@@ -166,8 +167,8 @@ system.getUsersHavingAccess = function (objectId) {
 
 /// /////////////////////////////////////////////////////////////////////
 
-const tree = treeStore()
-const config = tree.config
+const db = treeStore()
+const config = db.config
 
 // eslint-disable-all
 for (let key in config.path) {
@@ -183,7 +184,7 @@ if (!config.ssl.certData && fs.existsSync(config.ssl.cert)) {
 	console.log(chalk.yellow.bold('Note: certificate is loaded into [synapse.db]:config.ssl.certData'))
 }
 
-system.tree = tree
-system.config = tree.config
+system.db = db
+system.config = db.config
 
 module.exports = system

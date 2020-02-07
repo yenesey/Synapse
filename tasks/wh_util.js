@@ -97,7 +97,7 @@ async function importData (SQL, bindVars = {}, whDestinationTable, options = { m
 		}
 	} while (rows.length === NUM_ROWS)
 	await rs.close()
-	console.log((options.merge ? 'merge' : 'insertion') + ' completed! ', count, ' rows affected ')
+	console.log((options.merge ? 'merge' : 'insert') + ' completed, ', count, ' rows affected')
 	return count
 }
 
