@@ -16,7 +16,7 @@ module.exports = function (params) {
 			ORDER BY C_1`
 		,
 		{},
-		'WH.IBS_DEPART',
+		'IBS_DEPART',
 		{ merge: true }
 	)
 }

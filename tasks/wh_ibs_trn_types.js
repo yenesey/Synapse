@@ -14,7 +14,7 @@ module.exports = async function () {
 			1=1
 		`,
 		{},
-		'WH.IBS_TRANS_TYPES',
+		'IBS_TRANS_TYPES',
 		{ merge: true }
 	)
 }

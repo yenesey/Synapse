@@ -45,7 +45,7 @@ module.exports = function () {
 			(C.C_11 is null or C.C_11 >= SYSDATE - 15)`
 		,
 		{},
-		'WH.IBS_CARDS',
+		'IBS_CARDS',
 		{ merge: true }
 	)
 }

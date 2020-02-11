@@ -43,7 +43,7 @@ module.exports = async function () {
 			D.ID > :maxId
 		`,
 		{ maxId: maxId },
-		'WH.IBS_MAIN_DOCUM',
+		'IBS_MAIN_DOCUM',
 		{ merge: false }
 	)
 

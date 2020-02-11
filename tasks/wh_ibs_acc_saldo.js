@@ -33,7 +33,7 @@ module.exports = async function (params) {
 	await importData(
 		`select
 			ID ACC_ID,
-			:dateOn DATE_ON,
+			trunc(:dateOn) DATE_ON,
 			f.a_saldo(:dateOn, ID, REF8 /*move*/, REF30 /*summary*/, REF19 /*com status*/, REF25 /*vid*/, C_6, C_7, 'c', 0) SALDO,
 			f.a_saldo(:dateOn, ID, REF8 /*move*/, REF30 /*summary*/, REF19 /*com status*/, REF25 /*vid*/, C_6, C_7, 'c', 1) SALDO_NT,
 			f.a_turn(:dateOn, :dateOn + 86399 / 86400, ID, REF8 /*move*/, REF30 /*summary*/, REF19 /*comm status*/, 1, 0) TURN_DT,
@@ -48,7 +48,7 @@ module.exports = async function (params) {
 			(C_16 is null or C_16 >= :dateOn)  -- DATE_CLOSE
 		`,
 		{ dateOn: day.toDate(), bs },
-		'WH.IBS_ACC_SALDO',
+		'IBS_ACC_SALDO',
 		{ merge: merge, keys: ['ACC_ID', 'DATE_ON'] }
 	)
 

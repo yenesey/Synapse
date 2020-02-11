@@ -20,7 +20,7 @@ module.exports = function () {
 			1=1
 		`,
 		{},
-		'WH.IBS_DEPN',
+		'IBS_DEPN',
 		{ merge: true }
 	)
 }

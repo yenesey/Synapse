@@ -48,7 +48,7 @@ module.exports = async function () {
 			T.ID > :maxId
 		`,
 		{ maxId: maxId },
-		'WH.IBS_TRANSACTIONS'
+		'IBS_TRANSACTIONS'
 		/*, { merge: true } */
 	)
 }

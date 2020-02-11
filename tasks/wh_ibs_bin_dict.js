@@ -22,6 +22,6 @@ module.exports = async function () {
 			1=1
 		`,
 		{},
-		'WH.IBS_BIN_DICT'
+		'IBS_BIN_DICT'
 	)
 }

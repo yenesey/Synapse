@@ -13,7 +13,7 @@ module.exports = async function () {
 			1=1
 		`,
 		{},
-		'WH.IBS_CL_ORG',
+		'IBS_CL_ORG',
 		{ merge: true }
 	)
 
@@ -28,7 +28,7 @@ module.exports = async function () {
 			1=1
 			-- (C.C_11 is null or C.C_11 >= SYSDATE - 15)`,
 		{},
-		'WH.IBS_CLIENTS',
+		'IBS_CLIENTS',
 		{ merge: true }
 	)
 
@@ -43,7 +43,7 @@ module.exports = async function () {
 			1=1
 			-- (C.C_11 is null or C.C_11 >= SYSDATE - 15)`,
 		{},
-		'WH.IBS_CL_BANK_N',
+		'IBS_CL_BANK_N',
 		{ merge: true }
 	)
 

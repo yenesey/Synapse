@@ -1,11 +1,76 @@
-﻿const path = require('path')
-const oracledb = require('oracledb')
+﻿const oracledb = require('oracledb')
+const { equals, diff } = require('synapse/lib')
 const treeStore = require('sqlite-tree-store')
-const oracle = treeStore('../db/synapse.db', 'system')(['config', 'oracle'])
+const oracle = treeStore('../db/synapse.db', 'system')(['config', 'oracle']) // забрали настройки соединения из локальной базы
+const ROWS_PER_ACTION = 10000
 
-const NUM_ROWS = 10000
-// ----------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------
+/*
+function getModuleName () {
+	let moduleName = path.basename(require.main.children[0].filename)
+	return moduleName.substr(0, moduleName.length - path.extname(moduleName).length)
+}
+*/
 
+/**
+ * Создать описание полей на языке SQL(DDL) из метаданных (extendedMetadata)
+ * т.е. сделать из структуры строку
+ * @param {oracledb.Metadata[]} metaData
+ */
+function getFieldsDDL (metaData) {
+	return metaData.reduce((result, el, i, src) => {
+		let typeDef = el.dbTypeName
+
+		switch (el.dbType) {
+		case oracledb.DB_TYPE_NUMBER:
+			typeDef = el.dbTypeName
+			if (el.precision > 0) typeDef = typeDef + '(' + el.precision + ',' + el.scale + ')'
+			break
+		case oracledb.DB_TYPE_TIMESTAMP:
+		case oracledb.DB_TYPE_TIMESTAMP_TZ:
+		case oracledb.DB_TYPE_TIMESTAMP_LTZ:
+			let words = el.dbTypeName.split(' ')
+			typeDef = words[0]
+			if (el.precision > 0) typeDef = typeDef + '(' + el.precision + ') ' + words.slice(1).join(' ')
+			break
+		default:
+			if (el.byteSize) typeDef = typeDef + '(' + el.byteSize + ' BYTE)'
+		}
+		if (!el.nullable) typeDef = typeDef + ' NOT NULL '
+
+		return result + el.name + '\t' + typeDef +	(i < src.length - 1 ? ',\n\t' : '')
+	}, '\t')
+}
+
+/**
+ * Сделать CREATE TABLE из метаданых
+ * @param {oracledb.Metadata[]} metaData
+ * @param {string} tableName
+ */
+function getCreateStatement (metaData, tableName) {
+	return  'create table WH.' + tableName + '\n' +
+		'(' + '\n' +
+			getFieldsDDL(metaData) + '\n' +
+		')'
+}
+
+/**
+ * Сделать ALTER TABLE из метаданых
+ * @param {oracledb.Metadata[]} metaData
+ * @param {string} tableName
+ */
+function getAlterStatement (metaData, tableName) {
+	return 'alter table ' + tableName + '\n' +
+		'add (' + '\n' +
+			getFieldsDDL(metaData) + '\n' +
+		')'
+}
+
+/**
+ * Сделать INSERT INTO из метаданых
+ * @param {oracledb.Metadata[]} metaData
+ * @param {string} tableName
+ */
 function getInsertStatement (metaData, tableName) {
 	let len = metaData.length
 	let heads = metaData.reduce((result, el, index) => result + el.name + (index < len - 1 ? ', ' : ')'), '(')
@@ -13,7 +78,12 @@ function getInsertStatement (metaData, tableName) {
 	return 'insert into\n' + tableName + ' ' + heads + '\nvalues ' + values
 }
 
-function getMergeStatement (metaData, tableName, keys = ['ID']) {
+/**
+ * Сделать MERGE INTO из метаданых
+ * @param {oracledb.Metadata[]} metaData
+ * @param {string} tableName
+ */
+function getMergeStatement (metaData, tableName, keys = ['ID']) { // "merge into ... " from metaData
 	let pairs = metaData.map((el, index) => ({ name: el.name, placeholder: ':' + (index + 1) }))
 	return 'merge into ' + tableName + '\n' +
 		'using (\n  select\n' +
@@ -25,43 +95,36 @@ function getMergeStatement (metaData, tableName, keys = ['ID']) {
 		'when not matched then\n  insert (' + pairs.map(el => el.name).join(',') + ')\n  values (' + pairs.map(el => el.placeholder).join(',') + ')'
 }
 
-/*
-function getModuleName () {
-	let moduleName = path.basename(require.main.children[0].filename)
-	return moduleName.substr(0, moduleName.length - path.extname(moduleName).length)
-}
-*/
+/**
+ * Сверить структуры хранилища (existing) и загружаемых (incoming) данных
+ * @param {oracledb.Metadata[]} existing
+ * @param {oracledb.Metadata[]} incoming
+  */
+function checkStructure (existing, incoming) {
+	let alter = []
+	for (let i in incoming) {
+		let test = incoming[i]
+		let exists = existing.find(el => el.name === test.name)
 
-function checkStructure (tableName, metaData) {
-	const wh = treeStore('wh_data.db', 'structs', true)()
-	const { equals, diff } = require('synapse/lib')
-
-	if (!(tableName in wh)) {
-		wh[tableName] = metaData
-		return { pass: true }
-	}
-
-	let original = wh[tableName]
-	for (let i in metaData) {
-		let el = original.find(_el => _el && _el.name === metaData[i].name)
-		if (!el) {
-			return {
-				pass: false,
-				at: metaData[i],
-				reason: 'field not exists in original'
+		if (!exists) {
+			alter.push(test)
+		} else {
+			if (test.precision === 0 && test.scale === 0) {
+				test.scale = -127 // fix incoming .scale for F.A_SALDO
 			}
-		}
-
-		if (!equals(el, metaData[i])) {
-			return {
-				pass: false,
-				at: metaData[i],
-				reason: diff(el, metaData[i])
+			if (!equals(exists, test)) {
+				return {
+					pass: false,
+					at: test,
+					reason: diff(test, exists)
+				}
 			}
 		}
 	}
-
-	return { pass: true }
+	return {
+		pass: true,
+		alter: alter
+	}
 }
 
 function getConnection (dest) {
@@ -73,30 +136,44 @@ function getConnection (dest) {
 
 async function importData (SQL, bindVars = {}, whDestinationTable, options = { merge: false }) {
 	let warehouse = await getConnection('warehouse')
-	let ibso = await getConnection('ibso')
-	// let ibso = await getConnection('tavr_d')
-	let result = await ibso.execute(SQL, bindVars, { resultSet: true, extendedMetaData: true })
-	let check = checkStructure(whDestinationTable, result.metaData)
+	let ibso = await getConnection('ibso') // let ibso = await getConnection('tavr_d')
+	let source = await ibso.execute(SQL, bindVars, { resultSet: true, extendedMetaData: true })
+
+	if ( // если табилца - приемник не существует
+		(await warehouse.execute(
+			`select * from ALL_TABLES where owner ='WH' and upper(TABLE_NAME) = upper('${whDestinationTable}')`)
+		).rows.length !== 1
+	) {
+		console.log(`creating table [${whDestinationTable}] ...`)
+		await warehouse.execute(getCreateStatement(source.metaData, whDestinationTable))
+		console.log(`done.`)
+	}
+
+	let destination = await warehouse.execute(`select * from ${whDestinationTable} where 1 = 0`, {}, { resultSet: true, extendedMetaData: true })
+	await destination.resultSet.close()
+
+	let check = checkStructure(destination.metaData, source.metaData)
 	if (!check.pass) {
-		console.log('Structure check failed at ', check.at, ' reason: ',  check.reason)
+		console.log('structure check failed at ', check.at, ' reason: ', check.reason)
 		return 0
 	}
-	let rs = result.resultSet
+	if (check.alter.length) {
+		console.log(`altering table [${whDestinationTable}] ...`)
+		await warehouse.execute(getAlterStatement(check.alter, whDestinationTable))
+		console.log(`done.`)
+	}
+
+	let statement = (options.merge ? getMergeStatement : getInsertStatement)(source.metaData, whDestinationTable, options.keys)
 	let rows, info
-	let statementFunc = options.merge ? getMergeStatement : getInsertStatement
-	let statement = statementFunc(result.metaData, whDestinationTable, options.keys)
-
-	// console.log(statement)
-
 	let count = 0
 	do {
-		rows = await rs.getRows(NUM_ROWS)
+		rows = await source.resultSet.getRows(ROWS_PER_ACTION)
 		if (rows.length > 0) {
 			info = await warehouse.executeMany(statement, rows,	{ autoCommit: true })
 			count = count + info.rowsAffected
 		}
-	} while (rows.length === NUM_ROWS)
-	await rs.close()
+	} while (rows.length === ROWS_PER_ACTION)
+	await source.resultSet.close()
 	console.log((options.merge ? 'merge' : 'insert') + ' completed, ', count, ' rows affected')
 	return count
 }
