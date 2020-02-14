@@ -19,17 +19,18 @@ const FIELDS = [
 	'mc_std_paypass',
 	'mc_platinum',
 	'mc_maestro_express',
-	'mc_k_n',
 	'mc_gold',
 	'mc_express',
-	'mc_clock'
+	'mc_clock',
+	'mc_k_n',
+	'mc_art'
 ]
 
 /**
  * Карт. продукты Таврического (для задания набора и порядка полей)
  */
 const PRODUCTS_TB = [
-	'visa_electron',
+	// 'visa_electron',
 	'visa_classic',
 	'visa_gold',
 	'visa_platinum',
@@ -39,8 +40,11 @@ const PRODUCTS_TB = [
 	'mc_express',
 	'mc_std_paypass',
 	'mc_gold',
+	'mc_platinum',
+	'mc_world_elite',
 	'mc_clock',
 	'mc_k_n',
+	'mc_art',
 	'mir'
 ]
 

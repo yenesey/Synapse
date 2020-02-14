@@ -34,7 +34,7 @@ export default {
 		tab : tab
 	},		
 
-	render : function(h){ //TODO: переписать на JSX ???
+	render: function (h) {
 		var self = this;
 		return h('div', {}, [ 
 			h('ul', {class:'nav nav-tabs'}, 

@@ -225,20 +225,21 @@ _.restore = function (obj) {
 	})
 }
 
-_.keys = function (_arrayOfObj, key, _cbfn) {
+_.keys = function (arrayOfObj, key, _cbfn) {
 // выделить заданный ключ (key) массива объектов с идентичным набором ключей
-	if (_arrayOfObj instanceof Array)	{
-		return _arrayOfObj.reduce(function (result, el) { // цикл по массиву объектов
-			if (key in el) { // имеется требуемый ключ?
-				var newKey = el[key] // значение ключа, становится ключем в создаваемом объекте
-				if (!(newKey in result)) result[newKey] = [] // добавили ключ (значение - типа массив) если его еще нет
-				if (typeof _cbfn === 'undefined' || _cbfn(el)) result[newKey].push(el) // добавляем элемент в массив (элемент - по факту ссыль на существующий объект)
-				delete el[key] // модифицировали елемент (существующий объект)
-			}
-			return result
-		}, Object.create(null))
+	if (!(arrayOfObj instanceof Array)) return null
+	var result = Object.create(null) // obj of arrays
+
+	for (var i in arrayOfObj) {
+		var clone = _.clone(arrayOfObj[i])
+		if (key in clone) { // имеется требуемый ключ?
+			var keyval = clone[key] // значение ключа, становится ключем в создаваемом объекте
+			if (!(keyval in result)) result[keyval] = [] // добавили ключ (значение - типа массив) если его еще нет
+			delete clone[keyval]
+			if (typeof _cbfn === 'undefined' || _cbfn(clone)) result[keyval].push(clone) // добавляем элемент в массив (элемент - по факту ссыль на существующий объект)
+		}
 	}
-	return {}
+	return result
 }
 
 _.mapValues = function (obj, map) { // map for <obj> array like way

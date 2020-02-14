@@ -126,7 +126,7 @@ server.listen(process.env.PORT, function () {
 	if (config.cards.on) app.use(api('cards'))
 
 	api.useNtlm() // отныне и далее вниз у нас есть userName из AD
-	app.use(api(['users', 'dlookup', 'dbquery', 'tasks', 'system', 'scheduler']))
+	app.use(api(['users', 'dlookup', 'warehouse', 'dbquery', 'tasks', 'system', 'scheduler']))
 	app.use(system.errorHandler) // !!! все неотловленные ранее ошибки будут обработаны здесь
 })
 

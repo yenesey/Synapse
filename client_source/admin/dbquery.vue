@@ -59,7 +59,7 @@ export default {
 		}, Promise.resolve())
 	},
 	activated : function(){
-		window.tst = this
+		// window.tst = this
 		document.addEventListener('keydown', this.keyPreview)
 	},
 

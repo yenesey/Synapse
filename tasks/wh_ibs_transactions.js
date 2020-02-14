@@ -22,7 +22,7 @@ module.exports = async function () {
 			T.C_42 TRG_CUR,
 			T.C_18 PC_AMOUNT,
 			T.C_19 PC_CUR,
-			nvl(T.REF4, -1) CARD_REF,
+			T.REF4 CARD_REF,
 			T.REF12 TRN_TYPE_REF,
 			T.C_12 TRN_TYPE,
 			T.C_68 DIRECTION,
@@ -36,9 +36,8 @@ module.exports = async function () {
 			TB.C_1 TRN_HANDLING_TYPE,
 			TB.C_3 DT_CARD,
 			TB.C_4 DT_TERM,
-			T.C_54 PAN,
+			substr(T.C_54, 1, 20) PAN,
 			T.C_26 CHAN_CODE
-
 		from
 			VW_CRIT_OWS_TRANSACTION T 
 				left join VW_CRIT_ALL_TRANS TT on T.REF12 = TT.ID

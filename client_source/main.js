@@ -64,6 +64,9 @@ _.pxhr({method: 'get', url: 'users/access'})
 		user.access = []
 	}
 
+	// note/todo: дерево меню / дерево доступа и дерево роутера, очень похожи, но родились они в разное время,
+	// и я их пока не очень красиво свел в одно
+
 	var menuGroups = user.access.filter(el => el.class === 'menu').sort((a, b) => a.id === b.id ? 0: a.id > b.id ? 1: -1)
 	if (menuGroups.findIndex(el => el.name === 'default') === -1) 
 		menuGroups.unshift({name: 'default', icon: 'chevron_right'})
@@ -117,6 +120,7 @@ _.pxhr({method: 'get', url: 'users/access'})
 
 				return {  
 					name: el.name,
+					description: el.description || '',
 					path: String(el.id),
 					icon: el.icon,
 					menu: el.menu || 'default',

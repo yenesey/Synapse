@@ -10,8 +10,7 @@ const bodyParser = require('body-parser')
 const ActiveDirectory = require('activedirectory')
 const promisify = require('util').promisify
 
-const assert = require('assert') // todo: !!! самостоятельно пришел к мысли
-// что НАВЕРНОЕ не очень хорошо использовать механизм исключений там, где можно сделать просто проверку логического условия
+const assert = require('assert') // todo: !!! пересмотреть возможность убрать утверждения и заменить обычной логикой
 
 function createNode (node, level = 0) {
 	return Object.keys(node).map(key => ({

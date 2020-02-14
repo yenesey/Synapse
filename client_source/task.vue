@@ -57,7 +57,7 @@ import blank from './assets/file-types/blank.svg';
 export default {
 	props : ['id', 'name', 'description'],
 
-	data : function(){
+	data : function() {
 		return { //начальное состояние
 			dialog : true,
 			ready : true,
@@ -70,7 +70,8 @@ export default {
 	},
 
 	mounted : function(){
-		this.loadElements();
+		this.loadElements()
+		this.task = this.$slots.default ? this.$slots.default[0].componentInstance : {}
 	},
 
 	methods : {
@@ -83,13 +84,6 @@ export default {
 			return 'tasks' + '?id=' + encodeURIComponent(this.id)
 		},
 	
-		getTaskModel : function(){
-			if (this.$slots.default) //this.$slots.default[0] is a <task> form 
-				return this.$slots.default[0].componentInstance._data;
-			else
-				return {};
-		},
-		
 		onProgress : function(xhr){
 			var progress = xhr.responseText.length;
 			var progressText = xhr.responseText.substring(this.progress, progress)
@@ -111,7 +105,7 @@ export default {
 			var formData = new FormData(self.$refs.form);  //event.target.form  не инициализируется с это кнопкой
 			event.preventDefault();
 
-			var model = self.getTaskModel();
+			var model = self.task._data;
 			for (var key in model)
 				if (!model.params || (model.params && model.params.indexOf(key)>=0))
 					formData.append(key, typeof model[key] === 'object' ? JSON.stringify(model[key]) : model[key])
@@ -134,6 +128,7 @@ export default {
 				self.path = json.path;
 				self.files = json.files;
 				self.text += json.message;
+				self.task.done()
 			})
 			.catch(function(err){self.dispatchError(err)})
 		},

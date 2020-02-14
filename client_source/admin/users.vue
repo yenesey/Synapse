@@ -87,7 +87,7 @@ export default {
 		return {
 			user: {},
 			usersCached: [],
-	  		search: '',
+			search: '',
 
 			userLdap: {},
 			ldapCached: [],
@@ -131,41 +131,41 @@ export default {
 		showDisabled (val) {
 			this.usersCached = []
 		},
-	 	search (val) {
+		search (val) {
 			if (!val || val.length === 0) {
 				this.usersCached = []
 				return
 			}
-	 	  	if (this.usersCached.length > 0) return
-	 	  	pxhr({method:'GET', url: 'users?show-disabled=' + this.showDisabled})
-	 	  	   .then(res => {
-	 	  	   		this.usersCached = res
-	 	  	  	})
-	 	  	 	.catch(err => {
-	 	  	  	 	console.log(err)
-	 	  	  	})
+			if (this.usersCached.length > 0) return
+			pxhr({method:'GET', url: 'users?show-disabled=' + this.showDisabled})
+				.then(res => {
+					this.usersCached = res
+				})
+				.catch(err => {
+					console.log(err)
+				})
 		},
 	
- 	 	searchLDAP (val) {
+		searchLDAP (val) {
 			if (!val || val.length === 0) {
 				this.ldapCached = []
 				this.ldapLoading = false
 				return
 			}
 			if (this.ldapCached.length > 0) return
-	 	  	if (this.ldapLoading) return
+			if (this.ldapLoading) return
 
-	 	  	this.ldapLoading = true
+			this.ldapLoading = true
 
-	 	  	pxhr({method:'GET', url: 'users/ldap-users?filter=' + val})
-	 	  	   .then(res => {
+			pxhr({method:'GET', url: 'users/ldap-users?filter=' + val})
+				.then(res => {
 					this.ldapCached = res
-	 	  	  	})
-	 	  	 	.catch(err => {
-	 	  	  	 	console.log(err)
-	 	  	  	})
-	 	  		.then(() => (this.ldapLoading = false))
-		 }
+				})
+				.catch(err => {
+					console.log(err)
+				})
+				.then(() => (this.ldapLoading = false))
+		}
 
 	},
 

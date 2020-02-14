@@ -10,22 +10,36 @@ v-app
 					v-list-item-subtitle(v-if='routes.length === 1') Запросите доступ
 			v-divider
 			
-			v-list-group(v-if='routes.length > 1' v-for='(group, index) in menuGroups' :key='index' :prepend-icon='group.icon || "chevron_right"')
+			v-text-field.elevation-0(
+				dense
+				hide-details
+				v-model="filter"
+				autocomplete="off"
+				prepend-icon="search"
+				color="black"
+				placeholder="Фильтр..."
+				style="margin:10px; padding-left: 6px"
+				
+			)
+
+			v-list-group(v-if='routes.length > 1 && tasks[group.name]' v-for='(group, index) in menuGroups' :key='index' :prepend-icon='group.icon || "chevron_right"')
 				v-list-item-title(
 					slot='activator',
 					@click="navigate('/tasks')",
 					ripple
 				) {{group.name === 'default' ? 'Общее' : group.description || group.name}}
-
-				v-list-item.ml-4(
+				
+				v-list-item.ml-4.two-line(
 					v-for='task in tasks[group.name]',
 					:key='task.path',
 					@click="navigate('/tasks/'+task.path)",
 					ripple
 				)
 					v-list-item-icon
-						v-icon(v-text="'chevron_right'") //task.icon || group.icon || 
-					v-list-item-title {{task.name || 'noname'}}
+						v-icon(v-text="'chevron_right'") //task.icon || group.icon ||
+					v-list-item-content
+						v-list-item-title {{task.name}}
+						v-list-item-subtitle {{task.description}}
 
 	v-app-bar.blue.lighten-4.elevation-1(app, :clipped-left='navClipped', height='48px', style='z-index:9;'  ref='toolbar')
 		v-app-bar-nav-icon(@click.stop="toggleNav('Visible')")
@@ -70,11 +84,15 @@ export default {
 	},
 	data () {
 		return {
+			filter: '',
 			drag: {
 				startX: 0, 
 				startWidth: 0
 			}
 		}
+	},
+	mounted () {
+		// window.tst = this.tasks
 	},
 	computed: {
 		isDevelopmentMode: () => window.location.port !== '',
@@ -83,8 +101,16 @@ export default {
 		},
 		tasks () {
 			var _tasks = this.routes.find(r=>r.path === '/tasks');
-			if (_tasks && _tasks.children)
-				return keys(_tasks.children, 'menu' /*menu is objects.class in synapse.db*/ )
+			if (_tasks && _tasks.children) {
+				var filter = this.filter.toLowerCase()
+				return keys(
+					_tasks.children.filter(el => 
+						el.name.toLowerCase().indexOf(filter) !== -1 || 
+						el.description.toLowerCase().indexOf(filter) !== -1
+					),
+					'menu'
+				)
+			}	
 			return {}
 		},
 		...mapState(['navWidth', 'navVisible', 'navClipped'])

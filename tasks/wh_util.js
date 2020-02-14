@@ -178,7 +178,58 @@ async function importData (SQL, bindVars = {}, whDestinationTable, options = { m
 	return count
 }
 
+async function importFromMemory (source, whDestinationTable, whTableDescription, allowStructureChange) {
+	let warehouse = await getConnection('warehouse')
+	if ( // если табилца - приемник не существует
+		(await warehouse.execute(
+			`select * from ALL_TABLES where owner ='WH' and upper(TABLE_NAME) = upper('${whDestinationTable}')`)
+		).rows.length !== 1
+	) {
+		console.log(`creating table [${whDestinationTable}] ...`)
+		await warehouse.execute(getCreateStatement(source.metaData, whDestinationTable))
+		if (whTableDescription) {
+			await warehouse.execute(`comment on table ${whDestinationTable} is '${whTableDescription}'`)
+		}	
+		console.log(`done.`)
+	}
+
+	let destination = await warehouse.execute(`select * from ${whDestinationTable} where 1 = 0`, {}, { resultSet: true, extendedMetaData: true })
+	await destination.resultSet.close()
+
+	let check = checkStructure(destination.metaData, source.metaData)
+	if (!check.pass) {
+		console.log('structure check failed at ', check.at, ' reason: ', check.reason)
+		return 0
+	}
+	if (check.alter.length) {
+		if (allowStructureChange) {
+			console.log(`altering table [${whDestinationTable}] ...`)
+			await warehouse.execute(getAlterStatement(check.alter, whDestinationTable))
+			console.log(`done.`)
+		} else {
+			console.log(`Нельзя модифицировать структуру существующей таблицы`)
+			return -1
+		}
+	} 
+
+	let statement = getMergeStatement(source.metaData, whDestinationTable, [source.metaData[0].name])
+	let rows, info
+	let count = 0
+	rows = source.rows
+
+	if (rows.length > 0) {
+		info = await warehouse.executeMany(statement, rows, { autoCommit: true })
+		count = count + info.rowsAffected
+	}
+
+	console.log(' completed, ', count, ' rows affected')
+	return count
+
+}
+
 module.exports = {
 	getConnection,
+	// todo: переписать в одну процедуру importFromMemory и importData
+	importFromMemory,
 	importData
 }

@@ -4,7 +4,7 @@ module.exports = function () {
 	importData(
 		`select
 			C.ID, 
-			C.C_1 PAN,
+			substr(C.C_1, 1 ,22) PAN,
 			C.REF2 TYPE_REF,
 			C.C_2 TYPE_NAME,
 			C.REF3 CLIENT_REF,
@@ -32,7 +32,8 @@ module.exports = function () {
 			C.C_16 PC_STATUS,
 
 			C.REF23 DEPART_REF,
-			C.C_23  DEPART_CODE
+			C.C_23  DEPART_CODE,
+			C.C_4 ACC_CONTRACT
 		from 
 			VW_CRIT_VZ_CARDS C
 				left join VW_CRIT_IP_CARD_TYPE CT on C.REF2 = CT.ID
