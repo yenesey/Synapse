@@ -1,29 +1,4 @@
 'use strict'
-
-/*
-  <<Synapse>>
-
-  запуск через "node":
-    \> node synapse [--development] [--ssl] [--service] [--port=N]
-     параметры:
-      --development  - запуск в режиме разработки, аналог переменной окружения NODE_ENV=development,
-      --dev-server   - только фронт (сборка клиента webpack + hot)
-      --base-url     - дает знать клиенту, куда бросать AJAX запросы (по умолчанию совпадает с <server>)
-      --port=N       - задать прослушиваемый порт, аналог переменной окружения PORT
-      --ssl          - запуск в режиме https, нужны сертификаты в конфигурации (не рекомендуется для --development)
-      --service      - запустить как службу (влияет на обработку сигналов прерывания и закрытия процесса)
-
-  запуск через "npm run":
-    \> npm run dev-back  - бэкенд для разработки
-    \> npm run dev-front - фронтенд для разработки
-
-    \> npm run build      - сборка статического клиентского приложения (bundle) для production
-
-  ------------------------------------------------------------------------------------------------
-  Сервер, клиент, ./core модули (за исключением отмеченных отдельно) © Денис Богачев <d.enisei@yandex.ru>
-  ------------------------------------------------------------------------------------------------
-*/
-
 const path = require('path')
 const CronJob = require('cron').CronJob
 const morgan = require('morgan')
@@ -77,6 +52,7 @@ process.argv.forEach(arg => {
 -------------------------------------------------------------------------------------
 */
 const system = require('synapse/system')
+const api = require('synapse/api')
 const config = system.config
 
 const server = process.env.SSL
@@ -115,18 +91,12 @@ server.listen(process.env.PORT, function () {
 	}
 
 	if (process.env.NODE_ENV === 'development') {
-		// console.log('Backend api mode. Type "rs + [enter]" to restart manually')
+		console.log('Backend api mode. Type "rs + [enter]" to restart manually')
 		app.use(cors)
 		app.use(morgan('tiny', { stream: { write: msg => system.log(msg) } }))
 	}
 
-	const api = require('synapse/api.js')(system, express)
-	if (config['cft-web-proxy'].on) app.use(api('cft-web-proxy'))
-	if (config.telebot.on) app.use(api('telebot'))
-	if (config.cards.on) app.use(api('cards'))
-
-	api.useNtlm() // отныне и далее вниз у нас есть userName из AD
-	app.use(api(['users', 'dlookup', 'warehouse', 'dbquery', 'tasks', 'system', 'scheduler']))
+	app.use(api(system, express))
 	app.use(system.errorHandler) // !!! все неотловленные ранее ошибки будут обработаны здесь
 })
 

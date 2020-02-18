@@ -1,7 +1,7 @@
 'use strict'
 
 const soap = require('soap')
-const uuidv4 = require('../lib').uuidv4
+const uuidv4 = require('synapse/lib').uuidv4
 const request = require('request')
 const req = request.defaults({ strictSSL: false })
 

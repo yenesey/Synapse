@@ -30,7 +30,7 @@ module.exports = async function (params) {
 			return -1
 		}
 		metaData.push({
-			name: value,
+			name: value.toUpperCase(),
 			dbType: oracledb.DB_TYPE_VARCHAR,
 			fetchType: oracledb.DB_TYPE_VARCHAR,
 			dbTypeName: 'VARCHAR2',

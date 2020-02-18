@@ -128,7 +128,7 @@ export default {
 				self.path = json.path;
 				self.files = json.files;
 				self.text += json.message;
-				self.task.done()
+				if (self.task && self.task.done) self.task.done()
 			})
 			.catch(function(err){self.dispatchError(err)})
 		},

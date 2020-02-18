@@ -171,8 +171,9 @@ module.exports = function (system) {
 							job.last = system.dateStamp()
 							job.code = code
 							if (code !== 0) {
-								crons[key].stop()
-								job.enabled = false
+								// убрал остановку задачи в планирощике при ошибке
+								// crons[key].stop()
+								// job.enabled = false
 								job.state = 'error'
 							} else {
 								job.state = 'done'
