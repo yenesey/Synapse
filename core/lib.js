@@ -52,7 +52,7 @@ _.toBool = function  (value) {
 }
 
 /*
-  debounce mod (invoke at leading and(or) trailing edges both)
+  debounce mod (invocation at leading or trailing edges)
 */
 _.debounce = function (func, wait, immediate) {
 	var timeout = null
@@ -164,7 +164,7 @@ _.recurse =	function (node, deep, callback) {
 
 // END----------- работа со справочниками ключ-значение (то есть с объектами)
 
-_.rightPad =	function (str, padStr, toSize) {
+_.rightPad = function (str, padStr, toSize) {
 // набивка строки (str) символами другой строки (padStr) слева
 	str = String(str)
 	while (str.length < toSize)	str = str + padStr
