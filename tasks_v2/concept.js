@@ -1,10 +1,10 @@
 
-async function main (input) {
-	console.log('input =', input)
+async function main (params) {
+	console.log('params =', params)
 }
 
 module.exports = {
-	input: {
+	params: {
 		date: Date,
 		makeFiles: Boolean,
 		outputPath: String,

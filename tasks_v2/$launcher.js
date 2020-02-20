@@ -13,17 +13,17 @@
 
 	var params = JSON.parse(json, function (k, v) {
 		if (k === '') return v
-		let F = task.input[k]
+		let F = task.params[k]
 		switch (F) {
 		case Date: return new F(v)
 		case Boolean: return Boolean(v)
 		case String: return v
-		case 'DLOOKUP': return 'dep_id=' + v
+		case 'DLOOKUP': return 'dep_id=' + v // !custom type!
 		default: return v
 		}
 	})
 
-	for (let key in task.input) {
+	for (let key in task.params) {
 		if (!(key in params)) throw new Error('Insufficient parameters: ' + key)
 	}
 	task.run(params)

@@ -27,7 +27,7 @@ div > a {
 	padding:0;	
 	font-weight: bold;
 	color: #426D98;
- 	line-height: 1em;
+	line-height: 1em;
 }	
 </style>
 

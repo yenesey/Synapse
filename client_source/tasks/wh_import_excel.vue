@@ -7,7 +7,7 @@ div
 	img(src='./wh_import_excel.png')
 	v-combobox(
 		placeholder='Выбрать имя таблицы. Если нужна новая таблица - придумайте и введите не занятое имя'
-		:items='whTables'
+		:items='whTables_'
 		:search-input.sync='tableName'
 		@change="change"
 		return-object=false
@@ -30,11 +30,11 @@ div
 import {pxhr} from 'lib'
 
 export default {
-	data: ()=>({
+	data: () => ({
 		tableName: '',
 		tableDescription: '',
-		whTables: [],
-		allowStructureChange: false
+		allowStructureChange: false,
+		whTables_: [] // '_' at end of name prevent seting in task.params (look tasks.vue)
 	}),
 	mounted () {
 		this.done()
@@ -46,7 +46,7 @@ export default {
 		done () {
 			pxhr({ method: 'get', url: 'warehouse/tables' })
 			.then(res => {
-				this.whTables = res
+				this.whTables_ = res
 			}).catch(function (err) {
 				console.log(err)
 			})

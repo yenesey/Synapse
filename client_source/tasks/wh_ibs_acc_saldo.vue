@@ -1,6 +1,6 @@
 ﻿<template lang="pug">
 	div
-		datepicker(label="Дата" name="date" :value="day().format('YYYY-MM-DD')" style="margin-top:15px")
+		datepicker(label="Дата" name="date" :value="day().format('YYYY-MM-DD')")
 		v-text-field(v-model="bs" v-mask="mask" label="Бал. счет" autocomplete="off" dense style="max-width:140px")
 		v-checkbox(hide-details v-model='merge' label='Обновить существующие данные и долить отсутствующие (merge)')
 </template>

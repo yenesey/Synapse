@@ -23,7 +23,7 @@ module.exports = async function () {
 		{ merge: true }
 	)
 */
-
+/*
 	console.log('Импорт видов договоров')
 	await importData(
 		`select 
@@ -40,7 +40,7 @@ module.exports = async function () {
 		'IBS_DEPN_TYPES',
 		{ merge: true }
 	)
-
+*/
 	console.log('Импорт депозитов')
 	await importData(
 		`select 
@@ -56,6 +56,7 @@ module.exports = async function () {
 			C_11 DATE_CLOSE,
 			C_12 STATE,
 			REF26 DEPART_REF,
+			REF17 PRC_SCHEME
 			(select C_5	from VW_CRIT_ARC_SCH_PRC where COLLECTION_ID = VW_CRIT_DEPN.REF17 and (C_2 is NULL or C_2 >= SYSDATE) and rownum = 1) PRC
 		from 
 			VW_CRIT_DEPN
