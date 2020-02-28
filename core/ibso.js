@@ -21,7 +21,7 @@ var ibso = {};
 module.exports = function(config, noConnect){
   // если соединение с БД не нужно (noConnect = false/null) - не устанавливаем
 	if (!noConnect)
-    ora = require('synapse/ds-oracle')(config);
+    ora = require('./ds-oracle')(config);
   ibso.config = config;
 	return ibso;
 }

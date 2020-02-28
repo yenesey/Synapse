@@ -1,5 +1,5 @@
 ﻿const oracledb = require('oracledb')
-const { equals, diff } = require('synapse/lib')
+const { equals, diff } = require('../core/lib')
 const treeStore = require('sqlite-tree-store')
 const oracle = treeStore('../db/synapse.db', 'system')(['config', 'oracle']) // забрали настройки соединения из локальной базы
 const ROWS_PER_ACTION = 10000
@@ -189,7 +189,7 @@ async function importFromMemory (source, whDestinationTable, whTableDescription,
 		await warehouse.execute(getCreateStatement(source.metaData, whDestinationTable))
 		if (whTableDescription) {
 			await warehouse.execute(`comment on table ${whDestinationTable} is '${whTableDescription}'`)
-		}	
+		}
 		console.log(`done.`)
 	}
 
@@ -210,7 +210,7 @@ async function importFromMemory (source, whDestinationTable, whTableDescription,
 			console.log(`Нельзя модифицировать структуру существующей таблицы`)
 			return -1
 		}
-	} 
+	}
 
 	let statement = getMergeStatement(source.metaData, whDestinationTable, [source.metaData[0].name])
 	let rows, info
@@ -224,7 +224,6 @@ async function importFromMemory (source, whDestinationTable, whTableDescription,
 
 	console.log(' completed, ', count, ' rows affected')
 	return count
-
 }
 
 module.exports = {

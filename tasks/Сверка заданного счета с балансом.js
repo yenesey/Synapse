@@ -1,7 +1,7 @@
 
 const dayjs = require('dayjs')
 const { getConnection } = require('./wh_util')
-const { declByNum, leftPad } = require('synapse/lib')
+const { declByNum, leftPad } = require('../core/lib')
 
 module.exports = async function (params) {
 	const dateOn = dayjs(params.date).startOf('day').toDate()

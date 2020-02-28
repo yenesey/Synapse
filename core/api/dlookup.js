@@ -90,12 +90,8 @@ module.exports = function (system) {
 			return
 		}
 
-		// файл|ldap не указан? значит это запрос в ibso
-		let access = system.access(user, { object: system.db.objects.ibs._[query.table].id })
-		if (!access.granted) {
-			res.json({ error: 'Access denied!' })
-			return
-		}
+		// файл не указан? значит это запрос в ibso
+		system.checkAccess(user, ['ibs', query.table])
 
 		return ora(_sql(query))
 			.then(data => res.json(data))

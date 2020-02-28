@@ -120,8 +120,7 @@ module.exports = function (system) {
 
 		function error (stdout) {
 			try {
-				let to = system.getUsersHavingAccess(system.db.objects.groups._['Администраторы'].id)
-					.map(el => el.email).join(',')
+				let to = system.getUsersHavingAccess(['groups', 'Администраторы']).map(el => el.email).join(',')
 				if (to.length) {
 					mail.sendp({
 						from: `Synapse <synapse@${os.hostname().toLowerCase()}`,
@@ -251,7 +250,7 @@ module.exports = function (system) {
 	})
 
 	this.get('/tasks', function (req, res) {
-		system.checkAccess(req.user, system.db.objects.admin._.scheduler.id)
+		system.checkAccess(req.user, ['admin', 'scheduler'])
 		let tasks = system.db.objects.tasks
 		let map = Object.keys(tasks).map(task => ({ id: tasks._[task].id, ...tasks.task, name: task }))
 		res.json(map)

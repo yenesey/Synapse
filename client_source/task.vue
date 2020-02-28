@@ -121,8 +121,8 @@ export default {
 				progress: self.onProgress,
 				timeout : 3600000 * 4 // 4 часа
 			})
-			.then(function(res){
-				var json = JSON.parse(res.substr(res.lastIndexOf('\n')+1))
+			.then(function (res) {
+				var json = (typeof res === 'object') ? res : JSON.parse(res.substr(res.lastIndexOf('\n')+1))
 				self.status = json.status
 				self.path = json.path
 				self.files = json.files

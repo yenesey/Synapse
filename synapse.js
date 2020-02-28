@@ -51,8 +51,8 @@ process.argv.forEach(arg => {
 /*
 -------------------------------------------------------------------------------------
 */
-const system = require('synapse/system')
-const api = require('synapse/api')
+const system = require('./core/system')
+const api = require('./core/api')
 const config = system.config
 
 const server = process.env.SSL
@@ -84,7 +84,7 @@ server.listen(process.env.PORT, function () {
 	])
 
 	if (process.env.DEV_SERVER) {
-		app.use(require('synapse/dev-middleware'))
+		app.use(require('./core/mids/dev'))
 		return
 	}	else {
 		app.use(express.static(path.join(__dirname, 'client')))

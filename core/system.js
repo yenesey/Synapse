@@ -34,7 +34,7 @@ system.errorHandler = function (err, req, res, next) {
 	system.log(msg)
 	if (res) {
 		if (res.headersSent && next) next()
-		res.json({ success: false, error: err.message })
+		res.json({ status: 'error', message: err.message })
 	}
 	return false
 }
@@ -111,11 +111,7 @@ system.access = function (user, options = {}) {
 // юзается в tasks и dlookup, а также в users/access
 // options = { 'class': className, object: objectId, granted: true|false }
 	let userAcl = String(user._acl).split(',').map(el => Number(el))
-	/*
-	if ('object' in options) {
-		return { granted: userAcl.includes(options.object),  this.db.objects._id() }
-	}
-	*/
+
 	let map = []
 	let obj
 	let _class
@@ -142,22 +138,27 @@ system.access = function (user, options = {}) {
 	return map
 }
 
-system.getUser = function (login) {
-	let { users } = this.db
-	// assert(login in users, 'Пользователь ' + login + ' не зарегистрирован')
-	if (login in users)	return { login: login, ...users[login] }
-	return null
+/**
+ * Получить id элемента ветви, заданной через массив path
+ * @param {object} node
+ * @param {string[]} path
+ */
+function pathToId (node, path) {
+	for (var i = 0; i < path.length - 1; i++) node = node[path[i]]
+	return node._[path[i]].id
 }
 
-system.checkAccess = function (user, object) {
+system.checkAccess = function (user, path, object) {
 	assert(!user.disabled, 'Пользователь ' + user.login + ' заблокирован')
+	if (path) object = pathToId(this.db.objects, path)
 	let access = this.access(user, { object: object })
 	assert(access && access.granted, 'Не разрешен доступ к операции')
 	return access
 }
 
-system.getUsersHavingAccess = function (objectId) {
+system.getUsersHavingAccess = function (path) {
 	let users = []
+	let objectId = pathToId(this.db.objects, path)
 	for (let key in this.db.users) {
 		let user = this.db.users[key]
 		if (!user.disabled && user._acl && user._acl.split(',').includes(String(objectId))) users.push(user)
@@ -185,6 +186,6 @@ if (!config.ssl.certData && fs.existsSync(config.ssl.cert)) {
 }
 
 system.db = db
-system.config = db.config
+system.config = config
 
 module.exports = system

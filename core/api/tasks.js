@@ -72,7 +72,7 @@ module.exports = function (system) {
 							.catch(() =>
 								res.end('\n' + JSON.stringify({ status: 'error', message: 'ошибка чтения каталога с файлами' }))
 							)
-					}	else res.end('\n' + JSON.stringify({ status: 'error', message: 'задача завершилась с ошибками' }))
+					} else res.end('\n' + JSON.stringify({ status: 'error', message: 'задача завершилась с ошибками' }))
 				}
 			}
 		)
@@ -160,7 +160,7 @@ module.exports = function (system) {
 			if (req.files) {
 				params.files = req.files
 			}
-			let access = system.checkAccess(req.user, Number(params.task.id)) // проверили доступ к задаче
+			let access = system.checkAccess(req.user, null, Number(params.task.id)) // проверили доступ к задаче
 			try {
 				delete access.granted
 				delete access.description
@@ -185,7 +185,6 @@ module.exports = function (system) {
 				return launch(params, req, res)
 			} catch (err) {
 				system.errorHandler(err)
-				res.end('\n' + JSON.stringify({ status: 'error', message: err.message }))
 			}
 		}
 	)

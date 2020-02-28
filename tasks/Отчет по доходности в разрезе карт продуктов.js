@@ -83,7 +83,7 @@ function createRow (select) {
 
 module.exports = async function (param, system) {
 	const { warehouse } = system.config.oracle
-	const oracle = require('synapse/ds-oracle')(warehouse)
+	const oracle = require('../core/ds-oracle')(warehouse)
 
 	const date1 = dayjs(param.period).startOf('month').toDate()
 	const date2 = dayjs(param.period).endOf('month').toDate()
@@ -210,28 +210,21 @@ module.exports = async function (param, system) {
 	let trn_merch_return = createRow(result)
 	let period = param.period.split('-').reverse().join('.')
 
-	XlsxPopulate.fromFileAsync(path.join(__dirname, 'templates', 'Отчет по доходности в разрезе карт продуктов.xlsx'))
-		.then(workbook => {
-			let sheet = workbook.sheet('template').name(period)
-			sheet.cell('C1').find(/period/, match => period)
-
-			sheet.cell('C6').value([amount])
-			sheet.cell('C7').value([amount_act])
-			sheet.cell('C8').value([amount_act_zp])
-
-			sheet.cell('C9').value([emitted])
-			sheet.cell('C11').value([embossed])
-
-			sheet.cell('C19').value([trn_bank])
-			sheet.cell('C21').value([trn_other])
-			sheet.cell('C22').value([trn_other_rub])
-			sheet.cell('C23').value([trn_other_val])
-
-			sheet.cell('C25').value([trn_merch])
-			sheet.cell('C26').value([trn_merch_rub])
-			sheet.cell('C27').value([trn_merch_val])
-			sheet.cell('C38').value([trn_merch_return])
-
-			return workbook.toFileAsync(`${param.task.path}/Отчет по доходности в разрезе карт продуктов.xlsx`)
-		})
+	let workbook = await XlsxPopulate.fromFileAsync('templates/Отчет по доходности в разрезе карт продуктов.xlsx')
+	let sheet = workbook.sheet('template').name(period)
+	sheet.cell('C1').find(/period/, match => period)
+	sheet.cell('C6').value([amount])
+	sheet.cell('C7').value([amount_act])
+	sheet.cell('C8').value([amount_act_zp])
+	sheet.cell('C9').value([emitted])
+	sheet.cell('C11').value([embossed])
+	sheet.cell('C19').value([trn_bank])
+	sheet.cell('C21').value([trn_other])
+	sheet.cell('C22').value([trn_other_rub])
+	sheet.cell('C23').value([trn_other_val])
+	sheet.cell('C25').value([trn_merch])
+	sheet.cell('C26').value([trn_merch_rub])
+	sheet.cell('C27').value([trn_merch_val])
+	sheet.cell('C38').value([trn_merch_return])
+	await workbook.toFileAsync(`${param.task.path}/Отчет по доходности в разрезе карт продуктов.xlsx`)
 }

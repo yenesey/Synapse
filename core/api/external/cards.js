@@ -4,7 +4,7 @@
 	(Переработано по SZ-2491)
 */
 
-const ora = require('synapse/ds-oracle')
+const ora = require('../../ds-oracle')
 const soap = require('soap')
 // const oracledb = require('oracledb')
 

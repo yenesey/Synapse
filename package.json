@@ -1,15 +1,14 @@
 {
   "name": "synapse",
-  "version": "3.1.2",
+  "version": "3.4.0",
   "description": "Commercial Bank IT-engineer's integrative tool",
   "main": "synapse",
   "scripts": {
-    "wh_data.db": "tree-store ../../tasks/wh_data.db structs",
-    "synapse.db": "tree-store ../../db/synapse.db system",
+    "db": "tree-store ../../db/synapse.db system",
     "dev-back": "nodemon --inspect synapse --development",
     "dev-front": "node synapse --development --dev-server --port=3000 --base-url=http://localhost",
-    "build": "cross-env NODE_ENV=production webpack --mode production --hide-modules --display-error-details --config ./client_source/webpack.config.js",
-    "postinstall": "@if not exist \"node_modules\\synapse\" mklink /J \"node_modules\\synapse\" \"core\""
+    "build": "cross-env NODE_ENV=production webpack --mode production --hide-modules --display-error-details --config ./core/webpack.config.js",
+    "postinstall(disabled)": "@if not exist \"node_modules\\synapse\" mklink /J \"node_modules\\synapse\" \"core\""
   },
   "nodemonConfig": {
     "verbose": false,
@@ -66,7 +65,7 @@
     "html-webpack-plugin": "4.0.0-alpha.2",
     "json-loader": "0.5.7",
     "node-pre-gyp": "^0.13.0",
-    "node-sass": "^4.12.0",
+    "node-sass": "^4.13.1",
     "nodemon": "^2.0.1",
     "pug": "^2.0.4",
     "pug-plain-loader": "1.0.0",

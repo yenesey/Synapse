@@ -2,14 +2,13 @@
 
 /*
 	Работа с пользователями, контроль доступа (требуется NTLM-middleware см. ./api.js)
-	- идентификация / авторизация
-	- добавление / удаление пользователя
+	- авторизация
+	- добавление / удаление пользователя и т.п.
 */
 
 const bodyParser = require('body-parser')
 const ActiveDirectory = require('activedirectory')
 const promisify = require('util').promisify
-
 const assert = require('assert') // todo: !!! пересмотреть возможность убрать утверждения и заменить обычной логикой
 
 function createNode (node, level = 0) {
@@ -24,7 +23,7 @@ function createNode (node, level = 0) {
 module.exports = function (system) {
 	// -
 	function requireAdmin (req, res, next) {
-		system.checkAccess(req.user, system.db.objects.admin._.users.id)
+		system.checkAccess(req.user, ['admin', 'users'])
 		next()
 	}
 
@@ -61,8 +60,6 @@ module.exports = function (system) {
 		delete user._acl
 		res.json({ ...user, access: access })
 	})
-
-	// this.get('/admin/*', requireAdmin) -- можно повесить требование админа на ветку, но пока решил сделать так как есть
 
 	this.get('/ldap-users', requireAdmin, function (req, res) {
 		searchActiveDirectory(req.query.filter).then(result => res.json(result))

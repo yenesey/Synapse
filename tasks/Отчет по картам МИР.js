@@ -79,7 +79,7 @@ function createRow (select) {
 
 module.exports = async function (param, system) {
 	const { warehouse } = system.config.oracle
-	const oracle = require('synapse/ds-oracle')(warehouse)
+	const oracle = require('../core/ds-oracle')(warehouse)
 
 	const date1 = dayjs(param.period).startOf('month').toDate()
 	const date2 = dayjs(param.period).endOf('month').toDate()
