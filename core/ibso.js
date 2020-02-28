@@ -14,14 +14,14 @@
 //  IBS.VW_CRIT_MAIN_DOCUM      - Платежные документы (Список документов)
 //////////////////////////////////////////
 
-var moment = require('moment');
+var dayjs = require('dayjs');
 var ora;
 var ibso = {};
 
 module.exports = function(config, noConnect){
   // если соединение с БД не нужно (noConnect = false/null) - не устанавливаем
 	if (!noConnect)
-    ora = require('synapse/ds-oracle')(config);
+    ora = require('./ds-oracle')(config);
   ibso.config = config;
 	return ibso;
 }
@@ -100,7 +100,7 @@ ibso.curVal = async function(val, OD){
 	rs = await ibso.query(SQL);
 	if (rs){
 		rs.forEach(item => { res[item.VAL] = {cur: +item.CUR.toFixed(4), // округляем до 4 знаков после запятой
-                                          date: moment(item.CUR_DATE), 
+                                          date: dayjs(item.CUR_DATE), 
                                           ed: item.VAL_ED} 
                        }); 
 		return res;

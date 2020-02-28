@@ -1,26 +1,59 @@
 <template lang="pug">
 	div
-		div.resizeable(:style="{height: editorHeight, width: '100%'}")
+		div.resizeable(:style="{height: editorHeight + 'px', width: '100%'}")
 			editor.editor-control(v-model='sql', ref='editor-control')
 			div.resize-bar(@mousedown='initDrag')
 
-				v-btn.action(v-on:click='query', title='Запуск (F9 - в активном редакторе)' style='left: 5px;' ) &#x27A4;
+				v-btn.action(v-on:click='query', title='Запуск (F9 - в активном редакторе)' style='float:left') &#x27A4;
 
-				label.action(style='right:70px') Row limit: 
-				input.action(v-model='maxRows', style='right:5px; width:50px; border: thin solid #acdbff; padding:2px;line-height: 1.0em;')
+
+				input.action.border(v-model='maxRows')
+				label.action Кол-во строк: 
+				label.action &nbsp;
+
+				v-menu(offset-y='' transition='slide-y-transition' v-if='conns')
+					template(v-slot:activator="{ on }") 
+						input.action.border(v-model='conns[connIndex]' v-on="on")
+					v-list(width=200 rounded)
+						v-list-item-group(v-model='connIndex' color='rgb(117, 132, 146)')
+							v-list-item(v-for='(el) in conns' :key='el')
+								v-list-item-title {{ el }}
+
+				label.action(style='float:right;') Источник: 
 
 				template(v-if='tableData.length')
-					label.action(style='left:120px') Итого: {{statusString()}} 
-					v-btn.action(v-on:click='saveResult' style='left:350px') Save .csv
-					label.action(style='left:480px')  Фильтр: 
-					input.action(v-model='search', style='left:540px; border: thin solid #acdbff; padding:2px; line-height: 1.0em;')
-		br
-		wait(v-if='running')
+					label.action(style='float:left') Итого: {{statusString()}}
+					v-btn.action(v-on:click='saveResult' style='float:left') Save .csv
+
+					label.action(style='float:left;') Фильтр:
+					input.action.border(v-model='search' style='float:left; width: 120px;')
+
+
+		wait(v-if='running' style='margin: 10px')
 		pre(v-if='error', style='font-weight:bold') {{error}}    
-		v-data-table.fixed-header.elevation-1.fixed(v-if='tableData.length', v-model='selected', :headers='headers', :items='tableData', :search='search', hide-actions='')
+
+		v-data-table(
+			style='margin-top:10px'
+			v-if='tableData.length'
+			:height='tableHeight'
+			dense 
+			fixed-header
+			disable-pagination
+			hide-default-footer
+			v-model='selected'
+			:headers='headers'
+			:items='tableData'
+			:search='search'
+		)
+			// template(v-slot:default)
+				thead
+					tr(v-for='(h) in headers' )
+						th.text-center.subtitle-1 h
+
 			template(slot='items', slot-scope='props')
 				tr(:active='props.selected', @click='props.selected = !props.selected')
 					td.text-xs-left(v-for='(v, k) in props.item') {{ v }}
+
 			v-alert(slot='no-results', :value='true', color='error', icon='warning')
 				| Your search for &quot;{{ search }}&quot; found no results.
 </template>
@@ -28,7 +61,7 @@
 <script>
 // @keydown.native="editorKey" //	div(style='width:auto; padding: 2px 6px;color:#57768A;')
 import {declByNum, pxhr} from 'lib';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import editor from './editor/ace-editor.js';
 
 //сохранение любого контента в файл
@@ -47,18 +80,22 @@ var saveFile = function(content, type, filename){
 }
 
 export default {
+	props: {
+		conns: Array
+	},
 
 	data : function(){
 		return {
 			sql : 'select * from V$NLS_PARAMETERS --показать параметры сессии',
+			connIndex: 0,
 			editor : null,
-			maxRows: 10,
+			maxRows: 40,
 			tableData : [],
 			search : "",
 			error : "",
 			running : false,
 			time : "",
-			editorHeight : '250px',
+			editorHeight : 250,
 			drag : {	
 				startHeight : 0, 
 				startY : 0
@@ -68,13 +105,16 @@ export default {
 	},
 
 	computed : {
-		headers : function(){
+		tableHeight () {
+			return document.documentElement.clientHeight - this.editorHeight - 150
+		},
+		headers () {
 			var rows = this.tableData;
 		
 			if (rows.length === 0) return [];
 			var heads = Object.keys(rows[0]).map(el=>({
 				text: el,
-			 //   align: (typeof this.tableData[0][el] === 'string')?'right':'left',
+				//  align: (typeof this.tableData[0][el] === 'string')?'right':'left',
 				sortable: true,
 				width : 50,
 				class : 'flex',
@@ -98,17 +138,22 @@ export default {
 		}
 
 	},
-
+	
 	components: {
 		editor: editor
 	},
 
+	watch : {
+		sql () {
+			this.save()
+		},
+		connIndex () {
+			this.save()
+		}
+	},
+
 	mounted : function(){
-		var self = this; 
-		self.$watch('sql', function(){
-			self.save()
-		})
-		self.editor = self.$refs['editor-control'].editor;
+		this.editor = this.$refs['editor-control'].editor;
 	},
 
 	methods: {
@@ -125,7 +170,7 @@ export default {
 		doDrag : function(e) {
 			var height = this.drag.startHeight + e.clientY - this.drag.startY;
 			if (height < 32) height = 32;
-			this.editorHeight = height + 'px';
+			this.editorHeight = height;
 		},
 			
 		stopDrag : function (e) {
@@ -144,10 +189,11 @@ export default {
 			var item = localStorage.getItem( this.url() );
 			if (item)	{
 				try {
-					item = JSON.parse(item);
-					this.sql = item.sql;
-					this.$parent.tab.name = item.tab;
-					this.editorHeight = item.editorHeight || '250px';
+					item = JSON.parse(item)
+					this.sql = item.sql
+					this.$parent.tab.name = item.tab
+					this.editorHeight = item.editorHeight || '250px'
+					this.connIndex = item.connIndex || 0
 				}	catch(err){
 					console.log(err)
 				}	
@@ -155,7 +201,7 @@ export default {
 		},
 
 		save : function(){
-			localStorage.setItem(this.url(), JSON.stringify( {tab : this.$parent.name, sql : this.sql, editorHeight: this.editorHeight} ));			
+			localStorage.setItem(this.url(), JSON.stringify( {tab : this.$parent.name, sql : this.sql, editorHeight: this.editorHeight, connIndex: this.connIndex} ));			
 		},
 
 		remove : function(){
@@ -193,10 +239,11 @@ export default {
 			self.running = true;
 			self.tableData = [];
 			self.error = "";
-			var start = moment();			
+			var start = dayjs();			
 
 			pxhr({ method:'post', url:'dbquery', timeout : 60000*30, 
 				data: {
+					connection: this.conns[this.connIndex],
 					sql : this.sql,
 					maxRows: this.maxRows
 				}
@@ -207,7 +254,7 @@ export default {
 					self.error = res.error 
 				} else {				
 					self.tableData = res; 
-					self.time = moment(moment() - start).format("mm:ss.SSS");
+					self.time = dayjs(dayjs() - start).format("mm:ss.SSS");
 				}
 			})
 			.catch(function(err){
@@ -231,17 +278,21 @@ table.v-datatable{
 */
 
 .action {
-	position: absolute;
-	top: 5px;
-	line-height: 1.6rem;
-	/*top: 50%;
-		display: block;
+	padding: 2px;
+	line-height: 1.0em;
+	float: right;
+	margin: 5px;
+	/* top: 50%;
 	transform: translateY(-50%);
 	*/
+	max-height: 22px;
 	height: 22px; 
-	padding: 0px;
-	margin: 0px;
 	text-transform: none;
+}
+
+.border {
+	border: thin solid #acdbff;
+	width: 80px;
 }
 
 .resizeable {
@@ -277,28 +328,6 @@ table.v-datatable{
 	bottom: 32px;
 	width: 100%;
 	position: absolute;
-}
-
-/*----------------------------------------------------*/
-
-.fixed-header table {
-		table-layout: fixed;
-}
-
-.fixed-header th {
-		background-color: #fff; /* just for LIGHT THEME, change it to #474747 for DARK */
-		position: sticky;
-		top: 0;
-		z-index: 10;
-}
-
-.fixed-header tr.datatable__progress th {
-		top: 56px;
-}
-
-.fixed-header .v-table__overflow {
-		overflow: auto;
-		height: 500px;
 }
 
 </style>

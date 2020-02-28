@@ -2,14 +2,16 @@
 	div
 		h2 Хеш по алгоритму sha256
 		br
-		v-text-field(v-model="text" name="text" label="Введите данные" browser-autocomplete="off")
+		v-text-field(v-model="text" name="text" label="Введите данные" autocomplete="off")
 
 		div(style="display: flex; width: 650px")
 			v-text-field(v-model="hash" disabled)
-			v-btn(@click="clipboard(hash); tooltip = true" @mouseleave="tooltip = false" icon id="copy") 
-				v-icon(color="grey lighten-1") content_copy
-		v-tooltip(v-model="tooltip" top activator="#copy")
-			span Скопировано в буфер обмена
+
+			v-tooltip(top v-model="tooltip")
+				template(v-slot:activator="{ click }")
+					v-btn(@click="clipboard(hash); tooltip=true" @mouseleave="tooltip=false" icon)
+						v-icon(color="grey lighten-1") content_copy
+				span Скопировано в буфер обмена
 
 </template>
 

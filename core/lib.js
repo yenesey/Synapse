@@ -20,6 +20,13 @@ function toUnicode(theString) {
 var _ = {}
 if (typeof module !== 'undefined') module.exports = _
 
+_.uuidv4 = function () {
+	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+		var r = Math.random() * 16 | 0; var	v = c == 'x' ? r : (r & 0x3 | 0x8)
+		return v.toString(16)
+	})
+}
+
 _.promiseTimeout = function (ms, promise) {
 	// Create a promise that rejects in <ms> milliseconds
 	var timeout = new Promise(function (resolve, reject) {
@@ -35,8 +42,17 @@ _.promiseTimeout = function (ms, promise) {
 	])
 }
 
+_.toBool = function  (value) {
+	if (typeof value === 'undefined' || value === null) return false
+	switch (value.toString().toLowerCase().trim()) {
+	case 'true': case 'yes': case '1': return true
+	case 'false': case 'no': case '0': case null: return false
+	default: return Boolean(value)
+	}
+}
+
 /*
-"underscore" debounce mod (invoked at leading and trailing edges both)
+  debounce mod (invocation at leading or trailing edges)
 */
 _.debounce = function (func, wait, immediate) {
 	var timeout = null
@@ -69,38 +85,13 @@ _.debounce = function (func, wait, immediate) {
 	}
 }
 
-_.debounceKeyed = function (func, wait) {
-// func = function(arg1, arg2,.. argN){}
-// debounceKeyed return function(key, flags:[0|1, 0|1,....N], arg1, arg2,.. argN){}
-// flags: Array [1=update, 0=not update]
-
-	var keys = {}
-	return function () {
-		var self = this
-		var args = Array.prototype.slice.call(arguments)
-		var key = args[0]
-		var flags = args[1]
-		args.shift()
-		args.shift()
-		if (!(key in keys)) {
-			keys[key] = {
-				debounced: _.debounce(function (args) {
-					var result = func.apply(self, args)
-					delete keys[key]
-					return result
-				}, wait),
-				firstCall: args
-			}
-		}
-		args = flags.map(function (el, index) {
-			return el	? args[index] : keys[key].firstCall[index]
-		})
-		return keys[key].debounced(args)
-	} // function()
+// ----------- работа со справочниками ключ-значение (то есть с объектами)
+function isDictionary (obj) { // является ли obj экземпляром Object.create(null)
+	return typeof obj === 'object' && typeof obj.constructor === 'undefined'
 }
 
-function isDictionary(obj) { 
-	return typeof obj === 'object' && typeof obj.constructor === 'undefined'
+function isObject (o) { // является ли obj экземпляром {}
+	return (!!o) && (o.constructor === Object)
 }
 
 _.clone = function (obj) {
@@ -111,7 +102,7 @@ _.clone = function (obj) {
 }
 
 _.equals = function (obj1, obj2) {
-	if ((typeof obj1 !== 'object') || (typeof obj2 !== 'object')) return obj1 === obj2
+	if (!(obj1 instanceof Object && obj2 instanceof Object)) return obj1 === obj2
 
 	for (var key in obj2) {
 		if (!(key in obj1))	return false
@@ -119,13 +110,13 @@ _.equals = function (obj1, obj2) {
 
 	var result = true
 	for (key in obj1) {
-		if (key in obj2)	result = result && _.equals(obj1[key], obj2[key])
+		if (key in obj2) result = result && _.equals(obj1[key], obj2[key])
 		else return false
 	}
 	return result
 }
 
-_.difference = function (obj1, obj2) {
+_.diff = function (obj1, obj2) {
 	var keys = Object.keys(obj1).concat(Object.keys(obj2))
 	keys = _.uniq(keys)
 
@@ -143,9 +134,37 @@ _.uniq = function (array) {
 	})
 }
 
-//
+_.mutate = function (dst, src) {
+	for (let key in src) {
+		if (key in dst && isObject(dst[key]) && isObject(src[key])) {
+			_.mutate(dst[key], src[key])
+		} else {
+			dst[key] = src[key]
+		}
+	}
+	return dst
+}
 
-_.rightPad =	function (str, padStr, toSize) {
+_.merge = function (dst, src) { // immutable dst
+	return _.mutate(_.clone(dst), src)
+}
+
+_.recurse =	function (node, deep, callback) {
+	function recurse (node, level, deep) {
+		if (node instanceof Object && level <= deep) {
+			for (let key in node) {
+				// callback first (parent first), then recurse children
+				let result = callback(node, key, level) || recurse(node[key], level + 1, deep)
+				if (result) return result // result break execution and pop through call stack
+			}
+		}
+	}
+	return recurse(node, 0, deep)
+}
+
+// END----------- работа со справочниками ключ-значение (то есть с объектами)
+
+_.rightPad = function (str, padStr, toSize) {
 // набивка строки (str) символами другой строки (padStr) слева
 	str = String(str)
 	while (str.length < toSize)	str = str + padStr
@@ -164,13 +183,14 @@ _.extName = function (name) {
 	return (index !== -1) ? name.substr(index + 1) : ''
 }
 
+/*
 _.insProp = function (key, value) {
 // устновка пары key = value для объекта
 // использовать с call / apply / bind, ибо this
-	if (value && key)	this[key] = value
+	if (value && key) this[key] = value
 	return _.insProp.bind(this) // для вызова по цепочке
 }
-
+*/
 // --------------------------------------------------------------------
 
 _.simplify = function (_arrayOfObj) {
@@ -205,20 +225,21 @@ _.restore = function (obj) {
 	})
 }
 
-_.keys = function (_arrayOfObj, key, _cbfn) {
+_.keys = function (arrayOfObj, key, _cbfn) {
 // выделить заданный ключ (key) массива объектов с идентичным набором ключей
-	if (_arrayOfObj instanceof Array)	{
-		return _arrayOfObj.reduce(function (result, el) { // цикл по массиву объектов
-			if (key in el) { // имеется требуемый ключ?
-				var newKey = el[key] // значение ключа, становится ключем в создаваемом объекте
-				if (!(newKey in result)) result[newKey] = [] // добавили ключ (значение - типа массив) если его еще нет
-				if (typeof _cbfn === 'undefined' || _cbfn(el)) result[newKey].push(el) // добавляем элемент в массив (элемент - по факту ссыль на существующий объект)
-				delete el[key] // модифицировали елемент (существующий объект)
-			}
-			return result
-		}, Object.create(null))
+	if (!(arrayOfObj instanceof Array)) return null
+	var result = Object.create(null) // obj of arrays
+
+	for (var i in arrayOfObj) {
+		var clone = _.clone(arrayOfObj[i])
+		if (key in clone) { // имеется требуемый ключ?
+			var keyval = clone[key] // значение ключа, становится ключем в создаваемом объекте
+			if (!(keyval in result)) result[keyval] = [] // добавили ключ (значение - типа массив) если его еще нет
+			delete clone[keyval]
+			if (typeof _cbfn === 'undefined' || _cbfn(clone)) result[keyval].push(clone) // добавляем элемент в массив (элемент - по факту ссыль на существующий объект)
+		}
 	}
-	return {}
+	return result
 }
 
 _.mapValues = function (obj, map) { // map for <obj> array like way
@@ -229,15 +250,17 @@ _.mapValues = function (obj, map) { // map for <obj> array like way
 }
 
 // -----------------------------------------------------------------------
+/**
+ * склонение слова по целому (integer) числу
+ * @param {string[]} word ["корень", "окончание для одного", "двух-четрыех", "пять и более"] пример: ["мат", "ь", "ери", "ерей"]
+ * @param {number} num число
+ * @return {string} слово с окончанием
+ */
 _.declByNum = function (word, num) {
-// склонение слова по целому (integer) числу
-// word = ["корень", "окончание для одного", "двух-четрыех", "пять и более"]
-// пример ["мат", "ь", "ери",	"ерей"]
-	num = Math.abs(num - num % 1) // дробь отбрасываем! (не возмущайся, что 1.99 превращается в 1)
-	var idx = (num % 100 > 4 && num % 100 < 20) ? 2 : [2, 0, 1, 1, 1, 2][(num % 10 < 5) ? num % 10 : 5]
-	return word[0] + word[1 + idx]	// слово	+	окончание
+	num = Math.floor(num)
+	let i = (num % 100 > 4 && num % 100 < 20) ? 2 : [2, 0, 1, 1, 1, 2][(num % 10 < 5) ? num % 10 : 5]
+	return word[0] + word[1 + i]
 }
-
 // -----------------------------------------------------------------------
 /**
  * Combine multiple middleware together.

@@ -9,14 +9,14 @@ const path = require('path')
 const iconv = require('iconv-lite')
 const cp = require('child_process') // перекодировка для wscript
 
-module.exports = function (cfg) {
+module.exports = function (cfg, logger) {
 	// 1
 	function exec (process, args, options, onData, onExit) {
 		return new Promise(function (resolve, reject) {
 			if (typeof onData !== 'function' || typeof onExit !== 'function')	reject(new Error('wrong parameters <onData>, <onExit>'))
 			var ps = cp.spawn(process, args, options)
 			function _log (tail) {
-				if (options.log) console.log(ps.pid + ',' + tail)
+				if (options.log) logger(ps.pid + ',' + tail)
 			}
 
 			if (options.log) args.splice(0, options.log)
@@ -49,20 +49,26 @@ module.exports = function (cfg) {
 		var options = {}
 		var	runtime = ''
 		var	argv = JSON.stringify(params)
+		params.task.class  = params.task.class || 'tasks'
 		if (params.task.class === 'xtech') {
 			runtime = 'cscript'
 			options.cp866 = true
 			args.push('/nologo') 	 // - отключить лого
 			argv = argv.replace(/"/g, "'") // --меняем <"> на <'>*
 			options.cwd = cfg.path.xtech
-			if (Number(params.log) !== 0)	options.log = 3
-		} else {
+			if (Number(params.log) !== 0) options.log = 3
+		} else if (params.task.class === 'tasks') {
 			runtime = 'node'
 			args.push('--harmony')
 			args.push('--trace-warnings')
 			args.push('$launcher.js')
 			options.cwd = path.join(/* path.dirname(require.main.filename) */ process.cwd(), 'tasks')
-			if (Number(params.log) !== 0)	options.log = 4
+			if (Number(params.log) !== 0) options.log = 4
+		} else if (params.task.class === 'tasks2') {
+			runtime = 'node'
+			args.push('$launcher.js')
+			options.cwd = path.join(/* path.dirname(require.main.filename) */ process.cwd(), 'tasks2')
+			if (Number(params.log) !== 0) options.log = 4
 		}
 
 		args.push(params.task.name + '.js') // - имя задачи для запуска

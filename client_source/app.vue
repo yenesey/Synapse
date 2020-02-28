@@ -1,56 +1,73 @@
 <template lang="pug"> 
 v-app
-	v-navigation-drawer.blue.lighten-4(:width='navWidth' :value='navVisible' :clipped='navClipped' fixed app style='z-index:10' ref='nav')
+	v-navigation-drawer.blue.lighten-4(app :width='navWidth' :value='navVisible' :clipped='navClipped' style='z-index:10;' ref='nav')
 		v-list.blue.lighten-4
-			v-list-tile(@click="navigate('/')")
-				v-list-tile-action
+			v-list-item.two-line.elevation-1(@click='navigate("/")' )
+				v-list-item-icon
 					v-icon account_circle
-				v-list-tile-title.user {{user}}
-			template(v-for='(group, index) in menuGroups')
-				// перебор групп меню (default оформляем без группы)
-				v-list-tile(v-if="group.name==='default'", v-for='task in tasks[group.name]', :key='task.path', @click="navigate('/tasks/'+task.path)", ripple='')
-					v-list-tile-action
-						v-icon(v-text="task.icon || group.icon || 'chevron_right'")
-					v-list-tile-content
-						v-list-tile-title {{task.name || 'noname'}}
-				// все прочие кроме default пихаем в группу (при наличии доступных элементов)
-				v-list-group(v-if="group.name!=='default' && tasks[group.name]")
-					v-list-tile(slot='activator', @click="navigate('/tasks')", ripple='')
-						v-list-tile-action
-							v-icon(v-text='group.icon')
-						v-list-tile-content
-							v-list-tile-title(v-text='group.description || group.name')
-					v-list-tile(v-for='task in tasks[group.name]', :key='task.path', @click="navigate('/tasks/'+task.path)", ripple='')
-						v-list-tile-action.ml-3
-							v-icon(v-text="task.icon || group.icon || 'chevron_right'")
-						v-list-tile-content
-							v-list-tile-title {{task.name || 'noname'}}
-	v-toolbar.blue.lighten-4(app='', :clipped-left='navClipped', height='48px', style='z-index:9'  ref='toolbar')
-		v-toolbar-side-icon(@click.stop="toggleNav('Visible')")
+				v-list-item-content
+					v-list-item-title.user {{user}}
+					v-list-item-subtitle(v-if='routes.length === 1') Запросите доступ
+			v-divider
+			
+			v-text-field.elevation-0(
+				dense
+				hide-details
+				v-model="filter"
+				autocomplete="off"
+				prepend-icon="search"
+				color="black"
+				placeholder="Фильтр..."
+				style="margin:10px; padding-left: 6px"
+				
+			)
+
+			v-list-group(v-if='routes.length > 1 && tasks[group.name]' v-for='(group, index) in menuGroups' :key='index' :prepend-icon='group.icon || "chevron_right"')
+				v-list-item-title(
+					slot='activator',
+					@click="navigate('/tasks')",
+					ripple
+				) {{group.name === 'default' ? 'Общее' : group.description || group.name}}
+				
+				v-list-item.ml-4.two-line(
+					v-for='task in tasks[group.name]',
+					:key='task.path',
+					@click="navigate('/tasks/'+task.path)",
+					ripple
+				)
+					v-list-item-icon
+						v-icon(v-text="'chevron_right'") //task.icon || group.icon ||
+					v-list-item-content
+						v-list-item-title {{task.name}}
+						v-list-item-subtitle {{task.description}}
+
+	v-app-bar.blue.lighten-4.elevation-1(app, :clipped-left='navClipped', height='48px', style='z-index:9;'  ref='toolbar')
+		v-app-bar-nav-icon(@click.stop="toggleNav('Visible')")
 		v-btn(icon @click.stop="toggleNav('Clipped')" v-show='navVisible')
 			v-icon web
-		template(v-if='isDevMode')
+		template(v-if='isDevelopmentMode')
 			v-spacer
-			v-toolbar-title !!! dev-mode !!!
+			v-toolbar-title <-- dev-server -->
 		v-spacer
 		v-toolbar-title Synapse
-		v-menu(offset-y='', v-if='admin')
-			v-btn(icon='', slot='activator')
-				v-icon(v-html='admin.icon')
-			v-list
-				v-list-tile(router='', :to="'/admin/'+item.path", v-for='(item, index) in admin.children', :key='index')
-					v-list-tile-action
+		v-menu(offset-y, v-if='admin', transition='slide-y-transition')
+			template(v-slot:activator="{ on }")
+				v-btn(icon v-on="on")
+					v-icon(v-html='admin.icon')
+			v-list(width=200)
+				v-list-item(router, :to="'/admin/'+item.path", v-for='(item, index) in admin.children', :key='index')
+					v-list-item-icon
 						v-icon {{ item.icon }}
-					v-list-tile-title {{ item.name }}
+					v-list-item-title {{ item.name }}
 	v-content(ref='content')
 		div.dragbar(@mousedown='initDrag')
-		v-container.fluid
+		.content.fluid(style='padding:.5rem 1.0rem')
 			v-slide-y-transition(mode='out-in')
 				keep-alive
 					router-view(:key='$route.fullPath')
 	v-footer(app='')
 		v-icon account_balance
-		span Denis Bogachev © 2016-2018 
+		span Denis Bogachev © 2016-2020 
 </template>
 
 <script>
@@ -58,37 +75,49 @@ import { keys } from 'lib'
 import { mapState } from 'vuex'
 
 export default {
-	name : 'app_view',
-	props : {
-		user : String,
-		status : String,
-		routes : Array,
-		menuGroups : Array
+	name: 'app_view',
+	props: {
+		user: String,
+		status: String,
+		routes: Array,
+		menuGroups: Array
 	},
-	data() {
+	data () {
 		return {
+			filter: '',
 			drag: {
 				startX: 0, 
 				startWidth: 0
 			}
 		}
 	},
-	computed : {
-		isDevMode: () => window.location.port !== '',
-		admin() {
-			return this.routes.find(r=>r.path==='/admin')
+	mounted () {
+		// window.tst = this.tasks
+	},
+	computed: {
+		isDevelopmentMode: () => window.location.port !== '',
+		admin () {
+			return this.routes.find(r => r.path === '/admin')
 		},
 		tasks () {
-			var _tasks = this.routes.find(r=>r.path==='/tasks');
-			if (_tasks && _tasks.children)
-				return keys(_tasks.children, 'menu' /*menu is objects.class in synapse.db*/ )
+			var _tasks = this.routes.find(r=>r.path === '/tasks');
+			if (_tasks && _tasks.children) {
+				var filter = this.filter.toLowerCase()
+				return keys(
+					_tasks.children.filter(el => 
+						el.name.toLowerCase().indexOf(filter) !== -1 || 
+						el.description.toLowerCase().indexOf(filter) !== -1
+					),
+					'menu'
+				)
+			}	
 			return {}
 		},
 		...mapState(['navWidth', 'navVisible', 'navClipped'])
 	},
 	methods: {
-		navigate(to){
-			this.$root.$router.push(to)
+		navigate (to) {
+			if (to !== this.$root.$router.currentRoute.fullPath) this.$root.$router.push(to)
 		},
 
 		toggleNav (flag) {
@@ -96,7 +125,7 @@ export default {
 			this.$store.commit(key, !this[key])
 		},
 
-		initDrag: function(e){
+		initDrag (e) {
 			var doc = document.documentElement
 			doc.style.cursor = 'col-resize'
 			doc.addEventListener('mousemove', this.doDrag, false)
@@ -110,13 +139,13 @@ export default {
 			e.preventDefault()
 		},
 			
-		doDrag: function(e) {
+		doDrag (e) {
 			var width = this.drag.startWidth - (this.drag.startX - e.clientX)
 			if (width < 100) width = 100
 			this.$store.commit('navWidth', width)
 		},
 
-		stopDrag : function (e) {
+		stopDrag (e) {
 			var doc = document.documentElement
 			doc.style.cursor = 'default'
 			doc.removeEventListener('mousemove', this.doDrag, false)
@@ -132,24 +161,38 @@ export default {
 <style>
 @font-face {
 	font-family: 'Sony_Sketch_EF';
+	font-style: normal;
+	font-weight: 400;
+	src: url('./assets/fonts/Sony_Sketch_EF.woff') format('woff'); 
+}
+/*
+@font-face {
+  font-family: 'Play';
   font-style: normal;
   font-weight: 400;
-	src: url('./assets/Sony_Sketch_EF.woff') format('woff'); 
+  src: url('./assets/fonts/Play.woff') format('woff');
 }
+*/
 
 @font-face {
   font-family: 'Material Icons';
   font-style: normal;
   font-weight: 400;
-  src: url("./assets/MaterialIcons-Regular.woff") format("woff");
+  src: url("./assets/fonts/MaterialIcons-Regular.woff") format("woff");
 }
+
+/*
+.v-application .body-1 {
+	font-family: Play;
+	font-size: 1.2em;
+}
+*/
 
 .material-icons {
   font-family: 'Material Icons';
   font-weight: normal;
   font-style: normal;
   font-size: 24px;
-  /* Preferred icon size */
   display: inline-block;
   line-height: 1;
   text-transform: none;
@@ -157,13 +200,9 @@ export default {
   word-wrap: normal;
   white-space: nowrap;
   direction: ltr;
-  /* Support for all WebKit browsers. */
   -webkit-font-smoothing: antialiased;
-  /* Support for Safari and Chrome. */
   text-rendering: optimizeLegibility;
-  /* Support for Firefox. */
   -moz-osx-font-smoothing: grayscale;
-  /* Support for IE. */
   font-feature-settings: 'liga'; 
 }
 
@@ -178,15 +217,37 @@ export default {
 	-webkit-user-select: none;
 	-moz-user-select: none;
 	-ms-user-select: none;
-	text-shadow:	
-		0 0 5px rgba(0,0,0,.1), 
-		0 1px 3px rgba(0,0,0,.3), 
-		0 3px 5px rgba(0,0,0,.2),
-		0 5px 10px rgba(0,0,0,.25); 
+	text-shadow:
+		0 0   1px rgba(0,0,0,.1),
+		0 2px 4px rgba(0,0,0,.3),
+		0 5px 6px rgba(0,0,0,.2);
+
+}
+nav .v-list {
+	padding: 0;
 }
 
-.user{
+nav .v-list-item__icon {
+	align-self: center;
+}
+
+nav .v-list .v-list-item {
+	height: 22px;
+	color: #444;
+}
+
+nav .v-list .v-list-group--active {
+	background-color: #d1ecff;
+}
+
+.v-list .v-list-item__icon:first-child {
+    margin-right: 16px;
+}
+
+
+.user {
 	height:28px;
+	margin-top: -0.125em; 
 	font-family: 'Sony_Sketch_EF'; 
 	font-size: 1.45em;
 	white-space: nowrap;
@@ -198,25 +259,27 @@ export default {
 	-webkit-user-select: none;
 	-moz-user-select: none;
 	-ms-user-select: none;
+	/*
 	text-shadow:	
 		0 0 5px rgba(0,0,0,.1), 
 		0 1px 3px rgba(0,0,0,.3), 
 		0 3px 5px rgba(0,0,0,.2),
 		0 5px 10px rgba(0,0,0,.25);
+	*/
 } 
 
-.container h3 {
+.content h3 {
 	margin-top:0;
 	color:#57768A;
 	font-size: 1.1em; 
 }
 
-.container pre{
+.content pre{
 	font-family: monospace;
 	color: teal; 
 	font-size: 1.15em; 
 /*	font-style: italic;*/
-	margin: 0.6em 0.5em 1.6em 0.5em;
+	margin: 0.6em  0em 0.6em 0em;
 }
 
 .dragbar {
@@ -229,29 +292,6 @@ export default {
 }
 
 /*-----------------------*/
-.v-list__tile {
-	height : 42px;
-	transition: all .18s !important;
-}
-
-.v-list__tile:hover{
-	padding-left:+20px !important;	
-}
-
-
-.v-list__tile__action {
-	min-width : 32px;
-}
-
-.v-list__group__header--active {
-	background: #A2D1F5;
-}
-
-.v-list__group__header .v-list__tile__title { 
-	font-weight : bold;
-}
-
-
 
 .fade-enter-active, .fade-leave-active {
 	transition: all 0.08s cubic-bezier(1.0, 0.5, 0.8, 1.0)
@@ -277,7 +317,7 @@ export default {
 }
 
 /*---------------------table.synapse-----------------------*/
-
+/*
 table.synapse {
 	border: 1px solid #a8cfe6 !important;
 	border-radius: 3px;
@@ -286,7 +326,6 @@ table.synapse {
 }
 
 table.synapse th {
-/*	background: linear-gradient(to bottom, #b6dff6, #a8cfe6);*/
 	background: #ACDBFF;
 	color: black;
 	cursor: default;
@@ -294,7 +333,7 @@ table.synapse th {
 }
 
 table.synapse td {
-	 background-color:transparent;
+	background-color:transparent;
 }
 
 table.synapse th, table.synapse td {
@@ -311,7 +350,6 @@ table.synapse tbody tr td {
 
 table.synapse tbody tr:hover, table.synapse tbody  tr:hover input, table.synapse tbody  tr:hover select{
 	background-image: linear-gradient(to bottom, #d0edf5, #e1eff0 100%);
-/*  border-style: groove;*/
 }
 
 table.synapse tr.error, table.synapse tr.error input{
@@ -329,9 +367,10 @@ table.synapse input, table.synapse select{
 	border:none;
 	width:100%;
 }
-*/
+
 table.synapse input[type="checkbox"]{
 	width:auto !important;
 }
+*/
 
 </style>

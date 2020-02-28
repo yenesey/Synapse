@@ -1,0 +1,2 @@
+sc \\synapse start synapse
+

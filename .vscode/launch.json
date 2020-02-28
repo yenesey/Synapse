@@ -20,6 +20,24 @@
       "port": 9229,
       "cwd": "${workspaceFolder}",
       "program": "${workspaceFolder}/synapse.js"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Server (launch)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run-script",
+        "dev-back"
+      ],
+      "port": 9229
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Task",
+      "cwd": "${workspaceFolder}/tasks",
+      "program": "${workspaceFolder}/tasks/wh_balance_checker.js"
     }
   ]
 }

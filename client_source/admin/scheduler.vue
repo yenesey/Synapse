@@ -1,258 +1,315 @@
-<template>
-  <v-flex xs12>
-	<v-layout align-start justify-start row fill-height>
+<template lang="pug">
+v-flex.xs12
+	v-alert(v-model='alert', dismissible, colored-border, border='right', type='error', elevation=2) Отсутствует соединение c 
+		span.teal--text(style='text-decoration:underline') {{this.$root.getWebsocketUrl() + '/scheduler'}}
 
-	<table class="synapse"> <!-- Выбор и параметры джоба - вджобывай! -->
-		<tr>
-			<th colspan="2">
-        <div v-if="job.id">Редактировать задачу{{' [id:' + job.id + ']'}}</div>
-        <div v-else>Создать задачу</div>
-      </th>
-		</tr>
+	v-layout(align-start, justify-start, row, fill-height)
+		v-flex.xs3
 
-		<tr>
-			<td colspan="2"> 
-				<dlookup 
-					db="db/synapse.db" 
-					table="objects"
-					look-in="name%"
-					fields="name, class"  
-					where="class in ('tasks', 'xtech')"
-					result="id"
-					@select="taskSelect"
-					v-model="jobName"
-					:min-length=0
-				>
-				</dlookup>
-			</td>
-		</tr> 
+			v-simple-table.ma-1()
+				template(v-slot:default)
+					thead
+						tr(:style='{"background-color": $vuetify.theme.currentTheme.neutral }')
+							th.body-1.text-center(colspan='2' v-if='job.id') Редактировать задачу{{` [id:${job.id}]`}}
+							th.body-1.text-center(colspan='2' v-else) Создать задачу
+					tbody
+						tr
+							td(colspan='2')
+								v-autocomplete(
+									dense
+									hide-details	
+									return-object
+									prepend-icon='timeline'							
+									:menu-props='{ "maxHeight":600 }'
+									full-width
+									autocomplete='off'
+									hide-no-data,
+									item-disabled='__'
+									v-model='task',
+									:items='tasks',
+									:loading='tasksLoading',
+									:search-input.sync='taskSearch',
+									@input='selectTask',
+									item-text='name',
+									item-value='id',
+									label='Выбрать задачу',
+								)
 
-		<tr v-for="(value, key) in job.params.argv" :key=key> 
-			<td>
-  			<label>{{key}}</label>	
-			</td>
-			<td>
-    		<input type="text" v-model="job.params.argv[key]" style="width:100%; border:1px solid #aaaaaa;;font-size:0.95em" autocomplete="off">
-			</td>
-		</tr> 
+						tr(v-for='(value, id) in job.argv', :key='id')
+							td
+								label {{id}}
+							td
+								v-text-field(dense single-line hide-details v-model='job.argv[id]', autocomplete='off')
+						tr
+							th(colspan='2') Расписание
+						tr
+							td(colspan='2')
+								pre.ma-0(style='line-height:1.2em').
+									┌─────────── second (optional)
+									│ ┌───────── minute
+									│ │ ┌─────── hour
+									│ │ │ ┌───── day of month
+									│ │ │ │ ┌─── month
+									│ │ │ │ │ ┌─ day of week
+								v-text-field.ma-0(v-model='job.schedule', hide-details, style='font-family: monospace; color: teal;', autocomplete='off')
+						tr
+							th Вывод результатов
+							th
+								v-btn.pr-2.float-right(small rounded @click='$set(job.emails, Object.keys(job.emails).length)') email
+									v-icon() add_circle
+									
+						tr
+							td(colspan='2', style='vertical-align: text-top')
+								v-row.ma-0(v-for='(obj, id) in job.emails' :key='id')
+									v-autocomplete(
+										dense
+										hide-details	
+										prepend-icon='mail_outline'
+										autocomplete='off'
+										hide-no-data,
+										item-disabled='__'
+										v-model='job.emails[id]',
+										:items='usersCached',
+										item-text='email',
+										item-value='email'
+									)
+										template(v-slot:item='el')
+											v-list-item-content
+												v-list-item-subtitle(v-html='el.item.name')
+												v-list-item-subtitle(v-html='el.item.email')
+									v-btn(text icon @click='$delete(job.emails, id)')
+										v-icon.hover-elevate remove_circle
+			
+						tr
+							td(colspan='2')
+								v-text-field.mt-2(v-model='job.print', prepend-icon='local_printshop', hide-details, label='Принтер', autocomplete='off')
+		// --------------------------------------------------------
+		v-flex.xs9
+			v-simple-table.ma-1
+				thead
+					tr(:style='{"background-color": $vuetify.theme.currentTheme.neutral}')
+						th.text-center.body-1 Запланированные задачи
 
-    <tr>
-      <th colspan="2">Расписание</th>
-    </tr>
-    <tr>
-      <td colspan="2">
-<pre style="margin:0 0; padding: 0 .5em">┌─────────── second (optional)
-│ ┌───────── minute
-│ │ ┌─────── hour
-│ │ │ ┌───── day of month
-│ │ │ │ ┌─── month
-│ │ │ │ │ ┌─ day of week
-</pre>
-        <input type="text" v-model="job.schedule" style='width:300px;font-family: monospace; color: teal; font-size: 1.2em; padding: 0 .5em;border:1px solid #aaaaaa;' autocomplete="off"> 
-      </td>
-    </tr>
-
-    <tr>
-      <th colspan="2">Результат</th>
-    </tr>
-
-    <tr>
-    	<td colspan="2" style="vertical-align: text-top">
-			  <v-icon>mail_outline</v-icon> e-mail <br>
-
-				<array v-model="job.params.pp.email" b-size=22>
-					<dlookup slot-scope="{el, index}"
-					 	style="width:250px"
-						db="db/synapse.db" 
-						table="users" 
-						result="email" 
-						look-in="%name%, %email%" 
-						fields="name"	
-						where="(disabled = 0 or disabled is null) and (not email is null)"
-						order="name"
-						:min-length=0
-						:getLabel="formatEmail"
-						v-model="job.params.pp.email[index]"
-					>
-							<i slot-scope="{item, index}">
-						 	 {{item.name}} <i style="color:teal"> {{'(' + item.email + ')'}} </i>
-							</i>
-					</dlookup> 
-				</array>
-
-			</td>
-    </tr>
-
-    <tr>
-      <td colspan="2" >
-        <v-icon>local_printshop</v-icon> принтер <br>
-      	<input type="text" v-model="job.params.pp.print" style="width:100%;border:1px solid #aaaaaa;font-size:0.95em" autocomplete="off">
-			</td>
-    </tr>
-  </table>
-
-<!------------------------------------------------------------>
-
-	<table class="synapse" width="80%"> <!-- Очередь джобов -->
-		<thead>
-			<tr>
-				<th colspan=9>Список задач на сервере</th>
-			</tr>
-			<tr>
-				<th>№</th> 
-				<th>Задача</th>
-				<th>Описание</th>
-				<th>Выполн.</th>
-				<th>Следующ</th>
-				<th>Вкл</th>
-				<th><v-icon size=22 style="width:22px">play_circle_outline</v-icon></th>
-				<th><v-icon size=22 style="width:22px">check_circle_outline</v-icon></th>
-				<th><v-icon size=22 style="width:22px">play_circle_outline</v-icon></th> 
-			</tr>
-		</thead>
-		
-		<tbody>
-			<tr v-for="(obj, index) in jobs" :key="obj.id" @click="jobSelect($event, obj)" :class="{error: states[index]==2, selected: job.id===obj.id }" > 
-				<td style="text-align:center"  >{{obj.id}}</td>
-				<td >{{ obj.name }}</td>
-				<td width="45%">
-					<input type="text" v-model="obj.description" autocomplete="off">
-				</td>
-				<td >
-					<input v-if="obj.code==0 || obj.code==2" type="text" v-model="obj.last" size="10" style="text-align:center; font-size: 12px" readonly>
-					<input v-else type="text" v-model="obj.last" size="10" style="text-align:center; font-size: 12px; color: red" readonly>
-				</td>
-				<td  >
-					<input type="text" v-model="obj.next" size="10" style="text-align:center; font-size: 12px" readonly>
-				</td>
-				<td style="text-align:center" > 
-					<input type="checkbox" v-model="obj.enabled" :disabled="obj.error">
-				</td>
-				<td style="text-align:center"  > 
-          <v-icon size=22 v-if="states[index]!==1" @click="jobRun($event, obj)">play_arrow</v-icon>
-				</td>
-				<td style="text-align:center" > 
-          <v-icon size=22 v-if="obj.params.pp.email && obj.params.pp.email.filter(eml=>eml!='').length">mail_outline</v-icon>
-          <v-icon size=22 v-if="obj.params.pp.print">local_printshop</v-icon>
-				</td>
-				<td style="text-align:center"  > 
-          <v-icon size=22 v-if="states[index]==0" class="trash-bin" @click="jobDelete(obj)">delete</v-icon>
-					<img v-if="states[index]==1" src="../assets/ui-anim_basic_16x16.gif" style="vertical-align: text-bottom;">
-				</td> 
-			</tr>
-		</tbody> 
-	</table>
-	</v-layout>
-	</v-flex>
+			v-simple-table.ma-1(dense fixed-header height=720)
+				template(v-slot:default)
+					thead
+						tr
+							th.text-center.subtitle-1(
+								v-for='(h, idx) in heads'
+								:key='idx'
+								@click='clickHead(h, idx)'
+								:class='{ active: sortHead === idx }'
+								:style='{ cursor: ("key" in h) ? "pointer" : "default" }'
+							) {{h.name}}
+								span.arrow(v-show='sortHead === idx' :class="sortOrder > 0 ? 'asc' : 'dsc'")
+					tbody
+						tr(v-for='(job, index) in jobs', :key='job.id', @click='selectJob(job)', :class='{}' v-if='job && job.state !== "deleted"')
+							td.text-center {{ job.id }}
+							td(style='color:teal') {{job.name}}
+							td
+								v-text-field.body-2(v-model='job.description', dense, full-width, hide-details, autocomplete='off')
+							td {{job.last}}
+							td {{job.next}}
+								
+							td(style='padding-left:25px; padding-right:0px')
+								v-switch(v-model='job.enabled',  @mousedown='selectJob(job)' dense, hide-details)
+							td.text-center
+								v-btn(text icon  @click='runJob(job.id)')
+									v-icon.hover-elevate(v-if='job.state !== "running"') play_arrow
+									v-icon.rotate360(v-if='job.state === "running"') cached
+							td.text-center
+								v-icon(size='22', v-if='Object.keys(job.emails).length') mail_outline
+								v-icon(size='22', v-if='job.print') local_printshop
+							td.text-center
+								v-btn(text icon @click='deleteJob(job.id)')
+									v-icon.hover-elevate delete
 
 </template>
 
 <script>
-import {debounceKeyed, difference, clone, pxhr} from 'lib';
-import moment from 'moment';
 
-var _default = {task: -1, description:'',	next:'', last:'', code:0, params: {	argv:{}, pp: {email:[''], print:''} }, schedule:'* * * * * *', enabled :false };
-var _before = null;
+import { pxhr, debounce, diff, clone, mutate } from 'lib'
+
+const schema = {
+	task: null,
+	name: '',
+	description: '',
+	next: '',
+	last: '',
+	code: 0,
+	argv: {},
+	emails: {},
+	print: '',
+	schedule: '* * * * * *',
+	state: 'OK',
+	enabled: 0
+}
+
+const heads = [ 
+	{ key: 'id', name: '#id' },
+	{ key: 'name', name: 'Задача' },
+	{ key: 'description', name: 'Описание' },
+	{ key: 'last', name: 'Выполнено' },
+	{ key: 'next', name: 'Следующ' },
+	{ key: 'enabled', name: 'Вкл' },
+	{ name: 'Вручную'},
+	{ name: 'Вывод'},
+	{ name: 'Убрать'}
+]
+
+/*
+	На сервере задачи хранятся в структуре вида:
+	jobs = [
+		{...schema}, 
+		{...schema}, 
+		......
+		{...schema}
+	]
+
+	Направление Сервер --> Клиент
+	При соединении с сервером, клиенту прилетает весь список (массив) jobs. 
+	Индекс каждого job'a в массиве клиент самостоятельно инкапсулирует (добавляет к схеме): {id: index, ...schema},
+	чтобы не потерять эту связь при сортировках таблицы
+
+	Далее, в процессе взаимодействия, от
+	сервера прилетают только одиночные пары {id: {...schema}}, причем ...schema содержит только измененные поля
+
+	Направление Клиент --> Сервер
+	Клиент отправляет контракты вида { action: string, id: number,  payload: {...schema} }. 
+	action  ∈ {'create', 'update', 'delete', 'run' ...},
+	payload ∈ {...schema}  - причем ...schema содержит только изменные поля
+*/
 
 export default {
-// В "Планировщике" реализован подход к вводу/редактированию данных, который использует реактивные 
-// возможности Vue, и AJAX (стандартные HTTP запросы, выполняемые асинхронно) 
-// - единицей данных является строка таблицы (объект в массиве jobs)
-// - ввод данных осуществляется как в таблице, так и в окне, детализирующем конкретный выбранный элемент
-// - ввод считается законченным, после того как пользователь перестал изменять данные в течение заданного интервала времени
-// - введенные данные анализируются перед отправкой запроса на сервер, с целью минимизации количества запросов/траффика,
-// 	 в результате чего на сервер отправляется не строка таблицы целиком (не объект целиком), а только измененные поля.
-//
-//  для обеспечения всего вышеперечисленного задействованы функции: 
-// - vm.$watch        - наблюдение за изменениями записей заданного объекта 
-// - _.debounceKeyed  - выполнение функции, после заданного интервала времени, после того, как 
-//                      пользователь перестал повторять (boucing) вызывать эту функцию. 
-// - _.difference     - определение различий между двумя данными объектами
-// - _.clone          - глубокое клонирование заданного объекта
 
-	data : function(){
+	data () {
 		return {
-			jobs : [], //массив job-ов (редактируемых данных) [ job(1) | job(2) |.... | job(n) ]
-			states :[], //состояния job-ов вынесены отдельно, чтобы на них не срабатывал $watch('job'
-			job : clone(_default), //"скользящий" фрейм, указывающий на конкретный редактируемый job в массиве jobs
-			jobName : '' //--для обратной связи с компонентом выбора задачи
+			task: '',
+			taskSearch: '',
+			tasks: [],
+			tasksLoading: false,
+			usersCached: [],
+			emails: {},
+
+			heads: heads,
+			sortHead: 0,
+			sortOrder: 1,
+
+			jobs: [], // {key1: schema, key2: schema, .... keyN: schema}
+			job: clone(schema), // указатель на выбранный в таблице job
+
+			wssReadyState: 0
 		}
 	},
 
-	mounted : function(){ //при появлении в DOM
-		this.$watch('job', this.changes, {deep:true});
-		var self = this;
-		pxhr({method:'get', url:'jobs'})
-		.then(function(jobs){ 
-				self.jobs = jobs.map(function(job){
-					job.params = job.params || clone(_default.params);
-					self.states.push(job.error ? 2 : 0);
-					return job
-				})
-		})
+	created () {
+		this.socket = null,
+		this.lazyUpdate = null
 	},
 
-	methods : {
-		jobState : function(job, state){
-			var index = this.jobs.indexOf(job);
-			if (index !== -1) this.states[index] = state; 
-			this.$forceUpdate();
+	mounted () {
+		// window.tst = this
+		let ws = new WebSocket(this.$root.getWebsocketUrl() + '/scheduler')
+		ws.onerror = console.log
+		ws.onclose = () => { this.wssReadyState = ws.readyState }
+		ws.onopen = () => { this.wssReadyState = ws.readyState }
+		ws.onmessage = (m) => {
+			let data
+			try { data = JSON.parse(m.data) } catch (err) {	console.log(err) }
+			if (data) this.traverseIncomingJobs(data)
+		}
+		this.socket = ws
+
+		pxhr({method:'GET', url: 'scheduler/tasks'})
+			.then(res => {
+				this.tasks = res
+			})
+			.catch(err => {
+				console.log(err)
+			})
+	
+		pxhr({method:'GET', url: 'users?show-disabled=false'})
+			.then(res => {
+				this.usersCached = res
+			})
+			.catch(err => {
+				console.log(err)
+			})
+
+	},
+
+	watch: {
+		job: {
+			handler : 'jobChanged',
+			deep: true
+		}
+	},
+
+	computed: {
+		alert () {
+			return this.wssReadyState !== 1
+		}
+	},
+
+	methods: {
+		send (msg)	{	
+			this.socket.send(JSON.stringify( msg ))
 		},
 
-		debounced : debounceKeyed(function(first, last){
-			// "Keyed"  - указывает на то, что функция "ключуется" по первому параметру.
-			// первый параметр - ключ открывает отдельную последовательность debounce	
-			var self = this;
-			var changes = {};
-			if (last.task != -1)	changes = difference(first, last);
-			
-			if (!changes) {
-				self.jobState(last, 0);
-				return; 
-			}
-
-			if ('error' in changes) delete changes.error;
+		createLazyUpdate (job) {
+			let shadow = clone(job)
+			return debounce( function () {
+				let _diff = diff(shadow, job)
+				if (_diff) {
+					this.send({ action: 'update', id: job.id, payload: _diff })
+					shadow = clone(job)
+				}	
+			}, 3000)  // ms
+		},
 		
-			if (Object.keys(changes).length===0) return;
-			if (last.id) changes.id = last.id;
-
-			pxhr({ method:'put', url:'jobs', data : changes })
-			.then(function(res){
-					if (!last.id){
-						res.params = res.params || clone(_default.params);
-						self.states.push(res.error ? 2 : 0);
-						self.jobs.push(res);	
-						self.jobSelect(null, res);
-					} else {
-						self.jobState(last, res.error ? 2 : 0)
-						_before = clone(last);
-					}
-				})
-			},3000),
-
-		changes : function(obj){
-			this.jobState(obj, 1);
-			this.debounced(obj.id || -1, [0,1], _before, obj);
+		jobChanged (_new, _old) {
+			if (this.lazyUpdate) {
+				this.lazyUpdate()
+			}
+			if (_new === _old) { // меняется значение внутри самого job'a
+			} else { // меняется job целиком
+			}
 		},
 
-		fetchParams : function(taskId){
-			//извлекаем argv = {key: value} непосредственно из текста рендер-функции Vue-компонента
-			var rg = new RegExp('"?name"?: ?"([^\n]*?)",?\n?(?:\\s*"?value"?: ?"?(?:_vm\.|[a-z]\.)?([^\n]*?)"?,?(?:,?\\w*:|}|\n))?', 'g');
+		traverseIncomingJobs (data) {
+			// принимаем входящие данные
+			// важный момент: существующие ключи обновляются но не перезаписываются
+			let { 
+				jobs //, $set 
+			} = this
+			for (let id in data) {
+				//let item = merge(schema, data[id]) // подстраховка от кривой схемы
+				let item = data[id]
+				if (item) {
+					item.id = id // инкапсулируем "серверный индекс" в id, чтобы не потерять при манипуляциях (сортировках)
+					let existing = jobs.find(el => el.id === id)
+					if ( existing ) {
+						mutate(existing, item)
+					} else {
+						// $set(jobs, id, item)
+						jobs.push(item)
+					}
+				}
+			}
+		},
 
-			var res;
-
+		fetchParams (id) {
+			// извлекаем argv = {id: value} непосредственно из текста рендер-функции Vue-компонента
+			var rg = new RegExp('"?name"?: ?"([^\n]*?)",?\n?(?:\\s*"?value"?: ?"?(?:_vm\.|[a-z]\.)?([^\n]*?)"?,?(?:,?\\w*:|}|\n))?', 'g')
+			var res
 			//находим нужную задачу по id
-			var task = this.$router.options.routes[2].children
-				.find(function(item){
-					return item.path == taskId
-				})
-			
-			var argv = {};		
+			var task = this.$router.options.routes[2].children.find(item => item.path == id)
+			var argv = {}	
 			if (task && task.component) 
-				task.component.render(function(src){
-					if (src){
+				task.component.render(function (src) {
+					if (src) {
 						if (src.__file !== 'client_source/task.vue'){ 
-							while (res = rg.exec(src.render)) //--выскребаем параметры с помощью регулярки
+							while (res = rg.exec(src.render)) // -- выскребаем параметры с помощью регулярки
 								argv[res[1]] = res[2] || '';
 						
 							if (src.staticRenderFns)
@@ -266,80 +323,114 @@ export default {
 			return argv
 		},
 
-		taskSelect : function(evnt){ //dlookup event
-			this.job  = clone(_default);
-			this.job.task = evnt.id; 
-			this.job.params.argv = this.fetchParams(evnt.id);
-			this.job.params.pp = {print:'', email:['']};
-			_before = clone(_default);
-			_before.schedule = '';
+		selectTask (task) {
+			let job = clone(schema)
+			job.task = task.id
+			job.name = task.name
+			job.argv = this.fetchParams(task.id)
+			this.send({ action: 'create', id: null, payload: job })
+			this.job = job
 		},
 
-		jobSelect : function(evnt, job){ //select in table
-			if (this.job === job) return;
-			this.jobName = job.name; //dlookup text
-			job.params = {
-			//подмешиваем к имеющиемя в задаче параметрам, параметры по умолчанию (приоритет имеющимся)
-				argv : Object.assign(this.fetchParams(job.task), job.params.argv),
-				pp   : Object.assign({email:[''], print:''},     job.params.pp)
-			};
-//			console.log(JSON.stringify(job.params, null, " "))
-			_before = clone(job);//?
+		selectJob (job) { // select row in table
+			if (!job || job === this.job) return
+			this.taskSearch = job.name
+			job.argv = Object.assign(this.fetchParams(job.task), job.argv)
+			this.job = job // note: 'jobChanged' on nextTick
 
-			if (evnt && evnt.target && evnt.target.type=='checkbox') _before.enabled = !evnt.target.checked;
-			this.job = job;
-
+			this.emails = Object.keys(job.emails)
+			if (this.emails.length === 0) this.emails = ['']
+			this.lazyUpdate = this.createLazyUpdate(job)
 		},
 
-		jobRun : function(evnt, job){
-			var self = this;
-			self.jobState(job, 1)
-			pxhr({ method:'get', url:'jobs/run?id=' + job.id})
-			.then(function(res){
-          job.last = res.last;
-					self.jobState(job, 0)
-			})
+		runJob (id) {
+			this.send({ action: 'run', id: id })
 		},
 		
-		jobDelete : function(job){
-			var self = this;
-			pxhr({ method:'delete', url:'jobs', data : job })
-			.then(function(result){
-				self.jobs.splice(self.jobs.indexOf(job), 1);
-				self.job = clone(_default);
-				_before = clone(_default);
-			})
+		deleteJob (id) {
+			this.send({ action: 'delete', id: id })
+			let index = this.jobs.findIndex((job) => job.id === id)
+			this.$delete(this.jobs, index)
+			// this.$delete(this.jobsShadow, index)
+			this.task = null
+			this.job = clone(schema)
 		},
 
-		formatEmail  : function(item) {	
+		clickHead (h, i) {
+			if ('key' in this.heads[i]) {
+				this.sortOrder = this.sortOrder * -1
+				this.sortHead = i
+				let key = this.heads[this.sortHead].key
+				let sortOrder = this.sortOrder
+				this.jobs.sort((a, b) => {
+					if (a[key] > b[key]) {
+						return 1 * sortOrder
+					} else if (a[key] < b[key]) {
+						return -1 * sortOrder
+					}
+					return 0
+				})
+			}	
+		},
+
+		formatEmail (item) {	
 			return (typeof item === 'object')
 				? item.name + '<' + item.email + '>'
 				: item
 		}
-	} //methods:
-
+	}
 }
 
 </script>
 
-<style>
+<style scoped>
 
-table.synapse th {
-	font-weight: normal;
-	font-size: 1.05em;
+.arrow.asc:before {
+	position: absolute;
+	padding: 0 0.1em 0 0.1em;
+	content:"\25B2";
+	transition: transform .2s ease;
 }
 
-table.synapse th .v-icon.v-icon.v-icon {
-  color: inherit;
+.arrow.dsc:before {
+	position: absolute;
+	padding: 0 0.1em 0 0.1em;
+	content:"\25B2";
+	transition: transform .2s ease;
+	transform: rotate(180deg);
 }
 
-table.synapse td .v-icon.v-icon.v-icon {
-	cursor: default;
-  vertical-align:middle;
-  color: #57768A;
+.hover-elevate:hover {
+	/* transform: scale(1.2);*/
+	color: rgba(195, 75, 75, 0.952) !important;
 }
-.v-icon.v-icon.trash-bin.v-icon--link:hover {
-  color: red;
+
+.v-input--selection-controls {
+	margin-top: 0px;
+	padding-top: 0px;
+}
+
+.v-data-table th {
+	height: 38px !important;
+	/* font-weight: bold; */
+}
+
+.rotate360 {
+	color: teal !important;
+	animation-name: rotate;
+	animation-duration: 4.5s;
+	animation-iteration-count: infinite;
+	animation-direction: normal;
+	animation-timing-function: linear;
+	width:30px;
+	height:30px;
+	position:relative;
+	display:inline-block;
+}
+
+@keyframes rotate {
+	from  { transform:rotate(0deg); }
+	to    { transform:rotate(360deg);}
 }
 
 </style>

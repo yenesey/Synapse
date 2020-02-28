@@ -1,239 +1,191 @@
 'use strict'
 /*
-	 - системная база данных system.db = function(<SQL>, [<params>])
-	 - системные функции и константы
-	 - конфигурация системы  system.config = {}
+	- системные функции
+	- конфигурация системы <system.db>
 */
 
 const path = require('path')
-const promisify = require('util').promisify
-const fs = require('fs')
 const ROOT_DIR = path.join(__dirname, '..')
-const deepProxy = require('./deep-proxy')
 
+const util = require('util')
+const assert = require('assert')
+const chalk = require('chalk')
+const fs = require('fs')
+
+const recurse = require('./lib').recurse
+const treeStore = require('sqlite-tree-store')(path.join(ROOT_DIR, 'db/synapse.db'), 'system')
+
+// ---------------------------------------------------------------------------
 const system = {}
 
-Object.defineProperties(
-	system,
-	{
-		ADMIN_USERS: {
-			value: 1,
-			enumerable: true
-		},
-		ADMIN_SCHEDULER: {
-			value: 2,
-			enumerable: true
-		},
-		ADMIN_SQLQUERY: {
-			value: 3,
-			enumerable: true
-		},
-		ADMIN_TASKS: {
-			value: 4,
-			enumerable: true
-		},
-		ERROR: {
-			value: 'SYNAPSE_SYSTEM',
-			enumerable: true
-		}
+system.errorHandler = function (err, req, res, next) {
+	var msg = {
+		code: err.code || null,
+		message: err.message,
+		at: err.stack.substr(err.stack.indexOf('at ') + 3)
 	}
-)
+	msg.at = msg.at.substr(0, msg.at.indexOf('\n'))
 
-// -------------------------------------------------------------------------------
-function equals (number, string, _var) {
-	if (typeof _var === 'number')	return number + '=' + _var
-	if (typeof _var === 'string')	return string + '=' + '\'' + _var + '\''
-}
-
-system.db = require('./sqlite')(path.join(ROOT_DIR, 'db/synapse.db')) // основная БД приложения
-// -------------------------------------------------------------------------------
-system.user = function (user) { // данные пользователя по login или id
-	return system.db(`SELECT id, login, name, email, disabled FROM users WHERE ${equals('id', 'login', user)} COLLATE NOCASE`)
-		.then(select => select.length ? select[0] : null)
-}
-
-system.users = function (object) { // users of given <object>
-	return system.db(`
-		select
-			users.id, users.name, users.email
-		from
-			users, objects, user_access
-		where
-			user_access.user = users.id
-			and	(users.disabled = 0 or users.disabled is null)
-			and user_access.object = objects.id
-			and ${equals('id', 'name', object)}`
-	)
-}
-
-system.tasks = function (object) { // users of given <object>
-	return system.db(`
-		select
-			users.id, users.name, users.email,
-			users.disabled,
-			case when 
-				(select 
-					users.id 
-				from
-					objects,
-					user_access
-				where
-					user_access.user = users.id 
-					and user_access.object = objects.id
-					and ${equals('id', 'name', object)} 
-					collate nocase
-				) 
-			is null then 0 else 1 end as granted 
-		from
-			users
-		order by
-			users.name`
-	)
-}
-
-system.access = function (user, options) {
-// карта доступа
-// это главная функция, через нее почти весь доступ работает
-	var cast = (access) => access
-	var userCondition = 'users.' + equals('id', 'login', user)
-
-	var whereCondition = ''
-	if (typeof options !== 'undefined') {
-		if ('class' in options)	whereCondition += ' and objects.' + equals('', 'class', options.class)
-
-		if ('object' in options) {
-			cast = (access) => access[0]
-			whereCondition += ' and objects.' + equals('id', 'name', options.object)
-		}
-	}
-
-	return system.db(`
-		SELECT
-			objects.*, 
-			(select meta from objects_meta where object = objects.id) as 'meta',
-			case when 
-				(select 
-					users.id 
-				from
-					users,
-					user_access
-				where
-					users.id = user_access.user 
-					and	objects.id = user_access.object 
-					and	${userCondition} 
-					collate nocase
-				)
-			is null then 0 else 1 end as granted 
-		FROM
-			objects
-		WHERE
-			1=1
-			${whereCondition}
-		ORDER BY objects.class, objects.name`
-	)
-		.then(access => {
-			access = access.map((obj, index) => {
-				let meta = null
-				try {
-					meta = JSON.parse(obj.meta)
-					delete obj.meta
-				} catch (err) {
-					console.log('[error]:'  + err.message.replace('\n', '') + '   object.id=' + access[index].id)
-				}
-				return {...obj, ...meta}
-			})
-			return cast(access)
-		})
-}
-
-/// /////////////////////////////////////////////////////////////////////
-system.error = function (message) {
-	var err = new Error(message)
-	err.code = system.ERROR
-	return err
-}
-
-system.errorHandler = function (err, req, res) {
-	if (err.code === system.ERROR) {
-		if (res) res.json({ error: err.message })
-		return true // с запланированной ошибкой расправляемся быстро
-	}
 	if (req) {
-		err.user = req.ntlm.UserName
-		err.userAddr = req.connection.remoteAddress
+		if (req.ntlm) msg.user = req.ntlm.UserName
+		msg.remote = req.connection.remoteAddress
+		msg.url = req.url
 	}
-	console.log(err) // неизвестную ошибку пишем в журнал
-	if (res) res.json({ error: 'Ошибка!' })
+	system.log(msg)
+	if (res) {
+		if (res.headersSent && next) next()
+		res.json({ status: 'error', message: err.message })
+	}
 	return false
 }
-/// /////////////////////////////////////////////////////////////////////
-// проверка наличия пользователя
-system.userCheck = function (_user) {
-	return system.user(_user)
-		.then(user => {
-			if (user) return user
-			throw system.error('Пользователь ' + _user + ' не зарегистрирован')
-		})
+
+// ---------------------------------------------------------------------------------------------
+system.dateStamp = function () {
+	let dt = new Date()
+	// return dt.getFullYear() + '-' + String(dt.getMonth()+1) + '-' + dt.getDate() + ' ' + dt.getHours() + ':' + dt.getMinutes() + ':' + dt.getMilliseconds()
+	return dt.toLocaleDateString('ru', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + dt.toLocaleTimeString('ru', { hour12: false })
 }
 
-// проверка прав доступа пользователя к заданному объекту (блокировка тоже проверяется)
-system.accessCheck = function (_user, object) {
-	return system.userCheck(_user)
-		.then(user => {
-			if (user.disabled) throw system.error('Пользователь ' + _user + ' заблокирован')
-			return system.access(_user, { object: object })
-				.then(access => {
-					if (access && access.granted)	return access
-					throw system.error('Не разрешен доступ к операции')
-				})
-		})
+system.log = function (...args) {
+	let stamp = system.dateStamp()
+	console.log(chalk.reset.cyan.bold(stamp) + ' ' +
+		args.reduce((all, arg) => all + ((typeof arg === 'object') ? util.inspect(arg, { colors: true }) : arg), '')
+	)
 }
 
-module.exports = system.db('SELECT * FROM settings')
-	.then(select => {
-		var config = select.reduce((all, item) => {
-			if (!(item.group in all))	{
-				all[item.group] = {}
-			}
-			all[item.group][item.key] = String(item.value)
-			return all
-		}, {}
-		)
+system.info = function () {
+	let format = (obj, color) => {
+		let keys = Object.keys(obj)
+		let lengths = []
+		let fmt =  keys.reduce((result, key, index) => {
+			let value = String(obj[key]).replace(/(\d)(?=(\d{3})+([^\d]|$))/g, '$1,')
+			value = key + ':' + ((typeof color === 'function') ? color(value) : value) + '│'
+			lengths.push(value.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '').length-1) // eslint-disable-line
+			return result + value
+		}, '│')
 
-		for (var key in config.path) {
-			if (!path.isAbsolute(config.path[key])) { // достраиваем относительные пути до полных
-				config.path[key] = path.join(ROOT_DIR, config.path[key])
+		let head = (op, md, cl) =>	lengths.reduce((result, times, index, { length }) =>
+			result + '─'.repeat(times) + (index < length - 1 ? md : '')
+		, op) + cl
+
+		return head('┌', '┬', '┐') + '\n' + fmt + '\n' + head('└', '┴', '┘')
+	}
+	let mem = process.memoryUsage()
+	let addr = this.address()
+	let uptime = Math.round(process.uptime() / 36) / 100 + ' hrs'
+
+	let info = {
+		'arch': process,
+		'node': process.versions,
+		// 'v8': process.versions,
+		'port': addr,
+		// 'node_env': process.env,
+		'args': { args: process.argv.slice(2) },
+		'execArgv': process,
+		'uptime': { uptime: uptime },
+		'rss': mem,
+		'heapTotal': mem
+		// 'heapUsed': mem,
+		// 'external': mem
+	}
+	info = Object.keys(info).reduce((result, key) => {
+		if (info[key]) {
+			if (key in info[key]) {
+				let value = String(info[key][key])
+				if (value.length) result[key] = value
 			}
 		}
+		return result
+	}, {})
+	return format(info, chalk.greenBright)
+}
 
-		config.path.root = ROOT_DIR
+system.easterEgg = function () {
+	return '\n (.)(.)\n  ).(  \n ( v )\n  \\|/'
+}
 
-		system.config = deepProxy(config, { // мега-фича :) автозапись установок в случае изменения
-			set (target, path, value, receiver) {
-				var vars = { $group: path[0], $key: path[1], $value: value }
+// ---------------------------------------------------------------------------------------------
 
-				var sql = Reflect.has(target[vars.$group], vars.$key)
-					? `UPDATE settings SET value = $value WHERE [group] = $group AND [key] = $key`
-					: `INSERT INTO settings ([group], [key], value, description) VALUES ($group, $key, $value, '')`
-				console.log(vars)
-				system.db(sql, vars)
-					.then(() => console.log('[system]: config updated for ' + path.join('.')))
-					.catch(console.log)
-			},
-			deleteProperty (target, path) {
-				system.db(`DELETE FROM settings WHERE [group] = $group AND [key] = $key`, { $group: path[0], $key: path[1] })
-					.then(() => console.log('[system]: delete ' + path.join('.')))
-					.catch(console.log)
+system.access = function (user, options = {}) {
+// карта доступа
+// юзается в tasks и dlookup, а также в users/access
+// options = { 'class': className, object: objectId, granted: true|false }
+	let userAcl = String(user._acl).split(',').map(el => Number(el))
+
+	let map = []
+	let obj
+	let _class
+	let objFound = recurse(this.db.objects, 1, (node, key, level) => {
+		if (level === 0) {
+			_class = key
+		} else {
+			let id = node._[key].id
+			let granted = userAcl.includes(id)
+			if (
+				(!('class' in options) || _class === options['class']) &&
+				(!('granted' in options) || granted === options['granted'])
+			)  {
+				let _obj = { id: id, name: key, class: _class, ...node[key], granted: granted }
+				map.push(_obj)
+				if (options.object && id === options.object) {
+					obj = _obj
+					return true
+				}
 			}
-		})
-
-		if (system.config.ssl.cert)	{
-			return promisify(fs.readFile)(path.join(ROOT_DIR, 'sslcert', system.config.ssl.cert))
-				.then(cert => {
-					system.ssl = {}
-					system.ssl.certData = cert
-					return system
-				})
 		}
-		return system
 	})
+	if (objFound) return obj
+	return map
+}
+
+/**
+ * Получить id элемента ветви, заданной через массив path
+ * @param {object} node
+ * @param {string[]} path
+ */
+function pathToId (node, path) {
+	for (var i = 0; i < path.length - 1; i++) node = node[path[i]]
+	return node._[path[i]].id
+}
+
+system.checkAccess = function (user, path, object) {
+	assert(!user.disabled, 'Пользователь ' + user.login + ' заблокирован')
+	if (path) object = pathToId(this.db.objects, path)
+	let access = this.access(user, { object: object })
+	assert(access && access.granted, 'Не разрешен доступ к операции')
+	return access
+}
+
+system.getUsersHavingAccess = function (path) {
+	let users = []
+	let objectId = pathToId(this.db.objects, path)
+	for (let key in this.db.users) {
+		let user = this.db.users[key]
+		if (!user.disabled && user._acl && user._acl.split(',').includes(String(objectId))) users.push(user)
+	}
+	return users
+}
+
+/// /////////////////////////////////////////////////////////////////////
+
+const db = treeStore()
+const config = db.config
+
+// eslint-disable-all
+for (let key in config.path) {
+	if (!path.isAbsolute(config.path[key])) { // достраиваем относительные пути до полных
+		config.path._[key] = path.join(ROOT_DIR, config.path[key])
+	}
+}
+config.path._.root = ROOT_DIR
+config.ssl._.cert = path.join(ROOT_DIR, 'sslcert', config.ssl.cert)
+
+if (!config.ssl.certData && fs.existsSync(config.ssl.cert)) {
+	config.ssl.certData = fs.readFileSync(config.ssl.cert)
+	console.log(chalk.yellow.bold('Note: certificate is loaded into [synapse.db]:config.ssl.certData'))
+}
+
+system.db = db
+system.config = config
+
+module.exports = system

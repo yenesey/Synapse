@@ -1,24 +1,29 @@
 import users from './users.vue'
 import tasks from './tasks.vue'
 import sched from './scheduler.vue'
+import system from './system.vue'
 //import dbquery from './dbquery.vue'
 
 export default {
-	1 : { 
+	'users' : {
 		icon : 'group',
 		component: users
 	},
-	2 : { 
+	'scheduler' : {
 		icon : 'schedule',
 		component: sched
 	},
-	3 : {
+	'sql' : {
 		icon:'view_list', 
 		component: () => import(/*webpackChunkName:"dbquery(async)"*/'./dbquery.vue')  // can add webpackPrefetch: true
 //		component: dbquery
 	},
-	4 : { 
+	'tasks' : { 
 		icon : 'timeline',
 		component: tasks
+	},
+	'system' : { 
+		icon : 'build',
+		component: system
 	}
 }

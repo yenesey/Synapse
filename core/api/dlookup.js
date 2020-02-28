@@ -1,10 +1,19 @@
 'use strict'
 /*
   Серверная часть компонента dlookup
+  NOTE: УСТАРЕЛО! - оставлено для совместимости
 */
-const express = require('express')
-const router = express.Router({	strict: true })
 const bodyParser = require('body-parser')
+
+const sqlite = require('better-sqlite3')
+const dbs = {} // кэш баз sqlite
+
+function sqliteq(query) { // query = {db:'<db file name>', sql:'select...'}
+	if (!(query.db in dbs))	{
+		dbs[query.db] = sqlite(query.db)
+	}
+	return dbs[query.db].prepare(query.sql).all()
+}
 
 function iif (entry, pre, pos) {
 	// макро для вставки строки (entry) с заданными (опционально) префиксом и постфиксом
@@ -47,48 +56,12 @@ function _sql (query) {
 		iif(query.order, ' ORDER BY ')
 }
 
-function _ldap (query) {
-	var lookIn = query.lookIn.replace(/%/g, "*").split(",").map(el => el.trim());
-
-	return {
-		fields: query.lookIn.replace(/%|\s/g, '').split(','),
-		query: query.request !== '%' 
-			? lookIn.reduce((all, field) => {
-				/(\*)?([\w|\d]+)(\*)?/.test(field)
-				return (all || '') + '(' + RegExp.$2 + '=' + RegExp.$1 + query.request + RegExp.$3 + ')'
-			}, '|') : ''
-	}
-}
-
 module.exports = function (system) {
+	// -
+	const config = system.config
+	const ora = require('../ds-oracle')(config.oracle.ibso)
 
-	function ibso (user, constraint) { // constraint = [{JSON}... {JSON}] в ibso используется для ограничения по реквизиту
-		if (!constraint) return Promise.resolve('')
-		if (!(constraint instanceof Array)) constraint = [constraint];
-
-		return constraint.reduce((p, obj) =>
-			p.then(clause => {
-				if (!clause) clause = ''
-				return system.access(user, {
-					class: obj.class
-				})
-					.then(access => access.filter(el => el.granted).map(el => el.name))
-					.then(lst => clause + (clause ? ' AND ' : ' ') +
-						'(' +
-						lst.reduce((all, next) => all + (all ? ' OR ' : '') + obj.column + ' ' + obj.operator + ' \'' + next + '\'', obj.column + ' is null') +
-						')'
-					)
-			}), Promise.resolve('')
-		)
-	}
-
-	const ldap = require('../ds-ldap')(system.config.ntlm)
-	const ora = require('../ds-oracle')(system.config.ibs)
-	const sqlite = require('../ds-sqlite')()
-
-	router.post('/dlookup', bodyParser.json(), function (req, res) {
-
-		var query = req.body
+	this.post('/', bodyParser.json(), function (req, res) {
 		//
 		//  query spec
 		//  {	db: <имя базы|псевдоним :ldap>
@@ -99,61 +72,29 @@ module.exports = function (system) {
 		//    order: <конструкция sql order by>
 		//    fields: <колонки для результата через запятую>
 		//  }
+		//
+		let query = req.body
+		let user = req.user
 
-		system.user(req.ntlm.UserName)
-			.then(user => {
-				if (!user) {
-					res.json({
-						error: `Пользователь ${req.ntlm.UserName} не зарегистрирован`
-					})
-					return
-				}
+		if (/(select|update|replace|delete)\s/mig.test(JSON.stringify(query))) {
+			res.json({ error: 'Syntax error: SQL statements not allowed!' })
+			return
+		}
 
-				if (/(select|update|replace|delete)\s/mig.test(JSON.stringify(query))) {
-					res.json({ error: 'Syntax error: SQL statements not allowed!' })
-					return
-				}
+		if (query.where) query.where = query.where.replace(/%userId%/g, user.id)
 
-				if (query.where) query.where = query.where.replace(/%userId%/g, user.id)
+		if (query.db) {
+			res.json(
+				sqliteq({ sql: _sql(query),	db: query.db })
+			)
+			return
+		}
 
-				if (query.db) {
-					if (query.db === 'ldap:') {
-						return ldap(_ldap(query))
-							.then(result => res.json(result))
+		// файл не указан? значит это запрос в ibso
+		system.checkAccess(user, ['ibs', query.table])
 
-					} // если дан файл db, считаем что это локальный sqlite
-					return sqlite({
-						sql: _sql(query),
-						db: query.db
-					})
-						.then(result => res.json(result))
-				}
-				// файл|ldap не указан? значит это запрос в ibso
-				return system.access(user.id, {
-					object: query.table,
-					class: 'ibs'
-				})
-					.then(access => {
-						if (!access.granted) {
-							res.json({ error: 'Access denied!' })
-							return
-						}
-
-						return ibso(user.id, access.constraint)
-							.then(clause => {
-								if (clause) {
-									if ('where' in query) {
-										query.where += ' AND ' + clause
-									} else {
-										query.where = clause
-									}
-								}
-								return ora(_sql(query))
-							})
-							.then(data => res.json(data))
-					})
-			})
+		return ora(_sql(query))
+			.then(data => res.json(data))
 			.catch(err => system.errorHandler(err, req, res))
 	})
-	return router
 }

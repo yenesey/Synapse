@@ -1,8 +1,0 @@
-{
-  "dependencies": {
-    "docxtemplater": "3.9.0",
-    "emailjs": "2.2.0",
-    "winax": "1.0.14",
-    "xlsx-template": "0.4.0"
-  }
-}

@@ -6,7 +6,14 @@ var obj = new Proxy({}, {
 		return Reflect.get(target, key, receiver)
 	},
 	set: function (target, key, value, receiver) {
-		console.log(`setting ${key}!`)
+		if (!Reflect.has(target, key, value)) {
+			console.log(`setting new ${key}!`)
+		} else {
+			console.log(`setting ${key}!`)
+		}
 		return Reflect.set(target, key, value, receiver)
 	}
 })
+
+obj.key1 = 'value1'
+obj.key1 = 'value11'
