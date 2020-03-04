@@ -134,22 +134,23 @@ function getConnection (dest) {
 	return Promise.reject(new Error('wrong connection alias'))
 }
 
-async function importData (SQL, bindVars = {}, whDestinationTable, options = { merge: false }) {
+// -------------------------------------------------------------------------------
+async function genericImport (source, tableName, options) {
 	let warehouse = await getConnection('warehouse')
-	let ibso = await getConnection('ibso') // let ibso = await getConnection('tavr_d')
-	let source = await ibso.execute(SQL, bindVars, { resultSet: true, extendedMetaData: true })
-
-	if ( // если табилца - приемник не существует
+	if ( // если таблица - приемник не существует
 		(await warehouse.execute(
-			`select * from ALL_TABLES where owner ='WH' and upper(TABLE_NAME) = upper('${whDestinationTable}')`)
+			`select * from ALL_TABLES where owner ='WH' and upper(TABLE_NAME) = upper('${tableName}')`)
 		).rows.length !== 1
 	) {
-		console.log(`creating table [${whDestinationTable}] ...`)
-		await warehouse.execute(getCreateStatement(source.metaData, whDestinationTable))
+		console.log(`creating table [${tableName}] ...`)
+		await warehouse.execute(getCreateStatement(source.metaData, tableName))
 		console.log(`done.`)
 	}
+	if (options.comment) {
+		await warehouse.execute(`comment on table ${tableName} is '${options.comment}'`)
+	}
 
-	let destination = await warehouse.execute(`select * from ${whDestinationTable} where 1 = 0`, {}, { resultSet: true, extendedMetaData: true })
+	let destination = await warehouse.execute(`select * from ${tableName} where 1 = 0`, {}, { resultSet: true, extendedMetaData: true })
 	await destination.resultSet.close()
 
 	let check = checkStructure(destination.metaData, source.metaData)
@@ -158,77 +159,52 @@ async function importData (SQL, bindVars = {}, whDestinationTable, options = { m
 		return 0
 	}
 	if (check.alter.length) {
-		console.log(`altering table [${whDestinationTable}] ...`)
-		await warehouse.execute(getAlterStatement(check.alter, whDestinationTable))
+		console.log(`altering table [${tableName}] ...`)
+		await warehouse.execute(getAlterStatement(check.alter, tableName))
+		console.log(`done.`)
+	}
+	if (options.wipe) {
+		console.log(`wiping table [${tableName}] ...`)
+		await warehouse.execute(`delete from ${tableName}`)
 		console.log(`done.`)
 	}
 
-	let statement = (options.merge ? getMergeStatement : getInsertStatement)(source.metaData, whDestinationTable, options.keys)
+	let statement = (options.merge ? getMergeStatement : getInsertStatement)(source.metaData, tableName, options.keys)
 	let rows, info
 	let count = 0
-	do {
-		rows = await source.resultSet.getRows(ROWS_PER_ACTION)
+
+	if ('resultSet' in source) {
+		do {
+			rows = await source.resultSet.getRows(ROWS_PER_ACTION)
+			if (rows.length > 0) {
+				info = await warehouse.executeMany(statement, rows,	{ autoCommit: true })
+				count = count + info.rowsAffected
+			}
+		} while (rows.length === ROWS_PER_ACTION)
+		await source.resultSet.close()
+	} else {
+		rows = source.rows
 		if (rows.length > 0) {
-			info = await warehouse.executeMany(statement, rows,	{ autoCommit: true })
+			info = await warehouse.executeMany(statement, rows, { autoCommit: true })
 			count = count + info.rowsAffected
 		}
-	} while (rows.length === ROWS_PER_ACTION)
-	await source.resultSet.close()
+	}
+
 	console.log((options.merge ? 'merge' : 'insert') + ' completed, ', count, ' rows affected')
 	return count
 }
 
-async function importFromMemory (source, whDestinationTable, whTableDescription, allowStructureChange) {
-	let warehouse = await getConnection('warehouse')
-	if ( // если табилца - приемник не существует
-		(await warehouse.execute(
-			`select * from ALL_TABLES where owner ='WH' and upper(TABLE_NAME) = upper('${whDestinationTable}')`)
-		).rows.length !== 1
-	) {
-		console.log(`creating table [${whDestinationTable}] ...`)
-		await warehouse.execute(getCreateStatement(source.metaData, whDestinationTable))
-		if (whTableDescription) {
-			await warehouse.execute(`comment on table ${whDestinationTable} is '${whTableDescription}'`)
-		}
-		console.log(`done.`)
-	}
+// -------------------------------------------------------------------------------
 
-	let destination = await warehouse.execute(`select * from ${whDestinationTable} where 1 = 0`, {}, { resultSet: true, extendedMetaData: true })
-	await destination.resultSet.close()
-
-	let check = checkStructure(destination.metaData, source.metaData)
-	if (!check.pass) {
-		console.log('structure check failed at ', check.at, ' reason: ', check.reason)
-		return 0
-	}
-	if (check.alter.length) {
-		if (allowStructureChange) {
-			console.log(`altering table [${whDestinationTable}] ...`)
-			await warehouse.execute(getAlterStatement(check.alter, whDestinationTable))
-			console.log(`done.`)
-		} else {
-			console.log(`Нельзя модифицировать структуру существующей таблицы`)
-			return -1
-		}
-	}
-
-	let statement = getMergeStatement(source.metaData, whDestinationTable, [source.metaData[0].name])
-	let rows, info
-	let count = 0
-	rows = source.rows
-
-	if (rows.length > 0) {
-		info = await warehouse.executeMany(statement, rows, { autoCommit: true })
-		count = count + info.rowsAffected
-	}
-
-	console.log(' completed, ', count, ' rows affected')
-	return count
+async function importData (SQL, bindVars = {}, whDestinationTable, options = { merge: false }) {
+	let ibso = await getConnection('ibso') // let ibso = await getConnection('tavr_d')
+	let source = await ibso.execute(SQL, bindVars, { resultSet: true, extendedMetaData: true })
+	return genericImport(source, whDestinationTable, options)
 }
 
-module.exports = {
-	getConnection,
-	// todo: переписать в одну процедуру importFromMemory и importData
-	importFromMemory,
-	importData
+async function importFromMemory (source, whDestinationTable, options) {
+	options.keys = [source.metaData[0].name]
+	return genericImport(source, whDestinationTable, options)
 }
+
+module.exports = { getConnection, importFromMemory, importData }

@@ -31,36 +31,47 @@ module.exports = async function (params) {
 		}
 		metaData.push({
 			name: value.toUpperCase(),
-			dbType: oracledb.DB_TYPE_VARCHAR,
-			fetchType: oracledb.DB_TYPE_VARCHAR,
-			dbTypeName: 'VARCHAR2',
-			byteSize: 0,
-			nullable: true
+			dbTypeName: 'NUMBER',
+			dbType: oracledb.DB_TYPE_NUMBER,
+			fetchType: oracledb.DB_TYPE_NUMBER,
+			precision: 0,
+			scale: -127
 		})
 	}
 
+	let isTypeChanged = false
 	do {
 		r = r + 1
 		c = 1
 		row = []
 		while (value = workbook.sheet(0).cell(r, c++).value()) {
-			row.push(value)
 			let meta = metaData[c - 2]
-			if (typeof value === 'number') {
-				meta.dbType = oracledb.DB_TYPE_NUMBER
-				meta.fetchType = oracledb.DB_TYPE_NUMBER
-				meta.precision = 0
-				meta.scale = -127
-				meta.dbTypeName = 'NUMBER'
-				delete meta.byteSize
-			}
+
 			if (typeof value === 'string') {
-				if (meta.byteSize < value.length) meta.byteSize = value.length
+				if (!meta.byteSize || meta.byteSize < value.length) meta.byteSize = value.length
+				if (meta.scale) {
+					delete meta.precision
+					delete meta.scale
+				}
+
+				if (meta.dbType !== oracledb.DB_TYPE_VARCHAR) {
+					meta.dbType = oracledb.DB_TYPE_VARCHAR
+					meta.fetchType = oracledb.DB_TYPE_VARCHAR
+					meta.dbTypeName = 'VARCHAR2'
+					meta.nullable = true
+					isTypeChanged = true
+					rows.forEach(r => { r[c - 2] = String(r[c - 2]) })
+				}
+			}
+			if (isTypeChanged) {
+				row.push(String(value))
+			} else {
+				row.push(value)
 			}
 		}
 		rows.push(row)
 	} while (row.length > 0)
 
-	await importFromMemory({ metaData, rows }, params.tableName, params.tableDescription, params.allowStructureChange)
+	await importFromMemory({ metaData, rows }, params.tableName, { comment: params.tableDescription, merge: params.merge, wipe: params.wipe })
 
 }
