@@ -53,7 +53,7 @@ export default {
 		change(e) {
 			if (e)	this.tableDescription = e.COMMENTS || ''
 		},
-		done () {
+		done () { // вызывается родителем (tasks.vue), когда задача отработала
 			pxhr({ method: 'get', url: 'warehouse/tables' })
 			.then(res => {
 				this.whTables_ = res
