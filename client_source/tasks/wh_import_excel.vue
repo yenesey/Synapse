@@ -31,7 +31,7 @@ div
 	
 	v-text-field(v-model="tableDescription" label="Описание таблицы. Крайне желательно заполнить это поле" autocomplete="off" dense)
 	v-file-input(label="File input" name="fileName" style="max-width:340px")
-	v-checkbox(hide-details v-model='merge' label='Добавить к существующим данным')
+	v-checkbox(hide-details v-model='merge' label='Добавить к существующим данным (merge)')
 	v-checkbox(hide-details v-model='wipe' label='Очистить таблицу перед импортом (**Осторожно!***)')
 </template>
 
