@@ -30,12 +30,14 @@ module.exports = async function (params) {
 			console.log('Кириллические символы в заголовке не допустимы!')
 			return -1
 		}
-		metaData.push({
+		metaData.push({ // числовой тип по-умолчанию, как самый простой. он может поменяться в процессе...
 			name: value.toUpperCase(),
 			nullable: true,
 			dbTypeName: 'NUMBER',
 			dbType: oracledb.DB_TYPE_NUMBER,
-			fetchType: oracledb.DB_TYPE_NUMBER
+			fetchType: oracledb.DB_TYPE_NUMBER,
+			precision: 0,
+			scale: -127
 		})
 	}
 
@@ -51,15 +53,17 @@ module.exports = async function (params) {
 				result.push(null)
 				return result
 			}
+
 			// console.log(cell._styleId, cell._value)
-			if (cell._styleId === 2) {
+			if (cell._styleId === 2 || typeof value === 'string') {
 				value = String(value)
 				if (!meta.byteSize || meta.byteSize < value.length) meta.byteSize = value.length
-
 				if (meta.dbType !== oracledb.DB_TYPE_VARCHAR) {
 					meta.dbTypeName = 'VARCHAR2'
 					meta.dbType = oracledb.DB_TYPE_VARCHAR
 					meta.fetchType = oracledb.DB_TYPE_VARCHAR
+					delete meta.precision
+					delete meta.scale
 					rows.forEach(r => { r[colIndex] = String(r[colIndex]) })
 				}
 			} else if (cell._styleId === 3) {
@@ -68,11 +72,12 @@ module.exports = async function (params) {
 					meta.dbTypeName = 'DATE'
 					meta.dbType = oracledb.DB_TYPE_DATE
 					meta.fetchType = oracledb.DB_TYPE_TIMESTAMP_LTZ
+					delete meta.precision
+					delete meta.scale
 					rows.forEach(r => { r[colIndex] = new Date(r[colIndex]) })
 				}
-			} else if (cell._styleId === 4) {
-				meta.precision = 0
-				meta.scale = -127
+			} else if (typeof value === 'number' && meta.dbType !== oracledb.DB_TYPE_NUMBER) {
+				value = String(value)
 			}
 
 			result.push(value)
