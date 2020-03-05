@@ -1,4 +1,4 @@
-﻿const { getConnection, importData } = require('./wh_util')
+﻿const { getConnection, importIbso } = require('../core/wh-util')
 
 module.exports = async function () {
 	let warehouse = await getConnection('warehouse')
@@ -7,7 +7,7 @@ module.exports = async function () {
 	// let maxId = 4327198491
 	console.log('Loading from ID = ', maxId)
 
-	await importData(
+	await importIbso(
 		`select
 			T.ID,
 			T.C_1 CREATED,

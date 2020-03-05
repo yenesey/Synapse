@@ -1,10 +1,8 @@
-'use strict'
-
 /*
   Запуск задач по расписанию
   TODO: проверка прав админа
 */
-
+'use strict'
 const CronJob = require('cron').CronJob
 const email = require('emailjs/email')
 const util = require('util')

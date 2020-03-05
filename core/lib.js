@@ -1,6 +1,5 @@
-'use strict'
 /*
-	Велосипеды, использующиеся как на клиенте так и на сервере
+  Велосипеды, использующиеся как на клиенте так и на сервере
 */
 /*
 function toUnicode(theString) {
@@ -16,6 +15,7 @@ function toUnicode(theString) {
 	return unicodeString;
 }
 */
+'use strict'
 
 var _ = {}
 if (typeof module !== 'undefined') module.exports = _

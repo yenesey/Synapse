@@ -1,9 +1,8 @@
-'use strict'
 /*
-	- системные функции
-	- конфигурация системы <system.db>
+  - системные функции
+  - конфигурация системы <system.db>
 */
-
+'use strict'
 const path = require('path')
 const ROOT_DIR = path.join(__dirname, '..')
 

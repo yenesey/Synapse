@@ -1,5 +1,5 @@
-'use strict'
 /**/
+'use strict'
 const oracledb = require('oracledb')
 // const bodyParser = require('body-parser')
 module.exports = async function (system) {

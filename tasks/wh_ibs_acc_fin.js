@@ -1,7 +1,7 @@
-﻿const { importData } = require('./wh_util')
+﻿const { importIbso } = require('../core/wh-util')
 
 module.exports = function () {
-	importData(
+	importIbso(
 		`select
 			ID, 
 			C_1 ACCOUNT, 

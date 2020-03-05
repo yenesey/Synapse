@@ -1,6 +1,6 @@
 ﻿
 const dayjs = require('dayjs')
-const { getConnection, importData } = require('./wh_util')
+const { getConnection, importIbso } = require('../core/wh-util')
 const check =  require('./wh_ibs_acc_saldo_checker')
 
 module.exports = async function (params) {
@@ -30,7 +30,7 @@ module.exports = async function (params) {
 		)
 		console.log('Очистка выполнена')
 	}
-	await importData(
+	await importIbso(
 		`select
 			ID ACC_ID,
 			trunc(:dateOn) DATE_ON,

@@ -1,7 +1,7 @@
-'use strict'
 /*
-	источник данных Oracle
+  источник данных Oracle
 */
+'use strict'
 const crypto = require('crypto')
 const oracledb = require('oracledb')
 oracledb.outFormat = oracledb.OBJECT

@@ -1,9 +1,8 @@
-'use strict'
 /*
 	Выписка по карте на сайте банка (back-end API)
 	(Переработано по SZ-2491)
 */
-
+'use strict'
 const ora = require('../../ds-oracle')
 const soap = require('soap')
 // const oracledb = require('oracledb')

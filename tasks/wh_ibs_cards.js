@@ -1,7 +1,7 @@
-const { importData } = require('./wh_util')
+const { importIbso } = require('../core/wh-util')
 
 module.exports = function () {
-	importData(
+	importIbso(
 		`select
 			C.ID, 
 			substr(C.C_1, 1 ,22) PAN,

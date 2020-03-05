@@ -1,9 +1,9 @@
-const { importData } = require('./wh_util')
+const { importIbso } = require('../core/wh-util')
 
 module.exports = async function () {
 
 	console.log('Импорт кредитов')
-	await importData(
+	await importIbso(
 		`select 
 			ID, 
 			CLASS_ID,

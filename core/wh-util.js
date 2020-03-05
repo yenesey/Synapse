@@ -1,5 +1,10 @@
-﻿const oracledb = require('oracledb')
-const { equals, diff } = require('../core/lib')
+﻿/*
+  Импорт данных в WAREHOUSE из IBSO (или любого другого источника)
+*/
+
+'use strict'
+const oracledb = require('oracledb')
+const { equals, diff } = require('./lib')
 const treeStore = require('sqlite-tree-store')
 const oracle = treeStore('../db/synapse.db', 'system')(['config', 'oracle']) // забрали настройки соединения из локальной базы
 const ROWS_PER_ACTION = 10000
@@ -45,10 +50,10 @@ function getFieldsDDL (metaData) {
 /**
  * Сделать CREATE TABLE из метаданых
  * @param {oracledb.Metadata[]} metaData
- * @param {string} tableName
+ * @param {string} whTableName
  */
-function getCreateStatement (metaData, tableName) {
-	return  'create table WH.' + tableName + '\n' +
+function getCreateStatement (metaData, whTableName) {
+	return  'create table WH.' + whTableName + '\n' +
 		'(' + '\n' +
 			getFieldsDDL(metaData) + '\n' +
 		')'
@@ -57,10 +62,10 @@ function getCreateStatement (metaData, tableName) {
 /**
  * Сделать ALTER TABLE из метаданых
  * @param {oracledb.Metadata[]} metaData
- * @param {string} tableName
+ * @param {string} whTableName
  */
-function getAlterStatement (metaData, tableName) {
-	return 'alter table ' + tableName + '\n' +
+function getAlterStatement (metaData, whTableName) {
+	return 'alter table ' + whTableName + '\n' +
 		'add (' + '\n' +
 			getFieldsDDL(metaData) + '\n' +
 		')'
@@ -69,27 +74,27 @@ function getAlterStatement (metaData, tableName) {
 /**
  * Сделать INSERT INTO из метаданых
  * @param {oracledb.Metadata[]} metaData
- * @param {string} tableName
+ * @param {string} whTableName
  */
-function getInsertStatement (metaData, tableName) {
+function getInsertStatement (metaData, whTableName) {
 	let len = metaData.length
 	let heads = metaData.reduce((result, el, index) => result + el.name + (index < len - 1 ? ', ' : ')'), '(')
 	let values = metaData.reduce((result, el, index) => result + ':' + String(index + 1) + (index < len - 1 ? ', ' : ')'), '(')
-	return 'insert into\n' + tableName + ' ' + heads + '\nvalues ' + values
+	return 'insert into\n' + whTableName + ' ' + heads + '\nvalues ' + values
 }
 
 /**
  * Сделать MERGE INTO из метаданых
  * @param {oracledb.Metadata[]} metaData
- * @param {string} tableName
+ * @param {string} whTableName
  */
-function getMergeStatement (metaData, tableName, keys = ['ID']) { // "merge into ... " from metaData
+function getMergeStatement (metaData, whTableName, keys = ['ID']) { // "merge into ... " from metaData
 	let pairs = metaData.map((el, index) => ({ name: el.name, placeholder: ':' + (index + 1) }))
-	return 'merge into ' + tableName + '\n' +
+	return 'merge into ' + whTableName + '\n' +
 		'using (\n  select\n' +
 			pairs.filter(el => keys.includes(el.name)).map(el => '    '  + el.placeholder + ' ' + el.name).join(',\n') + ' from dual\n' +
 		'   ) vals on (' +
-			keys.map(el => tableName + '.' + el + ' = vals.' + el).join(' and ') + ')\n' +
+			keys.map(el => whTableName + '.' + el + ' = vals.' + el).join(' and ') + ')\n' +
 		'when matched then\n  update set\n' +
 			pairs.filter(el => !keys.includes(el.name)).map(el => '    ' + el.name + ' = ' + el.placeholder).join(',\n') + '\n' +
 		'when not matched then\n  insert (' + pairs.map(el => el.name).join(',') + ')\n  values (' + pairs.map(el => el.placeholder).join(',') + ')'
@@ -134,23 +139,35 @@ function getConnection (dest) {
 	return Promise.reject(new Error('wrong connection alias'))
 }
 
-// -------------------------------------------------------------------------------
-async function genericImport (source, tableName, options) {
+/**
+ * Импорт данных из источника <source> в указанную таблицу Warehouse <whTableName>
+ * @param {Object[]} source
+ * @param {Array} source[].metaData
+ * @param {Array} source[].rows
+ * @param {Array} source[].resultSet
+ * @param {string} whTableName
+ * @param {Object[]} options
+ * @param {String[]} options[].keys
+ * @param {String} options[].comment
+ * @param {Boolean} options[].merge
+ * @param {Boolean} options[].wipe
+ */
+async function importData (source, whTableName, options) {
 	let warehouse = await getConnection('warehouse')
 	if ( // если таблица - приемник не существует
 		(await warehouse.execute(
-			`select * from ALL_TABLES where owner ='WH' and upper(TABLE_NAME) = upper('${tableName}')`)
+			`select * from ALL_TABLES where owner ='WH' and upper(TABLE_NAME) = upper('${whTableName}')`)
 		).rows.length !== 1
 	) {
-		console.log(`creating table [${tableName}] ...`)
-		await warehouse.execute(getCreateStatement(source.metaData, tableName))
+		console.log(`creating table [${whTableName}] ...`)
+		await warehouse.execute(getCreateStatement(source.metaData, whTableName))
 		console.log(`done.`)
 	}
 	if (options.comment) {
-		await warehouse.execute(`comment on table ${tableName} is '${options.comment}'`)
+		await warehouse.execute(`comment on table ${whTableName} is '${options.comment}'`)
 	}
 
-	let destination = await warehouse.execute(`select * from ${tableName} where 1 = 0`, {}, { resultSet: true, extendedMetaData: true })
+	let destination = await warehouse.execute(`select * from ${whTableName} where 1 = 0`, {}, { resultSet: true, extendedMetaData: true })
 	await destination.resultSet.close()
 
 	let check = checkStructure(destination.metaData, source.metaData)
@@ -159,52 +176,49 @@ async function genericImport (source, tableName, options) {
 		return 0
 	}
 	if (check.alter.length) {
-		console.log(`altering table [${tableName}] ...`)
-		await warehouse.execute(getAlterStatement(check.alter, tableName))
+		console.log(`altering table [${whTableName}] ...`)
+		await warehouse.execute(getAlterStatement(check.alter, whTableName))
 		console.log(`done.`)
 	}
 	if (options.wipe) {
-		console.log(`wiping table [${tableName}] ...`)
-		await warehouse.execute(`delete from ${tableName}`)
+		console.log(`wiping table [${whTableName}] ...`)
+		await warehouse.execute(`delete from ${whTableName}`)
 		console.log(`done.`)
 	}
 
-	let statement = (options.merge ? getMergeStatement : getInsertStatement)(source.metaData, tableName, options.keys)
+	let statement = (options.merge ? getMergeStatement : getInsertStatement)(source.metaData, whTableName, options.keys)
 	let rows, info
 	let count = 0
-
-	if ('resultSet' in source) {
-		do {
-			rows = await source.resultSet.getRows(ROWS_PER_ACTION)
+	try {
+		if ('resultSet' in source) {
+			do {
+				rows = await source.resultSet.getRows(ROWS_PER_ACTION)
+				if (rows.length > 0) {
+					info = await warehouse.executeMany(statement, rows,	{ autoCommit: true })
+					count = count + info.rowsAffected
+				}
+			} while (rows.length === ROWS_PER_ACTION)
+			await source.resultSet.close()
+		} else {
+			rows = source.rows
 			if (rows.length > 0) {
-				info = await warehouse.executeMany(statement, rows,	{ autoCommit: true })
+				info = await warehouse.executeMany(statement, rows, { autoCommit: true })
 				count = count + info.rowsAffected
 			}
-		} while (rows.length === ROWS_PER_ACTION)
-		await source.resultSet.close()
-	} else {
-		rows = source.rows
-		if (rows.length > 0) {
-			info = await warehouse.executeMany(statement, rows, { autoCommit: true })
-			count = count + info.rowsAffected
 		}
+	} catch (err) {
+		console.log(err.message)
 	}
-
 	console.log((options.merge ? 'merge' : 'insert') + ' completed, ', count, ' rows affected')
 	return count
 }
 
 // -------------------------------------------------------------------------------
 
-async function importData (SQL, bindVars = {}, whDestinationTable, options = { merge: false }) {
+async function importIbso (SQL, bindVars = {}, whTableName, options = { merge: false }) {
 	let ibso = await getConnection('ibso') // let ibso = await getConnection('tavr_d')
 	let source = await ibso.execute(SQL, bindVars, { resultSet: true, extendedMetaData: true })
-	return genericImport(source, whDestinationTable, options)
+	return importData(source, whTableName, options)
 }
 
-async function importFromMemory (source, whDestinationTable, options) {
-	options.keys = [source.metaData[0].name]
-	return genericImport(source, whDestinationTable, options)
-}
-
-module.exports = { getConnection, importFromMemory, importData }
+module.exports = { getConnection, importData, importIbso }

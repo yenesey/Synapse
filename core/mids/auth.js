@@ -1,8 +1,7 @@
-'use strict'
 /*
-    Aутентификация и авторизация (middleware)
+  Aутентификация и авторизация (middleware)
 */
-
+'use strict'
 const expressNtlm = require('express-ntlm')
 const ActiveDirectory = require('activedirectory')
 

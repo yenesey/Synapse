@@ -1,9 +1,9 @@
-const { importData } = require('./wh_util')
+const { importIbso } = require('../core/wh-util')
 
 module.exports = async function () {
 	// -
 	console.log('Импорт пользователей')
-	await importData(
+	await importIbso(
 		`select 
 			ID,
 			C_1 NAME,
@@ -19,7 +19,7 @@ module.exports = async function () {
 	)
 
 	console.log('Импорт клиентов')
-	await importData(
+	await importIbso(
 		`select
 			ID, 
 			CLASS_ID,
@@ -37,7 +37,7 @@ module.exports = async function () {
 	)
 
 	console.log('Импорт организаций')
-	await importData(
+	await importIbso(
 		`select
 			ID, 
 			C_13 MAIN_CATEGORY,
@@ -53,7 +53,7 @@ module.exports = async function () {
 	)
 
 	console.log('Импорт банков')
-	await importData(
+	await importIbso(
 		`select
 			ID, 
 			C_1 BIK,
@@ -70,7 +70,7 @@ module.exports = async function () {
 
 	/*
 	// WH.IBS_CL_PERSONS
-	await importData(
+	await importIbso(
 		`select 
 			(select ID from VW_CRIT_VND_CL_CORP where REF45 = P.COLLECTION_ID) CLIENT_REF,
 			P.REF1 PERSON_REF,

@@ -1,7 +1,7 @@
-﻿const { importData } = require('./wh_util')
+﻿const { importIbso } = require('../core/wh-util')
 
 module.exports = function (params) {
-	importData(
+	importIbso(
 		`SELECT /*+ FIRST_ROWS(1) */
 			ID,         
 			C_1 as CODE ,        

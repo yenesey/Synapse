@@ -1,11 +1,9 @@
-'use strict'
-
 /*
-	Работа с пользователями, контроль доступа (требуется NTLM-middleware см. ./api.js)
+	Работа с пользователями, контроль доступа (требуется NTLM-middleware см. ./api/auth.js)
 	- авторизация
 	- добавление / удаление пользователя и т.п.
 */
-
+'use strict'
 const bodyParser = require('body-parser')
 const ActiveDirectory = require('activedirectory')
 const promisify = require('util').promisify

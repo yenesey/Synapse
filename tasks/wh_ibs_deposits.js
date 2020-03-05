@@ -1,9 +1,9 @@
-const { importData } = require('./wh_util')
+const { importIbso } = require('../core/wh-util')
 
 module.exports = async function () {
 /*
 	console.log('Импорт истории ставок')
-	await importData(
+	await importIbso(
 		`select 
 			ID, 
 			COLLECTION_ID,
@@ -25,7 +25,7 @@ module.exports = async function () {
 */
 /*
 	console.log('Импорт видов договоров')
-	await importData(
+	await importIbso(
 		`select 
 			ID, 
 			C_1 CLASS,
@@ -42,7 +42,7 @@ module.exports = async function () {
 	)
 */
 	console.log('Импорт депозитов')
-	await importData(
+	await importIbso(
 		`select 
 			ID, 
 			CLASS_ID,

@@ -1,13 +1,12 @@
-'use strict'
 /*
   Обертка для запуска:
     1) внешнего процесса - function exec(...)
     2) задачи (task), специальным образом оформленного внешнего процесса - function task(...)
 */
-
+'use strict'
 const path = require('path')
-const iconv = require('iconv-lite')
-const cp = require('child_process') // перекодировка для wscript
+const iconv = require('iconv-lite') // перекодировка для wscript
+const cp = require('child_process')
 
 module.exports = function (cfg, logger) {
 	// 1
