@@ -109,9 +109,9 @@ export default {
 			return document.documentElement.clientHeight - this.editorHeight - 150
 		},
 		headers () {
-			var rows = this.tableData;
+			var rows = this.tableData
 		
-			if (rows.length === 0) return [];
+			if (rows.length === 0) return []
 			var heads = Object.keys(rows[0]).map(el=>({
 				text: el,
 				//  align: (typeof this.tableData[0][el] === 'string')?'right':'left',
@@ -153,32 +153,32 @@ export default {
 	},
 
 	mounted : function(){
-		this.editor = this.$refs['editor-control'].editor;
+		this.editor = this.$refs['editor-control'].editor
 	},
 
 	methods: {
 
 		initDrag:function(e){
-			e.target.style.cursor='s-resize';
-			this.drag.startY = e.clientY;
-			this.drag.startHeight = parseInt(this.editorHeight, 10);
-			document.documentElement.addEventListener('mousemove', this.doDrag, false);
-			document.documentElement.addEventListener('mouseup', this.stopDrag, false);
-			e.stopPropagation();
+			e.target.style.cursor='s-resize'
+			this.drag.startY = e.clientY
+			this.drag.startHeight = parseInt(this.editorHeight, 10)
+			document.documentElement.addEventListener('mousemove', this.doDrag, false)
+			document.documentElement.addEventListener('mouseup', this.stopDrag, false)
+			e.stopPropagation()
 		},
 			
 		doDrag : function(e) {
-			var height = this.drag.startHeight + e.clientY - this.drag.startY;
-			if (height < 32) height = 32;
-			this.editorHeight = height;
+			var height = this.drag.startHeight + e.clientY - this.drag.startY
+			if (height < 32) height = 32
+			this.editorHeight = height
 		},
 			
 		stopDrag : function (e) {
-			this.editor.resize();
-			e.target.style.cursor='default';
-			document.documentElement.removeEventListener('mousemove', this.doDrag, false);
-			document.documentElement.removeEventListener('mouseup', this.stopDrag, false);
-			this.save();
+			this.editor.resize()
+			e.target.style.cursor='default'
+			document.documentElement.removeEventListener('mousemove', this.doDrag, false)
+			document.documentElement.removeEventListener('mouseup', this.stopDrag, false)
+			this.save()
 		},
 
 		url : function(){
@@ -186,7 +186,7 @@ export default {
 		},
 
 		load : function(){
-			var item = localStorage.getItem( this.url() );
+			var item = localStorage.getItem( this.url() )
 			if (item)	{
 				try {
 					item = JSON.parse(item)
@@ -201,45 +201,45 @@ export default {
 		},
 
 		save : function(){
-			localStorage.setItem(this.url(), JSON.stringify( {tab : this.$parent.name, sql : this.sql, editorHeight: this.editorHeight, connIndex: this.connIndex} ));			
+			localStorage.setItem(this.url(), JSON.stringify( {tab : this.$parent.name, sql : this.sql, editorHeight: this.editorHeight, connIndex: this.connIndex} ))			
 		},
 
 		remove : function(){
-			localStorage.removeItem( this.url() );			
+			localStorage.removeItem( this.url() )			
 		},
 
 		saveResult : function(event) {
 			var content = Object.keys(this.tableData[0]).reduce(function(s, next){
-					return  s + next + ';';
+					return  s + next + ''
 				}, "") + '\n' +
 				this.tableData.reduce(function(s, next){
 					return s + Object.keys(next).reduce(function(s, key){
-						var value = next[key];
+						var value = next[key]
 						if (typeof value === 'string'){
-							value = value.replace(/\n|\r/g, '');
+							value = value.replace(/\n|\r/g, '')
 						}
 						if (/^(0|[1-9][0-9]*)$/.test(value)){
-							return s + '="' + value + '"' + ";"
+							return s + '="' + value + '"' + ""
 						}	else {
-							return s + value + ";"
+							return s + value + ""
 						}
-					}, "") + '\n';
-				}, "");
+					}, "") + '\n'
+				}, "")
 			
-			saveFile(content, 'text/csv;charset=utf-8', this.$parent.name + '.csv');
+			saveFile(content, 'text/csvcharset=utf-8', this.$parent.name + '.csv')
 		},
 		
 		statusString : function(){
-			return this.tableData.length + " " +  declByNum(["строк",	"а",	 "и", "", 0], this.tableData.length) + ' (время: ' + this.time + ')';
+			return this.tableData.length + " " +  declByNum(["строк",	"а",	 "и", "", 0], this.tableData.length) + ' (время: ' + this.time + ')'
 		},
 
 		query : function() {
-			var self = this;
+			var self = this
 
-			self.running = true;
-			self.tableData = [];
-			self.error = "";
-			var start = dayjs();			
+			self.running = true
+			self.tableData = []
+			self.error = ""
+			var start = dayjs()			
 
 			pxhr({ method:'post', url:'dbquery', timeout : 60000*30, 
 				data: {
@@ -249,20 +249,20 @@ export default {
 				}
 			})
 			.then(function(res){
-				self.running = false;
-				if (res.error){
-					self.error = res.error 
+				self.running = false
+				if (res.status === 'error') {
+					self.error = res.message 
 				} else {				
-					self.tableData = res; 
-					self.time = dayjs(dayjs() - start).format("mm:ss.SSS");
+					self.tableData = res 
+					self.time = dayjs(dayjs() - start).format("mm:ss.SSS")
 				}
 			})
 			.catch(function(err){
-				self.running = false;
-				self.error = err;
-				console.error(err);
-			});
-			return false; 
+				self.running = false
+				self.error = err
+				console.error(err)
+			})
+			return false
 		} //query 
 	} //methods
 }
