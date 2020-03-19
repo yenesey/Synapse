@@ -1,4 +1,4 @@
-const { getConnection, importData } = require('./wh_util')
+const { getConnection, importIbso } = require('../core/wh-util')
 
 module.exports = async function () {
 	let warehouse = await getConnection('warehouse')
@@ -7,7 +7,7 @@ module.exports = async function () {
 	await warehouse.execute(`delete from IBS_BIN_DICT`)
 	console.log('Выполнено')
 
-	await importData(
+	await importIbso(
 		`select
 			ID,
 			C_1 NAME,

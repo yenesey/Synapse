@@ -1,4 +1,5 @@
-﻿const { importFromMemory } = require('./wh_util')
+﻿const { importData } = require('../core/wh-util')
+
 const oracledb = require('oracledb')
 const XlsxPopulate = require('xlsx-populate')
 const path = require('path')
@@ -23,44 +24,74 @@ module.exports = async function (params) {
 	let value
 	let metaData = []
 	let rows = []
-	let row = {}
+
 	while (value = workbook.sheet(0).cell(r, c++).value()) {
 		if (/[а-яА-я]/.test(value)) {
 			console.log('Кириллические символы в заголовке не допустимы!')
 			return -1
 		}
-		metaData.push({
+		metaData.push({ // числовой тип по-умолчанию, как самый простой. он может поменяться в процессе...
 			name: value.toUpperCase(),
-			dbType: oracledb.DB_TYPE_VARCHAR,
-			fetchType: oracledb.DB_TYPE_VARCHAR,
-			dbTypeName: 'VARCHAR2',
-			byteSize: 0,
-			nullable: true
+			nullable: true,
+			dbTypeName: 'NUMBER',
+			dbType: oracledb.DB_TYPE_NUMBER,
+			fetchType: oracledb.DB_TYPE_NUMBER,
+			precision: 0,
+			scale: -127
 		})
 	}
 
+	let length
+	let row
 	do {
 		r = r + 1
-		c = 1
-		row = []
-		while (value = workbook.sheet(0).cell(r, c++).value()) {
-			row.push(value)
-			let meta = metaData[c - 2]
-			if (typeof value === 'number') {
-				meta.dbType = oracledb.DB_TYPE_NUMBER
-				meta.fetchType = oracledb.DB_TYPE_NUMBER
-				meta.precision = 0
-				meta.scale = -127
-				meta.dbTypeName = 'NUMBER'
-				delete meta.byteSize
-			}
-			if (typeof value === 'string') {
-				if (meta.byteSize < value.length) meta.byteSize = value.length
-			}
-		}
-		rows.push(row)
-	} while (row.length > 0)
+		row = metaData.reduce((result, meta, colIndex) => {
+			let cell = workbook.sheet(0).cell(r, colIndex + 1)
+			value = cell.value()
 
-	await importFromMemory({ metaData, rows }, params.tableName, params.tableDescription, params.allowStructureChange)
+			if (!value) {
+				result.push(null)
+				return result
+			}
 
+			// console.log(cell._styleId, cell._value)
+			if (cell._styleId === 2 || typeof value === 'string') {
+				value = String(value)
+				if (!meta.byteSize || meta.byteSize < value.length) meta.byteSize = value.length
+				if (meta.dbType !== oracledb.DB_TYPE_VARCHAR) {
+					meta.dbTypeName = 'VARCHAR2'
+					meta.dbType = oracledb.DB_TYPE_VARCHAR
+					meta.fetchType = oracledb.DB_TYPE_VARCHAR
+					delete meta.precision
+					delete meta.scale
+					rows.forEach(r => { r[colIndex] = String(r[colIndex]) })
+				}
+			} else if (cell._styleId === 3) {
+				value = XlsxPopulate.numberToDate(value)
+				if (meta.dbType !== oracledb.DB_TYPE_DATE) {
+					meta.dbTypeName = 'DATE'
+					meta.dbType = oracledb.DB_TYPE_DATE
+					meta.fetchType = oracledb.DB_TYPE_TIMESTAMP_LTZ
+					delete meta.precision
+					delete meta.scale
+					rows.forEach(r => { r[colIndex] = new Date(r[colIndex]) })
+				}
+			} else if (typeof value === 'number' && meta.dbType !== oracledb.DB_TYPE_NUMBER) {
+				value = String(value)
+			}
+
+			result.push(value)
+			return result
+		}, []) // forEach
+		length = row.reduce((result, el) => result + Number(el !== null), 0)
+		if (length > 0) rows.push(row)
+	} while (length > 0)
+
+	await importData({ metaData, rows }, params.tableName,
+		{
+			keys: [metaData[0].name],
+			comment: params.tableDescription,
+			merge: params.merge,
+			wipe: params.wipe
+		})
 }

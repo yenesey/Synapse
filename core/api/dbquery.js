@@ -1,9 +1,7 @@
-'use strict'
-
 /*
 	Серверная часть компонента dbquery
 */
-
+'use strict'
 const bodyParser = require('body-parser')
 const dsOracle = require('../ds-oracle')
 

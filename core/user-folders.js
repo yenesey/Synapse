@@ -2,7 +2,6 @@
   автомат управления папками в basePath	(новые создаются, старые удаляются)
 */
 'use strict'
-
 const day = require('dayjs')
 const path = require('path')
 const fsp = require('./fsp')

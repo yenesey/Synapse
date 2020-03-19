@@ -1,9 +1,8 @@
-'use strict'
 
 /*
 	api для просмотра и редактирования дерева системы (в разработке)
 */
-
+'use strict'
 const { uuidv4 } = require('../lib')
 const sockets = {}
 

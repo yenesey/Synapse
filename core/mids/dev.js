@@ -1,9 +1,9 @@
-'use strict'
 /*
-	Режим разработчика
-	Если данный модуль запущен,	сервер выполняет сборку и
-	отдачу клиента на лету с Hot Module Reload (HMR)
+  Режим разработчика
+  Если данный модуль запущен,	сервер выполняет сборку и
+  отдачу клиента на лету с Hot Module Reload (HMR)
 */
+'use strict'
 const config = require('../webpack.config')
 const { combineMiddleware } = require('../lib')
 

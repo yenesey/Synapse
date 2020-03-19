@@ -1,8 +1,8 @@
-'use strict'
 /*
   стандартные функции fs, обернутые в промисы + некоторый доп. функционал
   велосипеды выпиливаю по мере появления в node (в частности { recursive: true } раньше не было)
 */
+'use strict'
 const path = require('path')
 const fs = require('fs')
 const promisify = require('util').promisify

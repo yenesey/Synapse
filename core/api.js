@@ -1,4 +1,3 @@
-'use strict'
 /*
   Сборка всех endpoints, которые лежат в ./api/ в один express.router
 
@@ -13,7 +12,7 @@
 		.....
 	}
 */
-
+'use strict'
 const fs = require('fs')
 const path = require('path')
 const auth = require('./mids/auth')

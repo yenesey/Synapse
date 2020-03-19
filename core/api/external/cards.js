@@ -1,11 +1,10 @@
-'use strict'
 /*
 	Выписка по карте на сайте банка (back-end API)
 	(Переработано по SZ-2491)
 */
-
+'use strict'
 const ora = require('../../ds-oracle')
-const soap = require('soap')
+// const soap = require('soap') 	const url = 'http://172.16.8.3:8962/solar-loyalty/loyaltyApi.wsdl'
 // const oracledb = require('oracledb')
 
 function dateFromStringDDMMYYYY (str) {
@@ -16,7 +15,6 @@ function dateFromStringDDMMYYYY (str) {
 module.exports = async function (system) {
 
 	const oracle = system.config.oracle
-	const url = 'http://172.16.8.3:8962/solar-loyalty/loyaltyApi.wsdl'
 	const ibso = ora(oracle.ibso)
 	const t2000 = ora(oracle.t)
 	// const warehouse = await oracledb.getConnection(oracle.warehouse)
@@ -49,20 +47,22 @@ module.exports = async function (system) {
 				dp.C_10 as "depo",
 				ovr.REF5 as "over_acc_id",
 				ovr.C_8 as "over_max",
-				(select listagg(C_1, ',') within group(order by null) from vw_crit_vz_cards where REF4 = vc.REF4 and ID != vc.ID)	as "card_add",
-				(select listagg(ID, ',') within group(order by null) from vw_crit_vz_cards where REF4 = vc.REF4 and ID != vc.ID)	as "card_add_ids"
+				(select listagg(C_1, ',') within group(order by null) from vw_crit_vz_cards where REF4 = vc.REF4 and ID != vc.ID) as "card_add",
+				(select listagg(ID, ',') within group(order by null) from vw_crit_vz_cards where REF4 = vc.REF4 and ID != vc.ID) as "card_add_ids"
 			from
 				VW_CRIT_VZ_CLIENT cl,
 				VW_CRIT_IP_CARD_TYPE vct,
 				VW_CRIT_VZ_CARDS vc,
+				VW_CRIT_VZ_ACCOUNTS vz_acc,
 				VW_CRIT_DEPN dp 
 			left join 
 				VW_CRIT_OVER_OPEN ovr on ovr.REF3 = dp.ID
 			where 
+				vc.REF4 = vz_acc.ID and
+				vz_acc.REF12 = dp.ID and
 				vc.C_8 != 'Закрыта' and
 				vc.REF2 = vct.ID and
-				cl.ID = vc.REF24 and 
-				dp.REF3 = vc.REF5 and ` + (
+				cl.ID = vc.REF24 and ` + (
 				number.length === 20
 					? `vc.REF5 = :id and vct.C_3 = 1`  // если дан 20-зн счет, проверяем кодовое слово главной (==1) карты
 					: `vc.ID= :id`
@@ -244,6 +244,7 @@ module.exports = async function (system) {
 				{ maxRows: 10000 }
 				).catch(err => { console.log('at receipt!'); throw err }),
 
+				/*
 				// холды:
 				ibso(`
 				select 
@@ -297,6 +298,7 @@ module.exports = async function (system) {
 						}
 					}
 					)
+
 				).then(response => response[0].body)
 					.then(data =>
 						data.response.code === 'SLR-0001'
@@ -307,12 +309,15 @@ module.exports = async function (system) {
 						err.client = req.connection.remoteAddress
 						console.log(err)
 					})
-			]).then(([saldo, receipt, holds, bonus]) => {
+				*/
+			]).then(([saldo, receipt /*,holds, bonus*/]) => {
 
 				for (var key in saldo) saldo[key] = round(saldo[key], 2)
+/*					
 				if (bonus) {
 					saldo.bonus = Number(bonus)
 				}
+*/
 
 				res.json({
 					client: card.fio,
@@ -325,7 +330,7 @@ module.exports = async function (system) {
 						saldo,	avg(receipt, saldo.acc_from, saldo.acc_till, req.query.edfrom, req.query.edto)
 					),
 					receipt: receipt,
-					holds: holds,
+					// holds: holds,
 					trn_pays: receipt.reduce((result, item) => {
 						if (
 							dateFromStringDDMMYYYY(item.date_op) >= dateFromStringDDMMYYYY(req.query.edfrom) &&
@@ -346,7 +351,7 @@ module.exports = async function (system) {
 	})
 
 	// баланс по карте из ПЦ
-	this.get('/balance',	function (req, res) {
+	this.get('/balance', function (req, res) {
 		return card(req.query.ednumber, req.query.edpassword)
 			.then(card => {
 				if ('error' in card) {

@@ -1,9 +1,7 @@
-'use strict'
-
 /*
 	API для телеграмм-бота
 */
-
+'use strict'
 const ora = require('../../ds-oracle')
 
 module.exports = function (system) {

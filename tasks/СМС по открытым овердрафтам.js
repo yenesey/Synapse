@@ -1,7 +1,5 @@
 ﻿/*
 	СМС по открытым овердрафтам
-	(c) Денис Богачев <d.enisei@yandex.ru>
-
 */
 
 module.exports = async function (param, system) {

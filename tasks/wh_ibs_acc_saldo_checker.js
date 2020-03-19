@@ -1,6 +1,6 @@
 
 const dayjs = require('dayjs')
-const { getConnection } = require('./wh_util')
+const { getConnection } = require('../core/wh-util')
 const { declByNum, leftPad } = require('../core/lib')
 
 module.exports = async function (params) {
