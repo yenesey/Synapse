@@ -86,7 +86,7 @@ var config = {
 	mode: 'development',
 	devtool: 'source-map',
 
-	plugins: [ 
+	plugins: [
 		// new webpack.ContextReplacementPlugin(/moment[/\\]locale$/, /^\.\/(ru)$/), //--берем только русскую локаль
 		new HtmlWebpackPlugin({
 			inject: true,

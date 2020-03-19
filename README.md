@@ -24,8 +24,7 @@
 ### Необходимые компоненты (prerequisites)
 - nodejs (https://nodejs.org/)
 - git (https://git-scm.com/download/)
-- Oracle Instant Сlient (https://github.com/oracle/node-oracledb)
-
+- Oracle Instant Сlient (https://www.oracle.com/database/technologies/instant-client/downloads.html)
 ```
 C правами администратора:
 \> npm install --global --production windows-build-tools

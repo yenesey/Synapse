@@ -1,6 +1,6 @@
 node_modules
 nssm.exe
-db
+db/*.db
 client
 sslcert
 users
